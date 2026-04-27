@@ -1043,4 +1043,70 @@ void MainWindow::onSmoothingFactorChanged(double value) {
   DEBUG_PRINT("Mesh buffers updated and widget repaint requested");
 }
 
+void MainWindow::connectSignals() {
+  // Трансформации
+  connect(moveXSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onMoveXChanged);
+  connect(moveYSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onMoveYChanged);
+  connect(moveZSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onMoveZChanged);
+  connect(rotateXSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onRotateXChanged);
+  connect(rotateYSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onRotateYChanged);
+  connect(rotateZSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onRotateZChanged);
+  connect(scaleXSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onScaleXChanged);
+  connect(scaleYSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onScaleYChanged);
+  connect(scaleZSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onScaleZChanged);
+
+  // Файловые операции
+  connect(newBtn_, &QPushButton::clicked, this, &MainWindow::onNewModel);
+  connect(openBtn_, &QPushButton::clicked, this, &MainWindow::onOpenModel);
+  connect(loadBtn_, &QPushButton::clicked, this, &MainWindow::onLoadModel);
+  connect(undoBtn_, &QPushButton::clicked, this, &MainWindow::onUndo);
+  connect(redoBtn_, &QPushButton::clicked, this, &MainWindow::onRedo);
+
+  // Скриншоты, GIF
+  connect(screenshotBtn_, &QPushButton::clicked, this, &MainWindow::onScreenshot);
+  connect(recordBtn_, &QPushButton::clicked, this, &MainWindow::onRecordGif);
+  connect(fitBtn_, &QPushButton::clicked, this, &MainWindow::onFit);
+
+  // Текстуры
+  connect(loadTextureBtn_, &QPushButton::clicked, this, &MainWindow::onLoadTexture);
+  connect(clearTextureBtn_, &QPushButton::clicked, this, &MainWindow::onClearTexture);
+  connect(saveUVMapBtn_, &QPushButton::clicked, this, &MainWindow::onSaveUVMap);
+
+  // Настройки отображения
+  connect(projectionCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+          this, &MainWindow::onProjectionChanged);
+  connect(bgColorBtn_, &QPushButton::clicked, this, &MainWindow::onBackgroundColorClicked);
+  connect(edgeColorBtn_, &QPushButton::clicked, this, &MainWindow::onEdgeColorClicked);
+  connect(vertexColorBtn_, &QPushButton::clicked, this, &MainWindow::onVertexColorClicked);
+  connect(edgeThicknessSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onEdgeThicknessChanged);
+  connect(vertexTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+          this, &MainWindow::onVertexTypeChanged);
+  connect(vertexSizeSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onVertexSizeChanged);
+  connect(selectedEdgeColorBtn_, &QPushButton::clicked, this, &MainWindow::onSelectedEdgeColorClicked);
+  connect(selectedVertexColorBtn_, &QPushButton::clicked, this, &MainWindow::onSelectedVertexColorClicked);
+  connect(edgeTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+          this, &MainWindow::onEdgeTypeChanged);
+  connect(dashFactorSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onDashFactorChanged);
+
+  // Освещение и шейдинг
+  connect(shadingTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onShadingTypeChanged);
+
+  // Ошибки шейдеров
+  connect(glWidget_, &GLWidget::shaderError, this, [this](const QString& msg) {
+    QMessageBox::critical(this, tr("Shader Error"), msg);
+  });
+}
+
 }  // namespace s21
