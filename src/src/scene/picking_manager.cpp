@@ -1,8 +1,8 @@
-#include "picking_manager.h"
 
+#include "common/transform.h"
+#include "picking_manager.h"
 #include <cmath>
 #include <limits>
-
 #include "common/point.h"
 #include "common/transform.h"
 #include "matrix/s21_matrix_oop.h"
@@ -114,6 +114,7 @@ Ray ComputePickRay(int mouse_x, int mouse_y, int width, int height,
   return {nearWorld, dir};
 }
 
+// Вместо старой реализации PickObject вставьте:
 Mesh* PickingManager::PickObject(int mouse_x, int mouse_y,
                                  int width, int height,
                                  const Camera& camera, const Scene& scene) {
@@ -123,13 +124,54 @@ Mesh* PickingManager::PickObject(int mouse_x, int mouse_y,
     const_cast<Scene&>(scene).RebuildSpatialIndex();
   auto* index = const_cast<Scene&>(scene).GetSpatialIndex();
 
-  if (!index) {
-    // fallback на полный перебор
-    return PickObjectBruteForce(scene, worldRay);
+  Mesh* selected = nullptr;
+  float closest_t = std::numeric_limits<float>::max();
+
+  auto checkMesh = [&](Mesh* mesh) {
+    if (!mesh) return;
+    S21Matrix model = mesh->GetTransform().GetModelMatrix();
+    S21Matrix invModel;
+    try {
+      double det = model.Determinant();
+      if (std::abs(det) < 1e-7) return;
+      invModel = model.InverseMatrix();
+    } catch (const std::exception&) {
+      return;
+    }
+
+    Ray localRay;
+    localRay.origin = TransformPoint(invModel, worldRay.origin);
+    Point worldEnd = worldRay.origin + worldRay.direction;
+    Point localEnd = TransformPoint(invModel, worldEnd);
+    localRay.direction = Normalize(localEnd - localRay.origin);
+
+    const BoundingSphere& sphere = mesh->GetBoundingSphere();
+    Point hit_point;
+    auto t_opt = IntersectRaySphere(localRay, sphere.center, sphere.radius, hit_point);
+    if (t_opt.has_value() && *t_opt < closest_t) {
+      closest_t = *t_opt;
+      selected = mesh;
+    }
+  };
+
+  if (index) {
+    // Используем пространственный индекс
+    std::vector<size_t> candidates = index->QueryRay(worldRay.origin, worldRay.direction);
+    const auto& objects = scene.GetObjects();
+    for (size_t idx : candidates) {
+      if (idx >= objects.size()) continue;
+      Mesh* mesh = dynamic_cast<Mesh*>(objects[idx].get());
+      checkMesh(mesh);
+    }
+  } else {
+    // Запасной вариант — полный перебор
+    for (const auto& obj : scene.GetObjects()) {
+      Mesh* mesh = dynamic_cast<Mesh*>(obj.get());
+      checkMesh(mesh);
+    }
   }
 
-  std::vector<size_t> candidates = index->QueryRay(worldRay.origin, worldRay.direction);
-  // дальнейшая точная проверка как в примере
+  return selected;
 }
 
 }  // namespace s21

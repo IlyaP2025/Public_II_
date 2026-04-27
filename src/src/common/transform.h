@@ -2,7 +2,7 @@
 #define S21_TRANSFORM_H
 
 #include "point.h"
-#include "s21_matrix_oop.h"
+#include "matrix/s21_matrix_oop.h"
 
 namespace s21 {
 
@@ -27,6 +27,9 @@ class Transform {
   Point rotation_;
   Point scale_;
 };
+
+// Вспомогательная функция для умножения матрицы на точку
+Point TransformPoint(const S21Matrix& m, const Point& p);
 
 }  // namespace s21
 
