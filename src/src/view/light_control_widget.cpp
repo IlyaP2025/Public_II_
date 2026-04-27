@@ -1,9 +1,10 @@
 #include "light_control_widget.h"
 #include "light_editor_dialog.h"
+
+#include <QCheckBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
-#include <QGroupBox>
 
 namespace s21 {
 

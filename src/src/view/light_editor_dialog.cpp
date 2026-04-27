@@ -1,9 +1,10 @@
 #include "light_editor_dialog.h"
-#include <QVBoxLayout>
-#include <QFormLayout>
-#include <QHBoxLayout>
+
 #include <QColorDialog>
 #include <QDialogButtonBox>
+#include <QFormLayout>
+#include <QGroupBox>
+#include <QVBoxLayout>
 
 namespace s21 {
 
