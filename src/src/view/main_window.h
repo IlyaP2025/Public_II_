@@ -13,6 +13,7 @@
 #include "facade/facade.h"
 #include "gif_recorder.h"
 #include "gl_widget.h"
+#include "light_control_widget.h"
 #include "scene/scene_observer.h"
 #include "settings/settings.h"
 
@@ -76,8 +77,6 @@ class MainWindow : public QMainWindow, public SceneObserver {
   void onEdgeTypeChanged(int index);
   void onDashFactorChanged(double value);
 
-  void onLightColorClicked();
-  void onLightPosChanged();
   void onShadingTypeChanged(int index);
   void onFlipNormalsChecked(bool checked);
   void onModelLoaded();
@@ -93,18 +92,26 @@ class MainWindow : public QMainWindow, public SceneObserver {
 
   void onSmoothingFactorChanged(double value);
 
+  // Свет
+  void onLightAdded(const LightSource& light);
+  void onLightRemoved(size_t index);
+  void onLightUpdated(size_t index, const LightSource& light);
+  void onLightsChanged();
+
  private:
   void setupUI();
   void createToolBar();
   void createRightPanel();
   void createTransformTab(QTabWidget* tabWidget);
   void createDisplayTab(QTabWidget* tabWidget);
+  void createLightsTab(QTabWidget* tabWidget);
   void updateUIFromSelection();
   void updateModelInfo();
   void connectSignals();
   void updateDisplayUI();
   void updateUiState(AppState newState);
   void loadModelFromFile(const QString& fileName);
+  void loadInitialLights();
 
   void applyMove(int axis, double value);
   void applyRotate(int axis, double value);
@@ -123,11 +130,8 @@ class MainWindow : public QMainWindow, public SceneObserver {
   QDoubleSpinBox* dashFactorSpin_;
   QCheckBox* flipNormalsCheckBox_;
 
-  QGroupBox* lightGroup_;
-  QDoubleSpinBox* lightPosX_;
-  QDoubleSpinBox* lightPosY_;
-  QDoubleSpinBox* lightPosZ_;
-  QPushButton* lightColorBtn_;
+  LightControlWidget* lightControlWidget_ = nullptr;
+
   QComboBox* shadingTypeCombo_;
 
   QPushButton* newBtn_;

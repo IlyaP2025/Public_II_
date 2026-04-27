@@ -1,8 +1,8 @@
-#include "facade.h"
-
 #include <iostream>
 
+#include "facade.h"
 #include "common/debug.h"
+#include "commands/light_commands.h"
 #include "loaders/iloader.h"
 #include "loaders/loader_factory.h"
 
@@ -193,5 +193,28 @@ void Facade::AddStateObserver(AppStateMachine::Observer observer) {
 }
 
 AppState Facade::GetState() const { return stateMachine_->GetState(); }
+
+// Методы для освещения
+void Facade::AddLight(const LightSource& light) {
+  auto cmd = std::make_unique<AddLightCommand>(scene_.get(), light);
+  cmdManager_.executeCommand(std::move(cmd));
+}
+
+void Facade::RemoveLight(size_t index) {
+  auto cmd = std::make_unique<RemoveLightCommand>(scene_.get(), index);
+  cmdManager_.executeCommand(std::move(cmd));
+}
+
+void Facade::UpdateLight(size_t index, const LightSource& light) {
+  auto cmd = std::make_unique<UpdateLightCommand>(scene_.get(), index, light);
+  cmdManager_.executeCommand(std::move(cmd));
+}
+
+std::vector<LightSource> Facade::GetLights() const {
+  std::vector<LightSource> all;
+  for (size_t i = 0; i < scene_->GetLightManager().GetLightCount(); ++i)
+    all.push_back(scene_->GetLightManager().GetLight(i));
+  return all;
+}
 
 }  // namespace s21

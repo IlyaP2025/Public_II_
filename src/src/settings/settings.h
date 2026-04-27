@@ -5,6 +5,8 @@
 #include <QObject>
 #include <QSettings>
 
+#include "common/lighting.h"
+
 namespace s21 {
 
 class Settings : public QObject {
@@ -74,6 +76,10 @@ class Settings : public QObject {
   enum class ShadingModel { Flat, Phong };
   ShadingModel shadingModel() const;
   void setShadingModel(ShadingModel model);
+
+  // Освещение
+  void SaveLights(const std::vector<LightSource>& lights);
+  std::vector<LightSource> LoadLights() const;
 
  signals:
   void settingsChanged();

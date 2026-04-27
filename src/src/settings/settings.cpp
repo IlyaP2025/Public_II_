@@ -1,6 +1,9 @@
-#include "settings.h"
 
 #include <cmath>
+#include <QSettings>
+
+#include "settings.h"
+#include "common/lighting.h"
 
 namespace s21 {
 
@@ -216,6 +219,59 @@ void Settings::setObjectColor(const QColor& color) {
     save();
     emit settingsChanged();
   }
+}
+
+void Settings::SaveLights(const std::vector<LightSource>& lights) {
+  QSettings s;
+  s.beginGroup("lights");
+  s.setValue("count", static_cast<int>(lights.size()));
+  for (size_t i = 0; i < lights.size(); ++i) {
+    const auto& l = lights[i];
+    s.beginGroup(QString::number(i));
+    s.setValue("enabled", l.enabled);
+    s.setValue("pos_x", static_cast<double>(l.position.x));
+    s.setValue("pos_y", static_cast<double>(l.position.y));
+    s.setValue("pos_z", static_cast<double>(l.position.z));
+    s.setValue("ambient_r", static_cast<double>(l.ambient.r));
+    s.setValue("ambient_g", static_cast<double>(l.ambient.g));
+    s.setValue("ambient_b", static_cast<double>(l.ambient.b));
+    s.setValue("diffuse_r", static_cast<double>(l.diffuse.r));
+    s.setValue("diffuse_g", static_cast<double>(l.diffuse.g));
+    s.setValue("diffuse_b", static_cast<double>(l.diffuse.b));
+    s.setValue("specular_r", static_cast<double>(l.specular.r));
+    s.setValue("specular_g", static_cast<double>(l.specular.g));
+    s.setValue("specular_b", static_cast<double>(l.specular.b));
+    s.endGroup();
+  }
+  s.endGroup();
+}
+
+std::vector<LightSource> Settings::LoadLights() const {
+  QSettings s;
+  std::vector<LightSource> lights;
+  s.beginGroup("lights");
+  int count = s.value("count", 0).toInt();
+  for (int i = 0; i < count; ++i) {
+    s.beginGroup(QString::number(i));
+    LightSource l;
+    l.enabled = s.value("enabled", true).toBool();
+    l.position.x = s.value("pos_x", 0.0).toFloat();
+    l.position.y = s.value("pos_y", 0.0).toFloat();
+    l.position.z = s.value("pos_z", 0.0).toFloat();
+    l.ambient.r  = s.value("ambient_r", 0.1f).toFloat();
+    l.ambient.g  = s.value("ambient_g", 0.1f).toFloat();
+    l.ambient.b  = s.value("ambient_b", 0.1f).toFloat();
+    l.diffuse.r  = s.value("diffuse_r", 1.0f).toFloat();
+    l.diffuse.g  = s.value("diffuse_g", 1.0f).toFloat();
+    l.diffuse.b  = s.value("diffuse_b", 1.0f).toFloat();
+    l.specular.r = s.value("specular_r", 1.0f).toFloat();
+    l.specular.g = s.value("specular_g", 1.0f).toFloat();
+    l.specular.b = s.value("specular_b", 1.0f).toFloat();
+    lights.push_back(l);
+    s.endGroup();
+  }
+  s.endGroup();
+  return lights;
 }
 
 }  // namespace s21

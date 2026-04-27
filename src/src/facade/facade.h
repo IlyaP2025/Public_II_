@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "common/lighting.h"
 #include "commands/command_manager.h"
 #include "commands/macro_command.h"
 #include "commands/transform_commands.h"
@@ -57,6 +58,12 @@ class Facade {
 
   void AddStateObserver(AppStateMachine::Observer observer);
   AppState GetState() const;  // добавлено
+
+  // Работа с освещением
+  void AddLight(const LightSource& light);
+  void RemoveLight(size_t index);
+  void UpdateLight(size_t index, const LightSource& light);
+  std::vector<LightSource> GetLights() const;
 
  private:
   std::shared_ptr<Scene> scene_;
