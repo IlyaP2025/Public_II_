@@ -80,6 +80,7 @@ std::vector<const Mesh*> Scene::GetAllMeshes() const {
 }
 
 Scene::Scene() {
+  spatialIndex_ = std::make_unique<KdTreeMeshIndex>();	
   light_manager_.SetChangeCallback([this]() { NotifyLightsChanged(); });
 }
 

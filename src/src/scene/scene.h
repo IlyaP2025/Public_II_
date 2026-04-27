@@ -17,7 +17,7 @@ namespace s21 {
 
 class Scene {
  public:
-  Scene() = default;
+  Scene();
   ~Scene() = default;
 
   // Добавление объекта (теперь возвращает указатель на добавленный объект)
