@@ -8,6 +8,10 @@
 #include "mesh.h"
 #include "scene_object.h"
 #include "scene_observer.h"
+#include "src/common/lighting.h"
+#include "src/scene/light_manager.h"
+#include "src/common/spatial_index.h"
+#include "src/scene/kd_tree_index.h"
 
 namespace s21 {
 
@@ -31,11 +35,29 @@ class Scene {
     return objects_;
   }
   std::vector<const Mesh*> GetAllMeshes() const;
+  
+  ILightManager& GetLightManager() { return light_manager_; }
+  const ILightManager& GetLightManager() const { return light_manager_; }
+
+  std::vector<BoundingBox> GetMeshBoundingBoxes() const;
+  void MarkStructureDirty() { structureDirty_ = true; }
+  bool IsStructureDirty() const { return structureDirty_; }
+  void ClearStructureDirty() { structureDirty_ = false; }
+  void RebuildSpatialIndex();
+  ISpatialIndex* GetSpatialIndex() { return spatialIndex_.get(); }
 
  private:
   std::vector<std::unique_ptr<SceneObject>> objects_;
   std::vector<SceneObject*> selected_;
   std::vector<SceneObserver*> observers_;
+
+  LightManager light_manager_;
+  bool structureDirty_ = true;
+  std::unique_ptr<ISpatialIndex> spatialIndex_ =
+      std::make_unique<KdTreeMeshIndex>();
+
+  void NotifyLightsChanged();
+
 };
 
 }  // namespace s21

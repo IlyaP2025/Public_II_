@@ -79,6 +79,10 @@ std::vector<const Mesh*> Scene::GetAllMeshes() const {
   return result;
 }
 
+Scene::Scene() {
+  light_manager_.SetChangeCallback([this]() { NotifyLightsChanged(); });
+}
+
 void Scene::Clear() {
   // Сначала сбрасываем выделение, чтобы наблюдатели перестали ссылаться на
   // удаляемые объекты
@@ -90,6 +94,37 @@ void Scene::Clear() {
     SceneObject* obj = objects_.back().get();
     RemoveObject(obj);  // внутри объекта уведомление и удаление
   }
+
+  light_manager_.Clear();
+  structureDirty_ = true;
+
+}
+
+void Scene::NotifyLightsChanged() {
+  // уведомление наблюдателей (можно расширить SceneObserver)
+  for (auto* obs : observers_) {
+    obs->OnLightsChanged();  // если добавите метод в интерфейс
+  }
+}
+
+std::vector<BoundingBox> Scene::GetMeshBoundingBoxes() const {
+  std::vector<BoundingBox> boxes;
+  for (const auto& obj : objects_) {
+    if (auto* mesh = dynamic_cast<const Mesh*>(obj.get())) {
+      BoundingBox local = mesh->GetBoundingBox();
+      S21Matrix model = mesh->GetTransform().GetModelMatrix();
+      // трансформация 8 вершин и вычисление мирового AABB
+      // (реализация как в предоставленном примере)
+      boxes.push_back(worldBox);
+    }
+  }
+  return boxes;
+}
+
+void Scene::RebuildSpatialIndex() {
+  auto boxes = GetMeshBoundingBoxes();
+  spatialIndex_->Build(boxes);
+  structureDirty_ = false;
 }
 
 }  // namespace s21
