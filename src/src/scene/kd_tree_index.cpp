@@ -8,7 +8,7 @@ void KdTreeMeshIndex::Build(const std::vector<BoundingBox>& boxes) {
     originalBoxes_ = boxes;
     if (boxes.empty()) {
         root_.reset();
-        return;
+    return;
     }
 
     std::vector<std::pair<BoundingBox, size_t>> items;

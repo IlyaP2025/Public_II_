@@ -3,9 +3,10 @@
 
 #include <vector>
 #include "common/point.h"
-#include "scene/mesh.h"  // для BoundingBox
+#include "scene/mesh.h"   // для BoundingBox
 
 namespace s21 {
+
 class ISpatialIndex {
 public:
     virtual ~ISpatialIndex() = default;
@@ -14,5 +15,7 @@ public:
     virtual std::vector<size_t> QueryRay(const Point& origin,
                                          const Point& direction) const = 0;
 };
+
 }  // namespace s21
+
 #endif  // S21_SPATIAL_INDEX_H
