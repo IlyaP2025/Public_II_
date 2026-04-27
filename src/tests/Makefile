@@ -32,6 +32,8 @@ LIB_SRCS = \
     $(SRC_DIR)/scene/scene.cpp \
     $(SRC_DIR)/scene/camera.cpp \
     $(SRC_DIR)/scene/model_builder.cpp \
+    $(SRC_DIR)/scene/light_manager.cpp \
+    $(SRC_DIR)/scene/kd_tree_index.cpp \
     $(SRC_DIR)/loaders/obj_loader.cpp \
     $(SRC_DIR)/loaders/loader_factory.cpp \
     $(SRC_DIR)/settings/settings.cpp
