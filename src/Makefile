@@ -41,7 +41,9 @@ SOURCES = src/main.cpp \
           src/view/gif_recorder.cpp \
           src/view/settings_dialog.cpp \
           src/state_machine/app_state_machine.cpp \
-	  src/renderer/shader_program.cpp
+	  src/renderer/shader_program.cpp \
+          src/view/light_editor_dialog.cpp \
+          src/view/light_control_widget.cpp
 
 BUILD_DIR = build
 OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
@@ -53,13 +55,17 @@ MOC_SRCS = $(MOC_DIR)/moc_gl_widget.cpp \
            $(MOC_DIR)/moc_settings.cpp \
            $(MOC_DIR)/moc_settings_dialog.cpp \
            $(MOC_DIR)/moc_loader_worker.cpp \
-           $(MOC_DIR)/moc_gif_recorder.cpp
+           $(MOC_DIR)/moc_gif_recorder.cpp \
+           $(MOC_DIR)/moc_light_editor_dialog.cpp \
+           $(MOC_DIR)/moc_light_control_widget.cpp
 MOC_OBJS = $(MOC_DIR)/moc_gl_widget.o \
            $(MOC_DIR)/moc_main_window.o \
            $(MOC_DIR)/moc_settings.o \
            $(MOC_DIR)/moc_settings_dialog.o \
            $(MOC_DIR)/moc_loader_worker.o \
-           $(MOC_DIR)/moc_gif_recorder.o
+           $(MOC_DIR)/moc_gif_recorder.o \
+           $(MOC_DIR)/moc_light_editor_dialog.o \
+           $(MOC_DIR)/moc_light_control_widget.o
 
 TEST_DIR = tests
 REPORT_DIR = report
@@ -96,6 +102,12 @@ $(MOC_DIR)/moc_loader_worker.cpp: $(LOADERS_DIR)/loader_worker.h | $(MOC_DIR)
 $(MOC_DIR)/moc_gif_recorder.cpp: $(VIEW_DIR)/gif_recorder.h | $(MOC_DIR)
 	$(MOC) $< -o $@
 
+$(MOC_DIR)/moc_light_editor_dialog.cpp: $(VIEW_DIR)/light_editor_dialog.h | $(MOC_DIR)
+	$(MOC) $< -o $@
+
+$(MOC_DIR)/moc_light_control_widget.cpp: $(VIEW_DIR)/light_control_widget.h | $(MOC_DIR)
+	$(MOC) $< -o $@
+
 $(MOC_DIR):
 	mkdir -p $(MOC_DIR)
 
@@ -116,6 +128,12 @@ $(MOC_DIR)/moc_loader_worker.o: $(MOC_DIR)/moc_loader_worker.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(MOC_DIR)/moc_gif_recorder.o: $(MOC_DIR)/moc_gif_recorder.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(MOC_DIR)/moc_light_editor_dialog.o: $(MOC_DIR)/moc_light_editor_dialog.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(MOC_DIR)/moc_light_control_widget.o: $(MOC_DIR)/moc_light_control_widget.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(TARGET): $(OBJECTS) $(MOC_OBJS)
