@@ -8,10 +8,10 @@
 #include "mesh.h"
 #include "scene_object.h"
 #include "scene_observer.h"
-#include "src/common/lighting.h"
-#include "src/scene/light_manager.h"
-#include "src/common/spatial_index.h"
-#include "src/scene/kd_tree_index.h"
+#include "common/lighting.h"
+#include "scene/light_manager.h"
+#include "common/spatial_index.h"
+#include "scene/kd_tree_index.h"
 
 namespace s21 {
 
