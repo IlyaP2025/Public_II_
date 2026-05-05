@@ -1,10 +1,8 @@
 #include "opengl_renderer.h"
-
+#include "common/debug.h"
 #include <QDebug>
 #include <algorithm>
 #include <iostream>
-
-#include "common/debug.h"
 
 namespace s21 {
 
@@ -54,7 +52,7 @@ void OpenGLRenderer::Initialize() {
         }
     )";
 
-  const char* solidVertexSource = R"(
+const char* solidVertexSource = R"(
         #version 330 core
         layout(location = 0) in vec3 aPos;
         layout(location = 1) in vec3 aNormal;
@@ -67,8 +65,8 @@ void OpenGLRenderer::Initialize() {
         uniform int flipNormals;
 
         out vec3 FragPos;
-        flat out vec3 FlatNormal;    // для Flat shading
-        smooth out vec3 SmoothNormal; // для Phong shading
+        flat out vec3 FlatNormal;
+        smooth out vec3 SmoothNormal;
         out vec2 TexCoord;
 
         void main() {
@@ -82,6 +80,7 @@ void OpenGLRenderer::Initialize() {
         }
     )";
 
+  // Обновлённый фрагментный шейдер с поддержкой до 5 источников
   const char* solidFragmentSource = R"(
         #version 330 core
         out vec4 FragColor;
@@ -91,11 +90,21 @@ void OpenGLRenderer::Initialize() {
         smooth in vec3 SmoothNormal;
         in vec2 TexCoord;
 
-        uniform vec3 lightPos;
-        uniform vec3 lightColor;
+        #define MAX_LIGHTS 5
+
+        struct Light {
+            vec3 position;
+            vec3 ambient;
+            vec3 diffuse;
+            vec3 specular;
+            bool enabled;
+        };
+
+        uniform Light lights[MAX_LIGHTS];
+        uniform int numLights;
         uniform vec3 viewPos;
         uniform vec3 objectColor;
-        uniform int shadingModel;    // 1 = Flat, 2 = Phong (0 = Wireframe обрабатывается отдельно)
+        uniform int shadingModel;
         uniform sampler2D textureSampler;
         uniform int useTexture;
 
@@ -107,23 +116,34 @@ void OpenGLRenderer::Initialize() {
 
             vec3 normal;
             if (shadingModel == 1) {
-                normal = normalize(FlatNormal);   // Flat
+                normal = normalize(FlatNormal);
             } else {
-                normal = normalize(SmoothNormal); // Phong
+                normal = normalize(SmoothNormal);
             }
 
-            vec3 ambient = 0.2 * lightColor;
-            vec3 lightDir = normalize(lightPos - FragPos);
-            float diff = max(dot(normal, lightDir), 0.0);
-            vec3 diffuse = diff * lightColor;
+            vec3 result = vec3(0.0);
             vec3 viewDir = normalize(viewPos - FragPos);
-            vec3 reflectDir = reflect(-lightDir, normal);
-            float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-            vec3 specular = 0.5 * spec * lightColor;
 
-            vec3 result = (ambient + diffuse + specular) * color;
-            FragColor = vec4(result, 1.0); // FragColor = vec4(result, 1.0); vec4(normal * 0.5 + 0.5, 1.0);
+            for (int i = 0; i < numLights; i++) {
+                if (!lights[i].enabled) continue;
 
+                // Ambient
+                vec3 ambient = lights[i].ambient * color;
+
+                // Diffuse
+                vec3 lightDir = normalize(lights[i].position - FragPos);
+                float diff = max(dot(normal, lightDir), 0.0);
+                vec3 diffuse = lights[i].diffuse * diff * color;
+
+                // Specular
+                vec3 reflectDir = reflect(-lightDir, normal);
+                float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+                vec3 specular = lights[i].specular * spec;
+
+                result += ambient + diffuse + specular;
+            }
+
+            FragColor = vec4(result, 1.0);
         }
     )";
 
@@ -151,7 +171,6 @@ void OpenGLRenderer::Render(const std::vector<const Mesh*>& meshes,
   if (shadingType_ == ShadingType::Wireframe) {
     RenderWireframe(meshes, viewMatrix, projMatrix);
   } else {
-    // Flat или Phong
     RenderSolid(meshes, viewMatrix, projMatrix);
   }
 
@@ -164,33 +183,23 @@ void OpenGLRenderer::RenderWireframe(const std::vector<const Mesh*>& meshes,
                                      const S21Matrix& projMatrix) {
   wireframeShader_.use();
 
-  GLint edgeColorLoc =
-      gl_->glGetUniformLocation(wireframeShader_.id(), "edgeColor");
-  GLint vertexColorLoc =
-      gl_->glGetUniformLocation(wireframeShader_.id(), "vertexColor");
-  GLint vertexTypeLoc =
-      gl_->glGetUniformLocation(wireframeShader_.id(), "vertexType");
-  GLint pointSizeLoc =
-      gl_->glGetUniformLocation(wireframeShader_.id(), "pointSize");
-  GLint mvpLoc =
-      gl_->glGetUniformLocation(wireframeShader_.id(), "modelViewProjection");
+  GLint edgeColorLoc = gl_->glGetUniformLocation(wireframeShader_.id(), "edgeColor");
+  GLint vertexColorLoc = gl_->glGetUniformLocation(wireframeShader_.id(), "vertexColor");
+  GLint vertexTypeLoc = gl_->glGetUniformLocation(wireframeShader_.id(), "vertexType");
+  GLint pointSizeLoc = gl_->glGetUniformLocation(wireframeShader_.id(), "pointSize");
+  GLint mvpLoc = gl_->glGetUniformLocation(wireframeShader_.id(), "modelViewProjection");
   GLint modelLoc = gl_->glGetUniformLocation(wireframeShader_.id(), "model");
-  GLint edgeTypeLoc =
-      gl_->glGetUniformLocation(wireframeShader_.id(), "edgeType");
-  GLint stippleFactorLoc =
-      gl_->glGetUniformLocation(wireframeShader_.id(), "stippleFactor");
+  GLint edgeTypeLoc = gl_->glGetUniformLocation(wireframeShader_.id(), "edgeType");
+  GLint stippleFactorLoc = gl_->glGetUniformLocation(wireframeShader_.id(), "stippleFactor");
 
-  if (pointSizeLoc != -1)
-    gl_->glUniform1f(pointSizeLoc, settings_->vertexSize());
-  if (stippleFactorLoc != -1)
-    gl_->glUniform1f(stippleFactorLoc, settings_->dashFactor());
+  if (pointSizeLoc != -1) gl_->glUniform1f(pointSizeLoc, settings_->vertexSize());
+  if (stippleFactorLoc != -1) gl_->glUniform1f(stippleFactorLoc, settings_->dashFactor());
 
   std::vector<SceneObject*> selected;
   if (scene_) selected = scene_->GetSelected();
 
   if (vertexTypeLoc != -1) gl_->glUniform1i(vertexTypeLoc, 0);
-  if (edgeTypeLoc != -1)
-    gl_->glUniform1i(edgeTypeLoc, static_cast<int>(settings_->edgeType()));
+  if (edgeTypeLoc != -1) gl_->glUniform1i(edgeTypeLoc, static_cast<int>(settings_->edgeType()));
   gl_->glLineWidth(settings_->edgeThickness());
 
   for (const Mesh* mesh : meshes) {
@@ -203,11 +212,9 @@ void OpenGLRenderer::RenderWireframe(const std::vector<const Mesh*>& meshes,
     const auto& buffers = it->second;
     if (buffers->edgeCount == 0) continue;
 
-    bool isSelected =
-        std::find(selected.begin(), selected.end(), mesh) != selected.end();
+    bool isSelected = std::find(selected.begin(), selected.end(), mesh) != selected.end();
     if (edgeColorLoc != -1) {
-      QColor c =
-          isSelected ? settings_->selectedEdgeColor() : settings_->edgeColor();
+      QColor c = isSelected ? settings_->selectedEdgeColor() : settings_->edgeColor();
       gl_->glUniform3f(edgeColorLoc, c.redF(), c.greenF(), c.blueF());
     }
 
@@ -224,14 +231,13 @@ void OpenGLRenderer::RenderWireframe(const std::vector<const Mesh*>& meshes,
     }
 
     if (mvpLoc != -1) gl_->glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, mvpArray);
-    if (modelLoc != -1)
-      gl_->glUniformMatrix4fv(modelLoc, 1, GL_FALSE, modelArray);
+    if (modelLoc != -1) gl_->glUniformMatrix4fv(modelLoc, 1, GL_FALSE, modelArray);
 
     buffers->vao.bind();
     gl_->glDrawElements(GL_LINES, buffers->edgeCount, GL_UNSIGNED_INT, nullptr);
   }
 
-  // Рисование вершин
+  // Рисование вершин (без изменений)
   if (settings_->vertexType() != Settings::VertexType::None) {
     int vt = static_cast<int>(settings_->vertexType());
     if (vertexTypeLoc != -1) gl_->glUniform1i(vertexTypeLoc, vt);
@@ -244,11 +250,9 @@ void OpenGLRenderer::RenderWireframe(const std::vector<const Mesh*>& meshes,
       const auto& buffers = it->second;
       if (buffers->vertexCount == 0) continue;
 
-      bool isSelected =
-          std::find(selected.begin(), selected.end(), mesh) != selected.end();
+      bool isSelected = std::find(selected.begin(), selected.end(), mesh) != selected.end();
       if (vertexColorLoc != -1) {
-        QColor c = isSelected ? settings_->selectedVertexColor()
-                              : settings_->vertexColor();
+        QColor c = isSelected ? settings_->selectedVertexColor() : settings_->vertexColor();
         gl_->glUniform3f(vertexColorLoc, c.redF(), c.greenF(), c.blueF());
       }
 
@@ -265,8 +269,7 @@ void OpenGLRenderer::RenderWireframe(const std::vector<const Mesh*>& meshes,
       }
 
       if (mvpLoc != -1) gl_->glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, mvpArray);
-      if (modelLoc != -1)
-        gl_->glUniformMatrix4fv(modelLoc, 1, GL_FALSE, modelArray);
+      if (modelLoc != -1) gl_->glUniformMatrix4fv(modelLoc, 1, GL_FALSE, modelArray);
 
       buffers->vao.bind();
       gl_->glDrawArrays(GL_POINTS, 0, buffers->vertexCount);
@@ -280,8 +283,8 @@ void OpenGLRenderer::RenderWireframe(const std::vector<const Mesh*>& meshes,
 }
 
 void OpenGLRenderer::RenderSolid(const std::vector<const Mesh*>& meshes,
-                                 const S21Matrix& viewMatrix,
-                                 const S21Matrix& projMatrix) {
+                                const S21Matrix& viewMatrix,
+                                const S21Matrix& projMatrix) {
   solidShader_.use();
   solidShader_.setUniform("flipNormals", flipNormals_ ? 1 : 0);
 
@@ -294,25 +297,33 @@ void OpenGLRenderer::RenderSolid(const std::vector<const Mesh*>& meshes,
   }
   solidShader_.setUniform("view", viewArray);
   solidShader_.setUniform("projection", projArray);
-  solidShader_.setUniform("lightPos", lightPos_.x, lightPos_.y, lightPos_.z);
-  solidShader_.setUniform("lightColor", lightColor_.redF(),
-                          lightColor_.greenF(), lightColor_.blueF());
-  solidShader_.setUniform("viewPos", cameraPosition_.x, cameraPosition_.y,
-                          cameraPosition_.z);
-  solidShader_.setUniform("objectColor", objectColor_.redF(),
-                          objectColor_.greenF(), objectColor_.blueF());
-  solidShader_.setUniform("shadingType", static_cast<int>(shadingType_));
-  solidShader_.setUniform("useTexture", (textureID_ != 0) ? 1 : 0);
 
-  DEBUG_PRINT("RenderSolid: lightPos uniform = ("
-              << lightPos_.x << ", " << lightPos_.y << ", " << lightPos_.z
-              << ")");
-  DEBUG_PRINT("RenderSolid: viewPos uniform = (" << cameraPosition_.x << ", "
-                                                 << cameraPosition_.y << ", "
-                                                 << cameraPosition_.z << ")");
-  DEBUG_PRINT("RenderSolid: objectColor uniform = ("
-              << objectColor_.redF() << ", " << objectColor_.greenF() << ", "
-              << objectColor_.blueF() << ")");
+  // Передача источников света из LightManager
+  auto& lightManager = scene_->GetLightManager();
+  int numLights = static_cast<int>(lightManager.GetLightCount());
+  GLint numLightsLoc = gl_->glGetUniformLocation(solidShader_.id(), "numLights");
+  gl_->glUniform1i(numLightsLoc, numLights);
+
+  for (int i = 0; i < numLights; ++i) {
+    const auto& light = lightManager.GetLight(i);
+    QString prefix = QString("lights[%1]").arg(i);
+
+    GLint posLoc = gl_->glGetUniformLocation(solidShader_.id(), (prefix + ".position").toUtf8().constData());
+    GLint ambLoc = gl_->glGetUniformLocation(solidShader_.id(), (prefix + ".ambient").toUtf8().constData());
+    GLint diffLoc = gl_->glGetUniformLocation(solidShader_.id(), (prefix + ".diffuse").toUtf8().constData());
+    GLint specLoc = gl_->glGetUniformLocation(solidShader_.id(), (prefix + ".specular").toUtf8().constData());
+    GLint enLoc = gl_->glGetUniformLocation(solidShader_.id(), (prefix + ".enabled").toUtf8().constData());
+
+    gl_->glUniform3f(posLoc, light.position.x, light.position.y, light.position.z);
+    gl_->glUniform3f(ambLoc, light.ambient.r, light.ambient.g, light.ambient.b);
+    gl_->glUniform3f(diffLoc, light.diffuse.r, light.diffuse.g, light.diffuse.b);
+    gl_->glUniform3f(specLoc, light.specular.r, light.specular.g, light.specular.b);
+    gl_->glUniform1i(enLoc, light.enabled ? 1 : 0);
+  }
+
+  solidShader_.setUniform("viewPos", cameraPosition_.x, cameraPosition_.y, cameraPosition_.z);
+  solidShader_.setUniform("objectColor", objectColor_.redF(), objectColor_.greenF(), objectColor_.blueF());
+  solidShader_.setUniform("useTexture", (textureID_ != 0) ? 1 : 0);
 
   if (textureID_ != 0) {
     gl_->glActiveTexture(GL_TEXTURE0);
@@ -323,45 +334,22 @@ void OpenGLRenderer::RenderSolid(const std::vector<const Mesh*>& meshes,
   int shadingModel = (shadingType_ == ShadingType::Flat) ? 1 : 2;
   solidShader_.setUniform("shadingModel", shadingModel);
 
-  DEBUG_PRINT("RenderSolid: rendering " << meshes.size() << " meshes");
   for (const Mesh* mesh : meshes) {
     auto it = bufferCache_.find(mesh);
     if (it == bufferCache_.end()) {
-      DEBUG_PRINT("  mesh " << mesh << " NOT in cache! file: "
-                            << mesh->GetSourceFile().c_str());
       UpdateMesh(*mesh);
       it = bufferCache_.find(mesh);
       if (it == bufferCache_.end()) continue;
     }
     auto& buffers = *it->second;
-    DEBUG_PRINT("  mesh " << mesh << " (" << mesh->GetSourceFile().c_str()
-                          << "), VAO = " << buffers.vaoTriangles.id()
-                          << ", vertices = " << buffers.vertexCount);
-
     if (buffers.vertexCount == 0) continue;
 
-    S21Matrix modelMatrix =
-        mesh->GetTransform()
-            .GetModelMatrix();  // исправлено: имя переменной modelMatrix
-
+    S21Matrix modelMatrix = mesh->GetTransform().GetModelMatrix();
     float modelArray[16];
     for (int col = 0; col < 4; ++col)
       for (int row = 0; row < 4; ++row)
         modelArray[col * 4 + row] = static_cast<float>(modelMatrix(row, col));
     solidShader_.setUniform("model", modelArray);
-
-    DEBUG_PRINT("    model matrix: ["
-                << modelMatrix(0, 0) << ", " << modelMatrix(0, 1) << ", "
-                << modelMatrix(0, 2) << ", " << modelMatrix(0, 3) << "]");
-    DEBUG_PRINT("                  ["
-                << modelMatrix(1, 0) << ", " << modelMatrix(1, 1) << ", "
-                << modelMatrix(1, 2) << ", " << modelMatrix(1, 3) << "]");
-    DEBUG_PRINT("                  ["
-                << modelMatrix(2, 0) << ", " << modelMatrix(2, 1) << ", "
-                << modelMatrix(2, 2) << ", " << modelMatrix(2, 3) << "]");
-    DEBUG_PRINT("                  ["
-                << modelMatrix(3, 0) << ", " << modelMatrix(3, 1) << ", "
-                << modelMatrix(3, 2) << ", " << modelMatrix(3, 3) << "]");
 
     if (buffers.transformChanged) {
       UpdateNormalMatrixForMesh(buffers, modelMatrix);
@@ -369,12 +357,6 @@ void OpenGLRenderer::RenderSolid(const std::vector<const Mesh*>& meshes,
     }
 
     buffers.vaoTriangles.bind();
-
-    if (!gl_->glIsVertexArray(buffers.vaoTriangles.id())) {
-      DEBUG_PRINT("ERROR: VAO " << buffers.vaoTriangles.id()
-                                << " is not valid!");
-    }
-
     gl_->glDrawArrays(GL_TRIANGLES, 0, buffers.vertexCount);
   }
 
@@ -386,7 +368,8 @@ void OpenGLRenderer::UpdateNormalMatrixForMesh(MeshBuffers& /*buffers*/,
   float normalMat[9];
   S21Matrix model3x3(3, 3);
   for (int i = 0; i < 3; ++i)
-    for (int j = 0; j < 3; ++j) model3x3(i, j) = model(i, j);
+    for (int j = 0; j < 3; ++j)
+      model3x3(i, j) = model(i, j);
   try {
     S21Matrix invModel = model3x3.InverseMatrix();
     S21Matrix normalMatMatrix = invModel.Transpose();
@@ -408,39 +391,32 @@ void OpenGLRenderer::MarkMeshTransformChanged(const Mesh* mesh) {
 }
 
 void OpenGLRenderer::CreateBuffers(const Mesh& mesh, MeshBuffers& buffers) {
-  DEBUG_PRINT("CreateBuffers: mesh = " << &mesh << " file: "
-                                       << mesh.GetSourceFile().c_str());
+  DEBUG_PRINT("CreateBuffers: mesh = " << &mesh << " file: " << mesh.GetSourceFile().c_str());
   const auto& vertices = mesh.GetVertices();
   const auto& normals = mesh.GetNormals();
-
+  
   if (!normals.empty()) {
-    buffers.normalVBO.bind();
-    buffers.normalVBO.setData(normals.size() * sizeof(Point), normals.data(),
-                              GL_STATIC_DRAW);
-    buffers.normalBufferSize = normals.size() * sizeof(Point);
+      buffers.normalVBO.bind();
+      buffers.normalVBO.setData(normals.size() * sizeof(Point), normals.data(), GL_STATIC_DRAW);
+      buffers.normalBufferSize = normals.size() * sizeof(Point);
   }
-
+  
   const auto& texCoords = mesh.GetUVs();
   const auto& edges = mesh.GetEdges();
 
   buffers.vbo.bind();
-  buffers.vbo.setData(vertices.size() * sizeof(Point), vertices.data(),
-                      GL_STATIC_DRAW);
+  buffers.vbo.setData(vertices.size() * sizeof(Point), vertices.data(), GL_STATIC_DRAW);
   buffers.vertexCount = static_cast<GLsizei>(vertices.size());
 
-  DEBUG_PRINT("  vertices: " << vertices.size()
-                             << ", normals: " << normals.size());
+  DEBUG_PRINT("  vertices: " << vertices.size() << ", normals: " << normals.size());
   if (!normals.empty()) {
-    DEBUG_PRINT("  first normal: (" << normals[0].x << ", " << normals[0].y
-                                    << ", " << normals[0].z << ")");
+    DEBUG_PRINT("  first normal: (" << normals[0].x << ", " << normals[0].y << ", " << normals[0].z << ")");
     buffers.normalVBO.bind();
-    buffers.normalVBO.setData(normals.size() * sizeof(Point), normals.data(),
-                              GL_STATIC_DRAW);
+    buffers.normalVBO.setData(normals.size() * sizeof(Point), normals.data(), GL_STATIC_DRAW);
   }
   if (!texCoords.empty()) {
     buffers.texCoordVBO.bind();
-    buffers.texCoordVBO.setData(texCoords.size() * sizeof(Point2D),
-                                texCoords.data(), GL_STATIC_DRAW);
+    buffers.texCoordVBO.setData(texCoords.size() * sizeof(Point2D), texCoords.data(), GL_STATIC_DRAW);
   }
 
   std::vector<GLuint> edgeIndices;
@@ -450,8 +426,7 @@ void OpenGLRenderer::CreateBuffers(const Mesh& mesh, MeshBuffers& buffers) {
     edgeIndices.push_back(static_cast<GLuint>(edge.v2));
   }
   buffers.ebo.bind();
-  buffers.ebo.setData(edgeIndices.size() * sizeof(GLuint), edgeIndices.data(),
-                      GL_STATIC_DRAW);
+  buffers.ebo.setData(edgeIndices.size() * sizeof(GLuint), edgeIndices.data(), GL_STATIC_DRAW);
   buffers.edgeCount = static_cast<GLsizei>(edgeIndices.size());
 
   buffers.vao.bind();
@@ -460,14 +435,12 @@ void OpenGLRenderer::CreateBuffers(const Mesh& mesh, MeshBuffers& buffers) {
   gl_->glEnableVertexAttribArray(0);
   if (!normals.empty()) {
     buffers.normalVBO.bind();
-    gl_->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Point),
-                               (void*)0);
+    gl_->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Point), (void*)0);
     gl_->glEnableVertexAttribArray(1);
   }
   if (!texCoords.empty()) {
     buffers.texCoordVBO.bind();
-    gl_->glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Point2D),
-                               (void*)0);
+    gl_->glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Point2D), (void*)0);
     gl_->glEnableVertexAttribArray(2);
   }
   buffers.ebo.bind();
@@ -479,14 +452,12 @@ void OpenGLRenderer::CreateBuffers(const Mesh& mesh, MeshBuffers& buffers) {
   gl_->glEnableVertexAttribArray(0);
   if (!normals.empty()) {
     buffers.normalVBO.bind();
-    gl_->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Point),
-                               (void*)0);
+    gl_->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Point), (void*)0);
     gl_->glEnableVertexAttribArray(1);
   }
   if (!texCoords.empty()) {
     buffers.texCoordVBO.bind();
-    gl_->glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Point2D),
-                               (void*)0);
+    gl_->glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Point2D), (void*)0);
     gl_->glEnableVertexAttribArray(2);
   }
   buffers.vaoTriangles.unbind();
@@ -497,14 +468,12 @@ void OpenGLRenderer::CreateBuffers(const Mesh& mesh, MeshBuffers& buffers) {
 }
 
 void OpenGLRenderer::UpdateMesh(const Mesh& mesh) {
-  DEBUG_PRINT("OpenGLRenderer::UpdateMesh: mesh = "
-              << &mesh << " file: " << mesh.GetSourceFile().c_str());
-
-  // Сбрасываем все текущие привязки VAO и буферов
+  DEBUG_PRINT("OpenGLRenderer::UpdateMesh: mesh = " << &mesh << " file: " << mesh.GetSourceFile().c_str());
+  
   gl_->glBindVertexArray(0);
   gl_->glBindBuffer(GL_ARRAY_BUFFER, 0);
   gl_->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
+  
   auto it = bufferCache_.find(&mesh);
   if (it != bufferCache_.end()) {
     DEBUG_PRINT("  erasing old buffers for mesh " << &mesh);
@@ -513,35 +482,21 @@ void OpenGLRenderer::UpdateMesh(const Mesh& mesh) {
   auto buffers = std::make_unique<MeshBuffers>(gl_);
   CreateBuffers(mesh, *buffers);
   bufferCache_[&mesh] = std::move(buffers);
-
-  gl_->glFlush();  // гарантируем завершение всех команд OpenGL
-
+  
+  gl_->glFlush();
+  
   DEBUG_PRINT("  new VAO = " << bufferCache_[&mesh]->vaoTriangles.id());
 }
-
-/*
-void OpenGLRenderer::UpdateMesh(const Mesh& mesh) {
-  DEBUG_PRINT("OpenGLRenderer::UpdateMesh: mesh = " << &mesh << " file: " <<
-mesh.GetSourceFile().c_str()); auto it = bufferCache_.find(&mesh); if (it !=
-bufferCache_.end()) { DEBUG_PRINT("  erasing old buffers for mesh " << &mesh);
-    bufferCache_.erase(it);
-  }
-  auto buffers = std::make_unique<MeshBuffers>(gl_);
-  CreateBuffers(mesh, *buffers);
-  bufferCache_[&mesh] = std::move(buffers);
-  DEBUG_PRINT("  new VAO = " << bufferCache_[&mesh]->vaoTriangles.id());
-}
-*/
 
 void OpenGLRenderer::RemoveMesh(const Mesh* mesh) {
-  DEBUG_PRINT("OpenGLRenderer::RemoveMesh: mesh = "
-              << mesh << ", cache size before = " << bufferCache_.size());
+  DEBUG_PRINT("OpenGLRenderer::RemoveMesh: mesh = " << mesh << ", cache size before = " << bufferCache_.size());
   bufferCache_.erase(mesh);
-  DEBUG_PRINT(
-      "OpenGLRenderer::RemoveMesh: cache size after = " << bufferCache_.size());
+  DEBUG_PRINT("OpenGLRenderer::RemoveMesh: cache size after = " << bufferCache_.size());
 }
 
-void OpenGLRenderer::SetSettings(Settings* settings) { settings_ = settings; }
+void OpenGLRenderer::SetSettings(Settings* settings) {
+  settings_ = settings;
+}
 
 void OpenGLRenderer::UpdateSettings() {}
 
@@ -551,8 +506,6 @@ void OpenGLRenderer::SetFlipNormals(bool flip) {
 }
 
 void OpenGLRenderer::SetShadingType(ShadingType type) {
-  DEBUG_PRINT("OpenGLRenderer::SetShadingType: " << static_cast<int>(type)
-                                                 << ", clearing cache");
   shadingType_ = type;
   gl_->glBindVertexArray(0);
   gl_->glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -568,8 +521,8 @@ void OpenGLRenderer::SetTexture(const QImage& image) {
   gl_->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   gl_->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   QImage rgba = image.convertToFormat(QImage::Format_RGBA8888);
-  gl_->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rgba.width(), rgba.height(), 0,
-                    GL_RGBA, GL_UNSIGNED_BYTE, rgba.constBits());
+  gl_->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rgba.width(), rgba.height(),
+                    0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.constBits());
   gl_->glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -585,18 +538,15 @@ void OpenGLRenderer::SetShadingModel(Settings::ShadingModel model) {
 void OpenGLRenderer::UpdateMeshNormals(const Mesh& mesh) {
   auto it = bufferCache_.find(&mesh);
   if (it == bufferCache_.end()) {
-    // Если меша нет в кэше, создаём полностью
     UpdateMesh(mesh);
     return;
   }
   auto& buffers = *it->second;
   const auto& normals = mesh.GetNormals();
   if (normals.empty()) return;
-
-  // Привязываем VAO, чтобы убедиться, что все состояния корректны
+  
   buffers.vaoTriangles.bind();
-
-  // Обновляем буфер нормалей
+  
   buffers.normalVBO.bind();
   GLsizeiptr size = normals.size() * sizeof(Point);
   if (size <= buffers.normalBufferSize) {
@@ -607,8 +557,7 @@ void OpenGLRenderer::UpdateMeshNormals(const Mesh& mesh) {
     buffers.normalBufferSize = size;
     DEBUG_PRINT("Recreated normal VBO, new size=" << size);
   }
-
-  // Снимаем привязки
+  
   gl_->glBindBuffer(GL_ARRAY_BUFFER, 0);
   gl_->glBindVertexArray(0);
 }

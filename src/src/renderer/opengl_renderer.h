@@ -1,12 +1,12 @@
 #ifndef S21_OPENGL_RENDERER_H
 #define S21_OPENGL_RENDERER_H
 
-#include <QImage>
 #include <QOpenGLFunctions_3_3_Core>
+#include <QImage>
 #include <memory>
-#include <string>
 #include <unordered_map>
 #include <vector>
+#include <string>
 
 #include "gl_buffer.h"
 #include "gl_vertex_array.h"
@@ -27,8 +27,7 @@ struct MeshBuffers {
   size_t edgeCount = 0;
   size_t vertexCount = 0;
   bool transformChanged = true;
-  GLsizeiptr normalBufferSize =
-      0;  // Новое добавление для правильной работы слайсера сглаживания
+  GLsizeiptr normalBufferSize = 0;
 
   MeshBuffers(QOpenGLFunctions_3_3_Core* gl)
       : vao(gl),
@@ -56,8 +55,6 @@ class OpenGLRenderer {
   void SetFlipNormals(bool flip);
   bool GetFlipNormals() const { return flipNormals_; }
   void SetShadingType(ShadingType type);
-  void SetLightPosition(float x, float y, float z) { lightPos_ = {x, y, z}; }
-  void SetLightColor(const QColor& color) { lightColor_ = color; }
   void SetCameraPosition(const Point& pos) { cameraPosition_ = pos; }
   void SetObjectColor(const QColor& color) { objectColor_ = color; }
   void SetTexture(const QImage& image);
@@ -89,8 +86,6 @@ class OpenGLRenderer {
   std::unordered_map<const Mesh*, std::unique_ptr<MeshBuffers>> bufferCache_;
   ShadingType shadingType_ = ShadingType::Wireframe;
   bool flipNormals_ = false;
-  Point lightPos_{2.0f, 3.0f, 4.0f};
-  QColor lightColor_{255, 255, 255};
   Point cameraPosition_{0, 0, 5};
   QColor objectColor_{200, 200, 200};
   GLuint textureID_ = 0;

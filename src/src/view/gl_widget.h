@@ -39,11 +39,8 @@ class GLWidget : public QOpenGLWidget,
   void OnSelectionChanged(const std::vector<SceneObject*>& selected) override;
   void OnTransformChanged(SceneObject* object) override;
 
-  void setLightPosition(float x, float y, float z);
-  void setLightColor(const QColor& color);
   void setShadingType(OpenGLRenderer::ShadingType type);
   void setFlipNormals(bool flip);
-  void toggleFlipNormals();
   bool getFlipNormals() const;
 
   void setTexture(const QImage& image);
@@ -52,7 +49,7 @@ class GLWidget : public QOpenGLWidget,
 
   void UpdateMeshBuffers(Mesh* mesh);
 
-  void setShadingModel(Settings::ShadingModel model);
+  void setShadingModel(Settings::ShadingModel model);  
 
  signals:
   void shaderError(const QString& message);
@@ -84,11 +81,6 @@ class GLWidget : public QOpenGLWidget,
   bool isPanning_ = false;
   bool isDraggingObject_ = false;
   QPoint dragStartMousePos_;
-
-  bool pendingLightPosition_ = false;
-  float pendingLightX_ = 2.0f, pendingLightY_ = 3.0f, pendingLightZ_ = 4.0f;
-  bool pendingLightColor_ = false;
-  QColor pendingLightColorValue_ = Qt::white;
 };
 
 }  // namespace s21
