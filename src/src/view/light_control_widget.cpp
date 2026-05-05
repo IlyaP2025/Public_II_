@@ -87,11 +87,12 @@ void LightControlWidget::rebuildUI() {
         auto* cb = new QCheckBox;
         cb->setChecked(lights_[i].enabled);
         connect(cb, &QCheckBox::toggled, this, [this, i](bool val) {
-            if (i < lights_.size()) {
+            if (i < lights_.size() && lights_[i].enabled != val) {
                 lights_[i].enabled = val;
+                rebuildUI();
                 emit lightUpdated(i, lights_[i]);
                 emit lightsChanged();
-            }
+             }
         });
         rowLayout->addWidget(cb);
 

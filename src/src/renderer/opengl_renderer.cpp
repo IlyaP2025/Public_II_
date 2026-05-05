@@ -83,6 +83,7 @@ const char* solidVertexSource = R"(
   // Обновлённый фрагментный шейдер с поддержкой до 5 источников
   const char* solidFragmentSource = R"(
         #version 330 core
+        layout(std140) uniform LightBlock { ... } lights;
         out vec4 FragColor;
 
         in vec3 FragPos;
@@ -318,7 +319,7 @@ void OpenGLRenderer::RenderSolid(const std::vector<const Mesh*>& meshes,
     gl_->glUniform3f(ambLoc, light.ambient.r, light.ambient.g, light.ambient.b);
     gl_->glUniform3f(diffLoc, light.diffuse.r, light.diffuse.g, light.diffuse.b);
     gl_->glUniform3f(specLoc, light.specular.r, light.specular.g, light.specular.b);
-    gl_->glUniform1i(enLoc, light.enabled ? 1 : 0);
+    gl_->glUniform1i(enLoc, light.enabled ? 1.0f : 0.0f);
   }
 
   solidShader_.setUniform("viewPos", cameraPosition_.x, cameraPosition_.y, cameraPosition_.z);
