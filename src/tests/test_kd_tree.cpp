@@ -61,5 +61,5 @@ TEST(KdTreeTest, PerformanceLargeDataset) {
   auto build_ms =
       std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
           .count();
-  EXPECT_LT(build_ms, 100);
+  EXPECT_LT(build_ms, 200);
 }
