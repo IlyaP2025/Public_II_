@@ -343,11 +343,15 @@ void MainWindow::onLightAdded(const LightSource& light) {
 }
 
 void MainWindow::onLightRemoved(size_t index) {
-  facade_->RemoveLight(index);
+    if (index < facade_->GetScene()->GetLightManager().GetLightCount()) {
+        facade_->RemoveLight(index);
+    }
 }
 
 void MainWindow::onLightUpdated(size_t index, const LightSource& light) {
-  facade_->UpdateLight(index, light);
+    if (index < facade_->GetScene()->GetLightManager().GetLightCount()) {
+        facade_->UpdateLight(index, light);
+    }
 }
 
 void MainWindow::onLightsChanged() {

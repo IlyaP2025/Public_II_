@@ -80,10 +80,9 @@ const char* solidVertexSource = R"(
         }
     )";
 
-  // Обновлённый фрагментный шейдер с поддержкой до 5 источников
+  // Исправленный фрагментный шейдер без битой строки
   const char* solidFragmentSource = R"(
         #version 330 core
-        layout(std140) uniform LightBlock { ... } lights;
         out vec4 FragColor;
 
         in vec3 FragPos;
@@ -238,7 +237,6 @@ void OpenGLRenderer::RenderWireframe(const std::vector<const Mesh*>& meshes,
     gl_->glDrawElements(GL_LINES, buffers->edgeCount, GL_UNSIGNED_INT, nullptr);
   }
 
-  // Рисование вершин (без изменений)
   if (settings_->vertexType() != Settings::VertexType::None) {
     int vt = static_cast<int>(settings_->vertexType());
     if (vertexTypeLoc != -1) gl_->glUniform1i(vertexTypeLoc, vt);
@@ -319,7 +317,7 @@ void OpenGLRenderer::RenderSolid(const std::vector<const Mesh*>& meshes,
     gl_->glUniform3f(ambLoc, light.ambient.r, light.ambient.g, light.ambient.b);
     gl_->glUniform3f(diffLoc, light.diffuse.r, light.diffuse.g, light.diffuse.b);
     gl_->glUniform3f(specLoc, light.specular.r, light.specular.g, light.specular.b);
-    gl_->glUniform1i(enLoc, light.enabled ? 1.0f : 0.0f);
+    gl_->glUniform1i(enLoc, light.enabled ? 1 : 0);   // <-- исправлено: передаётся int
   }
 
   solidShader_.setUniform("viewPos", cameraPosition_.x, cameraPosition_.y, cameraPosition_.z);
