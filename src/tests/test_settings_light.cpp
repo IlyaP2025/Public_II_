@@ -8,6 +8,9 @@ using namespace s21;
 TEST(SettingsLightTest, LoadEmptyLights) {
     QSettings settings("test", "test");
     settings.clear();
+    settings.sync();
+    // Принудительно сохраняем пустой список, чтобы перезаписать любые остатки
+    Settings::instance().SaveLights({});
     auto lights = Settings::instance().LoadLights();
     EXPECT_TRUE(lights.empty());
 }
@@ -15,6 +18,9 @@ TEST(SettingsLightTest, LoadEmptyLights) {
 TEST(SettingsLightTest, SaveAndLoadLights) {
     QSettings settings("test", "test");
     settings.clear();
+    settings.sync();
+    Settings::instance().SaveLights({}); // начинаем с чистого листа
+
     std::vector<LightSource> original;
     LightSource l1;
     l1.position = glm::vec3(1.0f, 2.0f, 3.0f);
