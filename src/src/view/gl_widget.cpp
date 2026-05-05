@@ -1,13 +1,14 @@
 #include "gl_widget.h"
-#include "facade/facade.h"
-#include "scene/picking_manager.h"
-#include "common/debug.h"
 
 #include <QDebug>
+#include <cfloat>
 #include <cmath>
 #include <iostream>
 #include <limits>
-#include <cfloat>
+
+#include "common/debug.h"
+#include "facade/facade.h"
+#include "scene/picking_manager.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -17,15 +18,15 @@ namespace {
 const float ROTATION_SENSITIVITY = 0.5f;
 const float PAN_SENSITIVITY = 0.01f;
 const float ZOOM_SENSITIVITY = 1.0f;
-}
+}  // namespace
 
 namespace s21 {
 
 void GLWidget::fitToBoundingBox(const Point& center, float size) {
   DEBUG_PRINT_FUNC();
-  DEBUG_PRINT("center=(" << center.x << "," << center.y << "," << center.z 
-              << ") size=" << size);
-      
+  DEBUG_PRINT("center=(" << center.x << "," << center.y << "," << center.z
+                         << ") size=" << size);
+
   if (!camera_) return;
 
   camera_->SetTarget(center.x, center.y, center.z);
@@ -54,36 +55,38 @@ void GLWidget::fitToBoundingBox(const Point& center, float size) {
     camera_->SetFarPlane(distance + size * 2.0f);
   }
 
-  DEBUG_PRINT("Camera after fit: pos=(" << camera_->GetPosition().x << ", " << camera_->GetPosition().y << ", " << camera_->GetPosition().z
-            << "), target=(" << camera_->GetTargetX() << ", " << camera_->GetTargetY() << ", " << camera_->GetTargetZ() << ")");
+  DEBUG_PRINT("Camera after fit: pos=("
+              << camera_->GetPosition().x << ", " << camera_->GetPosition().y
+              << ", " << camera_->GetPosition().z << "), target=("
+              << camera_->GetTargetX() << ", " << camera_->GetTargetY() << ", "
+              << camera_->GetTargetZ() << ")");
   update();
 }
 
 void GLWidget::fitToScene() {
-    if (!scene_ || !camera_) return;
-    auto meshes = scene_->GetAllMeshes();
-    if (meshes.empty()) return;
+  if (!scene_ || !camera_) return;
+  auto meshes = scene_->GetAllMeshes();
+  if (meshes.empty()) return;
 
-    Point min( FLT_MAX,  FLT_MAX,  FLT_MAX);
-    Point max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-    for (const Mesh* mesh : meshes) {
-        auto bbox = mesh->GetBoundingBox();
-        if (bbox.min.x < min.x) min.x = bbox.min.x;
-        if (bbox.min.y < min.y) min.y = bbox.min.y;
-        if (bbox.min.z < min.z) min.z = bbox.min.z;
-        if (bbox.max.x > max.x) max.x = bbox.max.x;
-        if (bbox.max.y > max.y) max.y = bbox.max.y;
-        if (bbox.max.z > max.z) max.z = bbox.max.z;
-    }
+  Point min(FLT_MAX, FLT_MAX, FLT_MAX);
+  Point max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+  for (const Mesh* mesh : meshes) {
+    auto bbox = mesh->GetBoundingBox();
+    if (bbox.min.x < min.x) min.x = bbox.min.x;
+    if (bbox.min.y < min.y) min.y = bbox.min.y;
+    if (bbox.min.z < min.z) min.z = bbox.min.z;
+    if (bbox.max.x > max.x) max.x = bbox.max.x;
+    if (bbox.max.y > max.y) max.y = bbox.max.y;
+    if (bbox.max.z > max.z) max.z = bbox.max.z;
+  }
 
-    Point center = {(min.x + max.x) / 2,
-                    (min.y + max.y) / 2,
-                    (min.z + max.z) / 2};
-    float size = std::max({max.x - min.x, max.y - min.y, max.z - min.z});
-    if (size < 1e-6f) size = 1.0f;
-    DEBUG_PRINT("fitToScene: center=(" << center.x << "," << center.y << "," << center.z 
-                << ") size=" << size);
-    fitToBoundingBox(center, size);
+  Point center = {(min.x + max.x) / 2, (min.y + max.y) / 2,
+                  (min.z + max.z) / 2};
+  float size = std::max({max.x - min.x, max.y - min.y, max.z - min.z});
+  if (size < 1e-6f) size = 1.0f;
+  DEBUG_PRINT("fitToScene: center=(" << center.x << "," << center.y << ","
+                                     << center.z << ") size=" << size);
+  fitToBoundingBox(center, size);
 }
 
 GLWidget::GLWidget(QWidget* parent) : QOpenGLWidget(parent) {
@@ -103,12 +106,13 @@ void GLWidget::SetScene(Scene* scene) {
 }
 
 void GLWidget::UpdateMeshes() {
-if (!scene_) return;
+  if (!scene_) return;
   meshes_ = scene_->GetAllMeshes();
   DEBUG_PRINT("UpdateMeshes: meshes count = " << meshes_.size());
   for (size_t i = 0; i < meshes_.size(); ++i) {
-    DEBUG_PRINT("  mesh[" << i << "] = " << meshes_[i] << " file: " << meshes_[i]->GetSourceFile().c_str()
-                << " vertices = " << meshes_[i]->VertexCount());
+    DEBUG_PRINT("  mesh[" << i << "] = " << meshes_[i]
+                          << " file: " << meshes_[i]->GetSourceFile().c_str()
+                          << " vertices = " << meshes_[i]->VertexCount());
   }
 }
 
@@ -142,7 +146,7 @@ void GLWidget::initializeGL() {
 void GLWidget::resizeGL(int w, int h) { glViewport(0, 0, w, h); }
 
 void GLWidget::paintGL() {
-DEBUG_PRINT("paintGL: meshes_.size() = " << meshes_.size());
+  DEBUG_PRINT("paintGL: meshes_.size() = " << meshes_.size());
   QColor bg = Settings::instance().backgroundColor();
   glClearColor(bg.redF(), bg.greenF(), bg.blueF(), 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -183,8 +187,7 @@ void GLWidget::mousePressEvent(QMouseEvent* event) {
     int mx = static_cast<int>(pos.x());
     int my = static_cast<int>(pos.y());
 
-    Mesh* selected_mesh = PickingManager::PickObject(mx, my,
-                                                     width(), height(),
+    Mesh* selected_mesh = PickingManager::PickObject(mx, my, width(), height(),
                                                      *camera_, *scene_);
 
     if (selected_mesh) {
@@ -240,11 +243,8 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event) {
 
       const float speed = 0.005f;
 
-      Point deltaWorld(
-          -static_cast<float>(deltaPixels.x()) * speed,
-          -static_cast<float>(deltaPixels.y()) * speed,
-          0.0f
-      );
+      Point deltaWorld(-static_cast<float>(deltaPixels.x()) * speed,
+                       -static_cast<float>(deltaPixels.y()) * speed, 0.0f);
 
       facade_->MoveSelected(deltaWorld);
       dragStartMousePos_ = event->pos();
@@ -298,7 +298,8 @@ void GLWidget::OnObjectRemoved(SceneObject* object) {
 
 void GLWidget::OnSelectionChanged(const std::vector<SceneObject*>& selected) {
   (void)selected;
-  DEBUG_PRINT("GLWidget::OnSelectionChanged: selected count = " << selected.size());
+  DEBUG_PRINT(
+      "GLWidget::OnSelectionChanged: selected count = " << selected.size());
   update();
 }
 
@@ -313,39 +314,41 @@ void GLWidget::OnTransformChanged(SceneObject* object) {
 }
 
 void GLWidget::setShadingType(OpenGLRenderer::ShadingType type) {
-    if (renderer_) renderer_->SetShadingType(type);
-    update();
+  if (renderer_) renderer_->SetShadingType(type);
+  update();
 }
 
 void GLWidget::setFlipNormals(bool flip) {
-    if (renderer_) renderer_->SetFlipNormals(flip);
-    update();
+  if (renderer_) renderer_->SetFlipNormals(flip);
+  update();
 }
 
 bool GLWidget::getFlipNormals() const {
-    return renderer_ ? renderer_->GetFlipNormals() : false;
+  return renderer_ ? renderer_->GetFlipNormals() : false;
 }
 
 void GLWidget::setTexture(const QImage& image) {
-    if (renderer_) renderer_->SetTexture(image);
-    update();
+  if (renderer_) renderer_->SetTexture(image);
+  update();
 }
 
 void GLWidget::clearTexture() {
-    if (renderer_) renderer_->ClearTexture();
-    update();
+  if (renderer_) renderer_->ClearTexture();
+  update();
 }
 
 void GLWidget::setObjectColor(const QColor& color) {
-    if (renderer_) renderer_->SetObjectColor(color);
-    update();
+  if (renderer_) renderer_->SetObjectColor(color);
+  update();
 }
 
 void GLWidget::UpdateMeshBuffers(Mesh* mesh) {
-  DEBUG_PRINT("GLWidget::UpdateMeshBuffers: mesh = " << mesh << " file: " << (mesh ? mesh->GetSourceFile().c_str() : "null"));
+  DEBUG_PRINT("GLWidget::UpdateMeshBuffers: mesh = "
+              << mesh
+              << " file: " << (mesh ? mesh->GetSourceFile().c_str() : "null"));
   if (renderer_ && mesh) {
     renderer_->UpdateMeshNormals(*mesh);
-    update(); // гарантируем перерисовку
+    update();  // гарантируем перерисовку
     DEBUG_PRINT("Renderer UpdateMesh called");
   } else {
     DEBUG_PRINT("Renderer or mesh is null");

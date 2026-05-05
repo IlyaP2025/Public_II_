@@ -1,8 +1,9 @@
+#include "facade.h"
+
 #include <iostream>
 
-#include "facade.h"
-#include "common/debug.h"
 #include "commands/light_commands.h"
+#include "common/debug.h"
 #include "loaders/iloader.h"
 #include "loaders/loader_factory.h"
 

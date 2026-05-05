@@ -18,9 +18,7 @@ class AddLightCommand : public Command {
     added_index_ = scene_->GetLightManager().AddLight(light_);
   }
 
-  void undo() override {
-    scene_->GetLightManager().RemoveLight(added_index_);
-  }
+  void undo() override { scene_->GetLightManager().RemoveLight(added_index_); }
 
  private:
   Scene* scene_;
@@ -38,9 +36,7 @@ class RemoveLightCommand : public Command {
 
   void execute() override { scene_->GetLightManager().RemoveLight(index_); }
 
-  void undo() override {
-    scene_->GetLightManager().AddLight(light_);
-  }
+  void undo() override { scene_->GetLightManager().AddLight(light_); }
 
  private:
   Scene* scene_;

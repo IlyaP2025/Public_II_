@@ -1,8 +1,10 @@
-#include "common/transform.h"
 #include "picking_manager.h"
+
 #include <cmath>
 #include <limits>
+
 #include "common/point.h"
+#include "common/transform.h"
 #include "matrix/s21_matrix_oop.h"
 #include "scene/mesh.h"
 
@@ -20,10 +22,8 @@ float Dot(const Point& a, const Point& b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-std::optional<float> IntersectRaySphere(const Ray& ray,
-                                        const Point& center,
-                                        float radius,
-                                        Point& hit_point) {
+std::optional<float> IntersectRaySphere(const Ray& ray, const Point& center,
+                                        float radius, Point& hit_point) {
   Point oc = ray.origin - center;
   float a = Dot(ray.direction, ray.direction);
   float b = 2.0f * Dot(oc, ray.direction);
@@ -42,8 +42,7 @@ std::optional<float> IntersectRaySphere(const Ray& ray,
   if (t < 0) t = std::max(t1, t2);
   if (t < 0) return std::nullopt;
 
-  hit_point = ray.origin + Point(ray.direction.x * t,
-                                 ray.direction.y * t,
+  hit_point = ray.origin + Point(ray.direction.x * t, ray.direction.y * t,
                                  ray.direction.z * t);
   return t;
 }
@@ -80,14 +79,14 @@ Ray ComputePickRay(int mouse_x, int mouse_y, int width, int height,
   nearEye.MulNumber(1.0 / nearEye(3, 0));
   farEye.MulNumber(1.0 / farEye(3, 0));
 
-  Point nearWorld = TransformPoint(invView,
-      Point(static_cast<float>(nearEye(0, 0)),
-            static_cast<float>(nearEye(1, 0)),
-            static_cast<float>(nearEye(2, 0))));
-  Point farWorld = TransformPoint(invView,
-      Point(static_cast<float>(farEye(0, 0)),
-            static_cast<float>(farEye(1, 0)),
-            static_cast<float>(farEye(2, 0))));
+  Point nearWorld =
+      TransformPoint(invView, Point(static_cast<float>(nearEye(0, 0)),
+                                    static_cast<float>(nearEye(1, 0)),
+                                    static_cast<float>(nearEye(2, 0))));
+  Point farWorld =
+      TransformPoint(invView, Point(static_cast<float>(farEye(0, 0)),
+                                    static_cast<float>(farEye(1, 0)),
+                                    static_cast<float>(farEye(2, 0))));
 
   Point dir = farWorld - nearWorld;
   float len = std::sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
@@ -102,13 +101,12 @@ Ray ComputePickRay(int mouse_x, int mouse_y, int width, int height,
 
 }  // namespace
 
-Mesh* PickingManager::PickObject(int mouse_x, int mouse_y,
-                                 int width, int height,
-                                 const Camera& camera, const Scene& scene) {
+Mesh* PickingManager::PickObject(int mouse_x, int mouse_y, int width,
+                                 int height, const Camera& camera,
+                                 const Scene& scene) {
   Ray worldRay = ComputePickRay(mouse_x, mouse_y, width, height, camera);
 
-  if (scene.IsStructureDirty())
-    const_cast<Scene&>(scene).RebuildSpatialIndex();
+  if (scene.IsStructureDirty()) const_cast<Scene&>(scene).RebuildSpatialIndex();
   auto* index = const_cast<Scene&>(scene).GetSpatialIndex();
 
   Mesh* selected = nullptr;
@@ -134,8 +132,8 @@ Mesh* PickingManager::PickObject(int mouse_x, int mouse_y,
 
     const BoundingSphere& sphere = mesh->GetBoundingSphere();
     Point hit_point;
-    auto t_opt = IntersectRaySphere(localRay, sphere.center,
-                                    sphere.radius, hit_point);
+    auto t_opt =
+        IntersectRaySphere(localRay, sphere.center, sphere.radius, hit_point);
 
     if (t_opt.has_value() && *t_opt < closest_t) {
       closest_t = *t_opt;

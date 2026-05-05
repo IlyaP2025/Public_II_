@@ -1,8 +1,8 @@
 #ifndef S21_TRANSFORM_H
 #define S21_TRANSFORM_H
 
-#include "point.h"
 #include "matrix/s21_matrix_oop.h"
+#include "point.h"
 
 namespace s21 {
 

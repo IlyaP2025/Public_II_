@@ -1,9 +1,9 @@
 #ifndef S21_COMMON_LIGHTING_H_
 #define S21_COMMON_LIGHTING_H_
 
+#include <functional>
 #include <glm/glm.hpp>
 #include <vector>
-#include <functional>
 
 namespace s21 {
 

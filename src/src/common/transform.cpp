@@ -94,12 +94,10 @@ Point TransformPoint(const S21Matrix& m, const Point& p) {
   double z = m(2, 0) * p.x + m(2, 1) * p.y + m(2, 2) * p.z + m(2, 3);
   double w = m(3, 0) * p.x + m(3, 1) * p.y + m(3, 2) * p.z + m(3, 3);
   if (std::abs(w) > 1e-6) {
-    return Point(static_cast<float>(x / w),
-                 static_cast<float>(y / w),
+    return Point(static_cast<float>(x / w), static_cast<float>(y / w),
                  static_cast<float>(z / w));
   } else {
-    return Point(static_cast<float>(x),
-                 static_cast<float>(y),
+    return Point(static_cast<float>(x), static_cast<float>(y),
                  static_cast<float>(z));
   }
 }

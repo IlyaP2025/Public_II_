@@ -1,8 +1,9 @@
 
-#include <cmath>
-#include <QSettings>
-
 #include "settings.h"
+
+#include <QSettings>
+#include <cmath>
+
 #include "common/lighting.h"
 
 namespace s21 {
@@ -258,12 +259,12 @@ std::vector<LightSource> Settings::LoadLights() const {
     l.position.x = s.value("pos_x", 0.0).toFloat();
     l.position.y = s.value("pos_y", 0.0).toFloat();
     l.position.z = s.value("pos_z", 0.0).toFloat();
-    l.ambient.r  = s.value("ambient_r", 0.1f).toFloat();
-    l.ambient.g  = s.value("ambient_g", 0.1f).toFloat();
-    l.ambient.b  = s.value("ambient_b", 0.1f).toFloat();
-    l.diffuse.r  = s.value("diffuse_r", 1.0f).toFloat();
-    l.diffuse.g  = s.value("diffuse_g", 1.0f).toFloat();
-    l.diffuse.b  = s.value("diffuse_b", 1.0f).toFloat();
+    l.ambient.r = s.value("ambient_r", 0.1f).toFloat();
+    l.ambient.g = s.value("ambient_g", 0.1f).toFloat();
+    l.ambient.b = s.value("ambient_b", 0.1f).toFloat();
+    l.diffuse.r = s.value("diffuse_r", 1.0f).toFloat();
+    l.diffuse.g = s.value("diffuse_g", 1.0f).toFloat();
+    l.diffuse.b = s.value("diffuse_b", 1.0f).toFloat();
     l.specular.r = s.value("specular_r", 1.0f).toFloat();
     l.specular.g = s.value("specular_g", 1.0f).toFloat();
     l.specular.b = s.value("specular_b", 1.0f).toFloat();

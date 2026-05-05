@@ -1,7 +1,9 @@
 #include "scene.h"
+
+#include <cfloat>
+
 #include "common/debug.h"
 #include "common/transform.h"
-#include <cfloat>
 
 namespace s21 {
 
@@ -51,7 +53,7 @@ void Scene::NotifyTransformChanged(SceneObject* object) {
   for (auto obs : observers_) {
     obs->OnTransformChanged(object);
   }
-  structureDirty_ = true; // трансформация могла изменить AABB
+  structureDirty_ = true;  // трансформация могла изменить AABB
 }
 
 void Scene::SetSelected(const std::vector<SceneObject*>& selected) {
@@ -102,16 +104,14 @@ std::vector<BoundingBox> Scene::GetMeshBoundingBoxes() const {
       BoundingBox local = mesh->GetBoundingBox();
       S21Matrix model = mesh->GetTransform().GetModelMatrix();
 
-      std::vector<Point> corners = {
-          {local.min.x, local.min.y, local.min.z},
-          {local.max.x, local.min.y, local.min.z},
-          {local.min.x, local.max.y, local.min.z},
-          {local.max.x, local.max.y, local.min.z},
-          {local.min.x, local.min.y, local.max.z},
-          {local.max.x, local.min.y, local.max.z},
-          {local.min.x, local.max.y, local.max.z},
-          {local.max.x, local.max.y, local.max.z}
-      };
+      std::vector<Point> corners = {{local.min.x, local.min.y, local.min.z},
+                                    {local.max.x, local.min.y, local.min.z},
+                                    {local.min.x, local.max.y, local.min.z},
+                                    {local.max.x, local.max.y, local.min.z},
+                                    {local.min.x, local.min.y, local.max.z},
+                                    {local.max.x, local.min.y, local.max.z},
+                                    {local.min.x, local.max.y, local.max.z},
+                                    {local.max.x, local.max.y, local.max.z}};
 
       Point worldMin(FLT_MAX, FLT_MAX, FLT_MAX);
       Point worldMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);

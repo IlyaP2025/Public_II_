@@ -49,7 +49,7 @@ class GLWidget : public QOpenGLWidget,
 
   void UpdateMeshBuffers(Mesh* mesh);
 
-  void setShadingModel(Settings::ShadingModel model);  
+  void setShadingModel(Settings::ShadingModel model);
 
  signals:
   void shaderError(const QString& message);

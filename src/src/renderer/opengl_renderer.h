@@ -1,12 +1,12 @@
 #ifndef S21_OPENGL_RENDERER_H
 #define S21_OPENGL_RENDERER_H
 
-#include <QOpenGLFunctions_3_3_Core>
 #include <QImage>
+#include <QOpenGLFunctions_3_3_Core>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
-#include <string>
 
 #include "gl_buffer.h"
 #include "gl_vertex_array.h"

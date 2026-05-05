@@ -1,14 +1,14 @@
 #ifndef S21_MESH_H
 #define S21_MESH_H
 
+#include <algorithm>  // для std::min, std::max
 #include <cstddef>
+#include <limits>  // для std::numeric_limits
 #include <vector>
-#include <algorithm>    // для std::min, std::max
-#include <limits>       // для std::numeric_limits
 
 #include "common/edge.h"
-#include "common/point.h"
 #include "common/model_data.h"
+#include "common/point.h"
 #include "scene_object.h"
 
 namespace s21 {
@@ -25,7 +25,7 @@ struct BoundingBox {
   [[nodiscard]] bool IntersectsRay(const Point& origin,
                                    const Point& direction) const {
     float tmin = -std::numeric_limits<float>::infinity();
-    float tmax =  std::numeric_limits<float>::infinity();
+    float tmax = std::numeric_limits<float>::infinity();
 
     // Ось X
     if (std::abs(direction.x) > 1e-8f) {

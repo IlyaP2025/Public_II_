@@ -5,13 +5,13 @@
 #include <memory>
 #include <vector>
 
+#include "common/lighting.h"
+#include "common/spatial_index.h"
 #include "mesh.h"
+#include "scene/kd_tree_index.h"
+#include "scene/light_manager.h"
 #include "scene_object.h"
 #include "scene_observer.h"
-#include "common/lighting.h"
-#include "scene/light_manager.h"
-#include "common/spatial_index.h"
-#include "scene/kd_tree_index.h"
 
 namespace s21 {
 
@@ -35,7 +35,7 @@ class Scene {
     return objects_;
   }
   std::vector<const Mesh*> GetAllMeshes() const;
-  
+
   ILightManager& GetLightManager() { return light_manager_; }
   const ILightManager& GetLightManager() const { return light_manager_; }
 
@@ -57,7 +57,6 @@ class Scene {
       std::make_unique<KdTreeMeshIndex>();
 
   void NotifyLightsChanged();
-
 };
 
 }  // namespace s21

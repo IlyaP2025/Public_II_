@@ -5,10 +5,10 @@
 #include <string>
 #include <vector>
 
-#include "common/lighting.h"
 #include "commands/command_manager.h"
 #include "commands/macro_command.h"
 #include "commands/transform_commands.h"
+#include "common/lighting.h"
 #include "common/point.h"
 #include "scene/scene.h"
 #include "state_machine/app_state_machine.h"

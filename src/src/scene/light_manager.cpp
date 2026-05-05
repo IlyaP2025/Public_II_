@@ -1,4 +1,5 @@
 #include "light_manager.h"
+
 #include <algorithm>
 #include <stdexcept>
 

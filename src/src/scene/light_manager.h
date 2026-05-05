@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <vector>
+
 #include "common/lighting.h"
 
 namespace s21 {

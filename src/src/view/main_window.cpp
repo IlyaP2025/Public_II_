@@ -1,6 +1,4 @@
 #include "main_window.h"
-#include "common/debug.h"
-#include "scene/model_builder.h"
 
 #include <QApplication>
 #include <QCloseEvent>
@@ -20,15 +18,17 @@
 #include <QPainter>
 #include <QProgressDialog>
 #include <QPushButton>
-#include <QScrollArea>
 #include <QScreen>
+#include <QScrollArea>
 #include <QStatusBar>
 #include <QStyle>
 #include <QToolBar>
-#include <QtConcurrent/QtConcurrentRun>
 #include <QVBoxLayout>
+#include <QtConcurrent/QtConcurrentRun>
 
+#include "common/debug.h"
 #include "loaders/obj_loader.h"
+#include "scene/model_builder.h"
 
 namespace s21 {
 
@@ -40,11 +40,11 @@ MainWindow::MainWindow(std::shared_ptr<Facade> facade, GLWidget* glWidget,
                        QWidget* parent)
     : QMainWindow(parent), facade_(facade), glWidget_(glWidget) {
   setupUI();
-  
+
   // Динамический размер окна: 70% от доступного пространства экрана
   QRect screenRect = QApplication::primaryScreen()->availableGeometry();
   resize(screenRect.width() * 0.7, screenRect.height() * 0.7);
-  
+
   connectSignals();
 
   updateUIFromSelection();
@@ -65,9 +65,8 @@ MainWindow::MainWindow(std::shared_ptr<Facade> facade, GLWidget* glWidget,
           &MainWindow::onGifFinished);
 
   facade_->AddStateObserver([this](AppState newState) {
-    QMetaObject::invokeMethod(this, [this, newState]() {
-      updateUiState(newState);
-    });
+    QMetaObject::invokeMethod(this,
+                              [this, newState]() { updateUiState(newState); });
   });
 
   loadInitialLights();
@@ -294,20 +293,22 @@ void MainWindow::createDisplayTab(QTabWidget* tabWidget) {
   objectColorBtn_ = new QPushButton;
   objectColorBtn_->setFixedSize(50, 25);
   form->addRow("Object color:", objectColorBtn_);
-  connect(objectColorBtn_, &QPushButton::clicked, this, &MainWindow::onObjectColorClicked);
+  connect(objectColorBtn_, &QPushButton::clicked, this,
+          &MainWindow::onObjectColorClicked);
 
   flipNormalsCheckBox_ = new QCheckBox("Flip Normals");
-  connect(flipNormalsCheckBox_, &QCheckBox::toggled, this, &MainWindow::onFlipNormalsChecked);
+  connect(flipNormalsCheckBox_, &QCheckBox::toggled, this,
+          &MainWindow::onFlipNormalsChecked);
   form->addRow(flipNormalsCheckBox_);
 
   // Коэффициент сглаживания нормалей
   QLabel* smoothLabel = new QLabel("Smoothing:");
   smoothingSlider_ = new QSlider(Qt::Horizontal);
   smoothingSlider_->setRange(0, 100);
-  smoothingSlider_->setValue(static_cast<int>(Settings::instance().smoothingFactor() * 100));
-  connect(smoothingSlider_, &QSlider::valueChanged, this, [this](int value) {
-      onSmoothingFactorChanged(value / 100.0);
-  });
+  smoothingSlider_->setValue(
+      static_cast<int>(Settings::instance().smoothingFactor() * 100));
+  connect(smoothingSlider_, &QSlider::valueChanged, this,
+          [this](int value) { onSmoothingFactorChanged(value / 100.0); });
   form->addRow(smoothLabel, smoothingSlider_);
 
   shadingTypeCombo_ = new QComboBox;
@@ -321,15 +322,15 @@ void MainWindow::createDisplayTab(QTabWidget* tabWidget) {
 
 void MainWindow::createLightsTab(QTabWidget* tabWidget) {
   lightControlWidget_ = new LightControlWidget(this);
-  connect(lightControlWidget_, &LightControlWidget::lightAdded,
-          this, &MainWindow::onLightAdded);
-  connect(lightControlWidget_, &LightControlWidget::lightRemoved,
-          this, &MainWindow::onLightRemoved);
-  connect(lightControlWidget_, &LightControlWidget::lightUpdated,
-          this, &MainWindow::onLightUpdated);
+  connect(lightControlWidget_, &LightControlWidget::lightAdded, this,
+          &MainWindow::onLightAdded);
+  connect(lightControlWidget_, &LightControlWidget::lightRemoved, this,
+          &MainWindow::onLightRemoved);
+  connect(lightControlWidget_, &LightControlWidget::lightUpdated, this,
+          &MainWindow::onLightUpdated);
   // При любом изменении можно сразу обновлять рендерер
-  connect(lightControlWidget_, &LightControlWidget::lightsChanged,
-          this, &MainWindow::onLightsChanged);
+  connect(lightControlWidget_, &LightControlWidget::lightsChanged, this,
+          &MainWindow::onLightsChanged);
 
   tabWidget->addTab(lightControlWidget_, "Lights");
 }
@@ -343,21 +344,22 @@ void MainWindow::onLightAdded(const LightSource& light) {
 }
 
 void MainWindow::onLightRemoved(size_t index) {
-    if (index < facade_->GetScene()->GetLightManager().GetLightCount()) {
-        facade_->RemoveLight(index);
-    }
+  if (index < facade_->GetScene()->GetLightManager().GetLightCount()) {
+    facade_->RemoveLight(index);
+  }
 }
 
 void MainWindow::onLightUpdated(size_t index, const LightSource& light) {
-    if (index < facade_->GetScene()->GetLightManager().GetLightCount()) {
-        facade_->UpdateLight(index, light);
-    }
+  if (index < facade_->GetScene()->GetLightManager().GetLightCount()) {
+    facade_->UpdateLight(index, light);
+  }
 }
 
 void MainWindow::onLightsChanged() {
   // После любого изменения отправляем новый набор источников в рендерер
   auto lights = facade_->GetLights();
-  // Пока используем временный метод setLights (можно заменить на прямую передачу через Scene)
+  // Пока используем временный метод setLights (можно заменить на прямую
+  // передачу через Scene)
   if (glWidget_) {
     // В будущем заменить на glWidget_->setLights(lights);
     glWidget_->update();
@@ -377,11 +379,9 @@ void MainWindow::loadInitialLights() {
     lights.push_back(defaultLight);
   }
 
-  for (const auto& l : lights)
-    facade_->AddLight(l);
+  for (const auto& l : lights) facade_->AddLight(l);
 
-  if (lightControlWidget_)
-    lightControlWidget_->setLights(facade_->GetLights());
+  if (lightControlWidget_) lightControlWidget_->setLights(facade_->GetLights());
 }
 
 // ============================================================================
@@ -389,63 +389,65 @@ void MainWindow::loadInitialLights() {
 // ============================================================================
 
 void MainWindow::loadModelFromFile(const QString& fileName) {
-    if (fileName.isEmpty()) return;
-    openBtn_->setEnabled(false);
-    loadBtn_->setEnabled(false);
-    newBtn_->setEnabled(false);
-    QApplication::setOverrideCursor(Qt::WaitCursor);
-    infoLabel_->setText("Loading model...");
-    isLoading_ = true;
-    facade_->NotifyLoadStarted();
-    float smoothing = Settings::instance().smoothingFactor();
-    QFuture<RawModelData> future = QtConcurrent::run(
-    [fileName, smoothing]() { return ObjLoader::LoadData(fileName.toStdString(), smoothing); });
-    modelLoaderWatcher_.setFuture(future);
+  if (fileName.isEmpty()) return;
+  openBtn_->setEnabled(false);
+  loadBtn_->setEnabled(false);
+  newBtn_->setEnabled(false);
+  QApplication::setOverrideCursor(Qt::WaitCursor);
+  infoLabel_->setText("Loading model...");
+  isLoading_ = true;
+  facade_->NotifyLoadStarted();
+  float smoothing = Settings::instance().smoothingFactor();
+  QFuture<RawModelData> future = QtConcurrent::run([fileName, smoothing]() {
+    return ObjLoader::LoadData(fileName.toStdString(), smoothing);
+  });
+  modelLoaderWatcher_.setFuture(future);
 }
 
 void MainWindow::onNewModel() {
-    DEBUG_PRINT_FUNC();
-    AppState state = facade_->GetState();
-    if (state == AppState::Loading || state == AppState::RecordingGif) {
-        DEBUG_PRINT("Cannot clear model now, state=" << static_cast<int>(state));
-        return;
-    }
-    facade_->GetScene()->Clear();
-    infoLabel_->setText("No model selected");
-    facade_->NotifyModelCleared();
+  DEBUG_PRINT_FUNC();
+  AppState state = facade_->GetState();
+  if (state == AppState::Loading || state == AppState::RecordingGif) {
+    DEBUG_PRINT("Cannot clear model now, state=" << static_cast<int>(state));
+    return;
+  }
+  facade_->GetScene()->Clear();
+  infoLabel_->setText("No model selected");
+  facade_->NotifyModelCleared();
 }
 
 void MainWindow::onOpenModel() {
-    DEBUG_PRINT_FUNC();
-    AppState state = facade_->GetState();
-    if (state != AppState::Idle && state != AppState::Ready) {
-        DEBUG_PRINT("Cannot load now, state=" << static_cast<int>(state));
-        return;
-    }
- 
-    QString fileName = QFileDialog::getOpenFileName(this, "Open OBJ File", "", "OBJ Files (*.obj)");
+  DEBUG_PRINT_FUNC();
+  AppState state = facade_->GetState();
+  if (state != AppState::Idle && state != AppState::Ready) {
+    DEBUG_PRINT("Cannot load now, state=" << static_cast<int>(state));
+    return;
+  }
 
-    if (fileName.isEmpty()) {
-        return; // пользователь отменил выбор
-    }  
+  QString fileName = QFileDialog::getOpenFileName(this, "Open OBJ File", "",
+                                                  "OBJ Files (*.obj)");
 
-    facade_->GetScene()->Clear();
-    facade_->NotifyModelCleared();
-    isReplaceMode_ = true;
-    loadModelFromFile(fileName);
+  if (fileName.isEmpty()) {
+    return;  // пользователь отменил выбор
+  }
+
+  facade_->GetScene()->Clear();
+  facade_->NotifyModelCleared();
+  isReplaceMode_ = true;
+  loadModelFromFile(fileName);
 }
 
 void MainWindow::onLoadModel() {
-    DEBUG_PRINT_FUNC();
-    AppState state = facade_->GetState();
-    if (state != AppState::Idle && state != AppState::Ready) {
-        DEBUG_PRINT("Cannot load now, state=" << static_cast<int>(state));
-        return;
-    }
-    QString fileName = QFileDialog::getOpenFileName(this, "Load Additional OBJ", "",
-                                                  "OBJ Files (*.obj)");
-    isReplaceMode_ = false;
-    loadModelFromFile(fileName);
+  DEBUG_PRINT_FUNC();
+  AppState state = facade_->GetState();
+  if (state != AppState::Idle && state != AppState::Ready) {
+    DEBUG_PRINT("Cannot load now, state=" << static_cast<int>(state));
+    return;
+  }
+  QString fileName = QFileDialog::getOpenFileName(this, "Load Additional OBJ",
+                                                  "", "OBJ Files (*.obj)");
+  isReplaceMode_ = false;
+  loadModelFromFile(fileName);
 }
 
 void MainWindow::onModelLoaded() {
@@ -460,7 +462,8 @@ void MainWindow::onModelLoaded() {
 
   if (!data.success) {
     facade_->NotifyLoadFinished(false, data.errorMsg);
-    infoLabel_->setText("Load failed: " + QString::fromStdString(data.errorMsg));
+    infoLabel_->setText("Load failed: " +
+                        QString::fromStdString(data.errorMsg));
     QMessageBox::warning(this, "Error", QString::fromStdString(data.errorMsg));
     return;
   }
@@ -488,131 +491,134 @@ void MainWindow::onModelLoaded() {
 // ============================================================================
 
 void MainWindow::onUndo() {
-    if (!facade_->CanTransform()) return;
-    facade_->Undo();
-    updateUIFromSelection();
+  if (!facade_->CanTransform()) return;
+  facade_->Undo();
+  updateUIFromSelection();
 }
 
 void MainWindow::onRedo() {
-    if (!facade_->CanTransform()) return;
-    facade_->Redo();
-    updateUIFromSelection();
+  if (!facade_->CanTransform()) return;
+  facade_->Redo();
+  updateUIFromSelection();
 }
 
 void MainWindow::onScreenshot() {
-    if (!facade_->CanSaveScreenshot()) return;
-    glWidget_->update();
-    QApplication::processEvents();
-    QImage image = glWidget_->grabFramebuffer();
-    if (image.isNull()) {
-        QMessageBox::warning(this, "Error", "Failed to capture screenshot (null image)");
-        return;
-    }
-    image = image.convertToFormat(QImage::Format_RGB32);
-    QString selectedFilter;
-    QString fileName = QFileDialog::getSaveFileName(
-        this, "Save Screenshot", "", "BMP (*.bmp);;JPEG (*.jpg *.jpeg)",
-        &selectedFilter);
-    if (fileName.isEmpty()) return;
-    if (selectedFilter.contains("*.bmp") && !fileName.endsWith(".bmp", Qt::CaseInsensitive))
-        fileName += ".bmp";
-    else if (selectedFilter.contains("*.jpg") && !fileName.endsWith(".jpg", Qt::CaseInsensitive) &&
-             !fileName.endsWith(".jpeg", Qt::CaseInsensitive))
-        fileName += ".jpg";
-    QFileInfo fileInfo(fileName);
-    QDir dir = fileInfo.absoluteDir();
-    if (!dir.exists() && !dir.mkpath(".")) {
-        QMessageBox::warning(this, "Error", "Cannot create directory for screenshot");
-        return;
-    }
-    if (!image.save(fileName)) {
-        qDebug() << "Failed to save screenshot to:" << fileName;
-        QMessageBox::warning(this, "Error", "Failed to save screenshot");
-    }
+  if (!facade_->CanSaveScreenshot()) return;
+  glWidget_->update();
+  QApplication::processEvents();
+  QImage image = glWidget_->grabFramebuffer();
+  if (image.isNull()) {
+    QMessageBox::warning(this, "Error",
+                         "Failed to capture screenshot (null image)");
+    return;
+  }
+  image = image.convertToFormat(QImage::Format_RGB32);
+  QString selectedFilter;
+  QString fileName = QFileDialog::getSaveFileName(
+      this, "Save Screenshot", "", "BMP (*.bmp);;JPEG (*.jpg *.jpeg)",
+      &selectedFilter);
+  if (fileName.isEmpty()) return;
+  if (selectedFilter.contains("*.bmp") &&
+      !fileName.endsWith(".bmp", Qt::CaseInsensitive))
+    fileName += ".bmp";
+  else if (selectedFilter.contains("*.jpg") &&
+           !fileName.endsWith(".jpg", Qt::CaseInsensitive) &&
+           !fileName.endsWith(".jpeg", Qt::CaseInsensitive))
+    fileName += ".jpg";
+  QFileInfo fileInfo(fileName);
+  QDir dir = fileInfo.absoluteDir();
+  if (!dir.exists() && !dir.mkpath(".")) {
+    QMessageBox::warning(this, "Error",
+                         "Cannot create directory for screenshot");
+    return;
+  }
+  if (!image.save(fileName)) {
+    qDebug() << "Failed to save screenshot to:" << fileName;
+    QMessageBox::warning(this, "Error", "Failed to save screenshot");
+  }
 }
 
 void MainWindow::startAutoRotation() {
-    auto selected = facade_->GetSelected();
-    if (selected.empty()) return;
-    rotatingObject_ = selected.front();
-    originalRotationY_ = rotatingObject_->GetTransform().GetRotation().y;
-    currentRotationAngle_ = originalRotationY_;
-    rotationTimer_ = new QTimer(this);
-    connect(rotationTimer_, &QTimer::timeout, this, &MainWindow::rotateStep);
-    rotationTimer_->start(1000 / 30);
+  auto selected = facade_->GetSelected();
+  if (selected.empty()) return;
+  rotatingObject_ = selected.front();
+  originalRotationY_ = rotatingObject_->GetTransform().GetRotation().y;
+  currentRotationAngle_ = originalRotationY_;
+  rotationTimer_ = new QTimer(this);
+  connect(rotationTimer_, &QTimer::timeout, this, &MainWindow::rotateStep);
+  rotationTimer_->start(1000 / 30);
 }
 
 void MainWindow::rotateStep() {
-    if (!rotatingObject_) return;
-    currentRotationAngle_ += 2.0f;
-    if (currentRotationAngle_ >= 360.0f) currentRotationAngle_ -= 360.0f;
-    Point newRot = rotatingObject_->GetTransform().GetRotation();
-    newRot.y = currentRotationAngle_;
-    rotatingObject_->GetTransform().SetRotation(newRot);
-    facade_->GetScene()->NotifyTransformChanged(rotatingObject_);
+  if (!rotatingObject_) return;
+  currentRotationAngle_ += 2.0f;
+  if (currentRotationAngle_ >= 360.0f) currentRotationAngle_ -= 360.0f;
+  Point newRot = rotatingObject_->GetTransform().GetRotation();
+  newRot.y = currentRotationAngle_;
+  rotatingObject_->GetTransform().SetRotation(newRot);
+  facade_->GetScene()->NotifyTransformChanged(rotatingObject_);
 }
 
 void MainWindow::stopAutoRotation() {
-    if (rotationTimer_) {
-        rotationTimer_->stop();
-        delete rotationTimer_;
-        rotationTimer_ = nullptr;
-    }
-    if (rotatingObject_) {
-        Point newRot = rotatingObject_->GetTransform().GetRotation();
-        newRot.y = originalRotationY_;
-        rotatingObject_->GetTransform().SetRotation(newRot);
-        facade_->GetScene()->NotifyTransformChanged(rotatingObject_);
-        rotatingObject_ = nullptr;
-    }
+  if (rotationTimer_) {
+    rotationTimer_->stop();
+    delete rotationTimer_;
+    rotationTimer_ = nullptr;
+  }
+  if (rotatingObject_) {
+    Point newRot = rotatingObject_->GetTransform().GetRotation();
+    newRot.y = originalRotationY_;
+    rotatingObject_->GetTransform().SetRotation(newRot);
+    facade_->GetScene()->NotifyTransformChanged(rotatingObject_);
+    rotatingObject_ = nullptr;
+  }
 }
 
 void MainWindow::onRecordGif() {
-    if (gifRecorder_->isRecording()) {
-        if (!facade_->CanStopGifRecording()) return;
-        gifRecorder_->stop();
-        facade_->NotifyGifRecordingFinished();
-        stopAutoRotation();
-        return;
-    } else {
-        if (!facade_->CanStartGifRecording()) return;
-    }
+  if (gifRecorder_->isRecording()) {
+    if (!facade_->CanStopGifRecording()) return;
+    gifRecorder_->stop();
+    facade_->NotifyGifRecordingFinished();
+    stopAutoRotation();
+    return;
+  } else {
+    if (!facade_->CanStartGifRecording()) return;
+  }
 
-    QString fileName = QFileDialog::getSaveFileName(this, "Save GIF", "", "GIF (*.gif)");
-    if (fileName.isEmpty()) return;
-    if (!gifRecorder_->startRecording(fileName, 640, 480, 10, 5)) {
-        QMessageBox::warning(this, "Error", "Failed to start recording");
-        return;
-    }
-    facade_->NotifyGifRecordingStarted();
-    recordBtn_->setText("Stop Recording");
-    startAutoRotation();
+  QString fileName =
+      QFileDialog::getSaveFileName(this, "Save GIF", "", "GIF (*.gif)");
+  if (fileName.isEmpty()) return;
+  if (!gifRecorder_->startRecording(fileName, 640, 480, 10, 5)) {
+    QMessageBox::warning(this, "Error", "Failed to start recording");
+    return;
+  }
+  facade_->NotifyGifRecordingStarted();
+  recordBtn_->setText("Stop Recording");
+  startAutoRotation();
 }
 
 void MainWindow::onGifFinished(bool success, const QString& error) {
-    facade_->NotifyGifRecordingFinished();
-    recordBtn_->setText("Record GIF");
-    stopAutoRotation();
-    if (!success && !error.isEmpty()) {
-        QMessageBox::warning(this, "Error", error);
-    }
+  facade_->NotifyGifRecordingFinished();
+  recordBtn_->setText("Record GIF");
+  stopAutoRotation();
+  if (!success && !error.isEmpty()) {
+    QMessageBox::warning(this, "Error", error);
+  }
 }
 
 void MainWindow::onFit() {
-    if (!facade_->CanTransform()) return;
-    auto selected = facade_->GetSelected();
-    if (selected.empty()) return;
-    Mesh* mesh = dynamic_cast<Mesh*>(selected.front());
-    if (!mesh) return;
-    auto bbox = mesh->GetBoundingBox();
-    Point center = {(bbox.min.x + bbox.max.x) / 2,
-                    (bbox.min.y + bbox.max.y) / 2,
-                    (bbox.min.z + bbox.max.z) / 2};
-    float size = std::max({bbox.max.x - bbox.min.x,
-                           bbox.max.y - bbox.min.y,
-                           bbox.max.z - bbox.min.z});
-    if (size < 1e-6f) size = 1.0f;
-    glWidget_->fitToBoundingBox(center, size);
+  if (!facade_->CanTransform()) return;
+  auto selected = facade_->GetSelected();
+  if (selected.empty()) return;
+  Mesh* mesh = dynamic_cast<Mesh*>(selected.front());
+  if (!mesh) return;
+  auto bbox = mesh->GetBoundingBox();
+  Point center = {(bbox.min.x + bbox.max.x) / 2, (bbox.min.y + bbox.max.y) / 2,
+                  (bbox.min.z + bbox.max.z) / 2};
+  float size = std::max({bbox.max.x - bbox.min.x, bbox.max.y - bbox.min.y,
+                         bbox.max.z - bbox.min.z});
+  if (size < 1e-6f) size = 1.0f;
+  glWidget_->fitToBoundingBox(center, size);
 }
 
 // ============================================================================
@@ -624,9 +630,18 @@ void MainWindow::applyMove(int axis, double value) {
   if (selected.empty()) return;
   Point delta{0, 0, 0};
   switch (axis) {
-    case 0: delta.x = static_cast<float>(value) - selected.front()->GetTransform().GetPosition().x; break;
-    case 1: delta.y = static_cast<float>(value) - selected.front()->GetTransform().GetPosition().y; break;
-    case 2: delta.z = static_cast<float>(value) - selected.front()->GetTransform().GetPosition().z; break;
+    case 0:
+      delta.x = static_cast<float>(value) -
+                selected.front()->GetTransform().GetPosition().x;
+      break;
+    case 1:
+      delta.y = static_cast<float>(value) -
+                selected.front()->GetTransform().GetPosition().y;
+      break;
+    case 2:
+      delta.z = static_cast<float>(value) -
+                selected.front()->GetTransform().GetPosition().z;
+      break;
   }
   facade_->MoveSelected(delta);
 }
@@ -636,9 +651,18 @@ void MainWindow::applyRotate(int axis, double value) {
   if (selected.empty()) return;
   Point delta{0, 0, 0};
   switch (axis) {
-    case 0: delta.x = static_cast<float>(value) - selected.front()->GetTransform().GetRotation().x; break;
-    case 1: delta.y = static_cast<float>(value) - selected.front()->GetTransform().GetRotation().y; break;
-    case 2: delta.z = static_cast<float>(value) - selected.front()->GetTransform().GetRotation().z; break;
+    case 0:
+      delta.x = static_cast<float>(value) -
+                selected.front()->GetTransform().GetRotation().x;
+      break;
+    case 1:
+      delta.y = static_cast<float>(value) -
+                selected.front()->GetTransform().GetRotation().y;
+      break;
+    case 2:
+      delta.z = static_cast<float>(value) -
+                selected.front()->GetTransform().GetRotation().z;
+      break;
   }
   facade_->RotateSelected(delta);
 }
@@ -648,9 +672,18 @@ void MainWindow::applyScale(int axis, double value) {
   if (selected.empty()) return;
   Point delta{0, 0, 0};
   switch (axis) {
-    case 0: delta.x = static_cast<float>(value) - selected.front()->GetTransform().GetScale().x; break;
-    case 1: delta.y = static_cast<float>(value) - selected.front()->GetTransform().GetScale().y; break;
-    case 2: delta.z = static_cast<float>(value) - selected.front()->GetTransform().GetScale().z; break;
+    case 0:
+      delta.x = static_cast<float>(value) -
+                selected.front()->GetTransform().GetScale().x;
+      break;
+    case 1:
+      delta.y = static_cast<float>(value) -
+                selected.front()->GetTransform().GetScale().y;
+      break;
+    case 2:
+      delta.z = static_cast<float>(value) -
+                selected.front()->GetTransform().GetScale().z;
+      break;
   }
   facade_->ScaleSelected(delta);
 }
@@ -676,57 +709,67 @@ void MainWindow::onScaleZChanged(double value) { applyScale(2, value); }
 // ============================================================================
 
 void MainWindow::onProjectionChanged(int index) {
-    Settings::instance().setProjectionType(static_cast<Settings::ProjectionType>(index));
+  Settings::instance().setProjectionType(
+      static_cast<Settings::ProjectionType>(index));
 }
 void MainWindow::onBackgroundColorClicked() {
-    QColor color = QColorDialog::getColor(Settings::instance().backgroundColor(), this);
-    if (color.isValid()) {
-        Settings::instance().setBackgroundColor(color);
-        bgColorBtn_->setStyleSheet(QString("background-color: %1").arg(color.name()));
-    }
+  QColor color =
+      QColorDialog::getColor(Settings::instance().backgroundColor(), this);
+  if (color.isValid()) {
+    Settings::instance().setBackgroundColor(color);
+    bgColorBtn_->setStyleSheet(
+        QString("background-color: %1").arg(color.name()));
+  }
 }
 void MainWindow::onEdgeColorClicked() {
-    QColor color = QColorDialog::getColor(Settings::instance().edgeColor(), this);
-    if (color.isValid()) {
-        Settings::instance().setEdgeColor(color);
-        edgeColorBtn_->setStyleSheet(QString("background-color: %1").arg(color.name()));
-    }
+  QColor color = QColorDialog::getColor(Settings::instance().edgeColor(), this);
+  if (color.isValid()) {
+    Settings::instance().setEdgeColor(color);
+    edgeColorBtn_->setStyleSheet(
+        QString("background-color: %1").arg(color.name()));
+  }
 }
 void MainWindow::onVertexColorClicked() {
-    QColor color = QColorDialog::getColor(Settings::instance().vertexColor(), this);
-    if (color.isValid()) {
-        Settings::instance().setVertexColor(color);
-        vertexColorBtn_->setStyleSheet(QString("background-color: %1").arg(color.name()));
-    }
+  QColor color =
+      QColorDialog::getColor(Settings::instance().vertexColor(), this);
+  if (color.isValid()) {
+    Settings::instance().setVertexColor(color);
+    vertexColorBtn_->setStyleSheet(
+        QString("background-color: %1").arg(color.name()));
+  }
 }
 void MainWindow::onSelectedEdgeColorClicked() {
-    QColor color = QColorDialog::getColor(Settings::instance().selectedEdgeColor(), this);
-    if (color.isValid()) {
-        Settings::instance().setSelectedEdgeColor(color);
-        selectedEdgeColorBtn_->setStyleSheet(QString("background-color: %1").arg(color.name()));
-    }
+  QColor color =
+      QColorDialog::getColor(Settings::instance().selectedEdgeColor(), this);
+  if (color.isValid()) {
+    Settings::instance().setSelectedEdgeColor(color);
+    selectedEdgeColorBtn_->setStyleSheet(
+        QString("background-color: %1").arg(color.name()));
+  }
 }
 void MainWindow::onSelectedVertexColorClicked() {
-    QColor color = QColorDialog::getColor(Settings::instance().selectedVertexColor(), this);
-    if (color.isValid()) {
-        Settings::instance().setSelectedVertexColor(color);
-        selectedVertexColorBtn_->setStyleSheet(QString("background-color: %1").arg(color.name()));
-    }
+  QColor color =
+      QColorDialog::getColor(Settings::instance().selectedVertexColor(), this);
+  if (color.isValid()) {
+    Settings::instance().setSelectedVertexColor(color);
+    selectedVertexColorBtn_->setStyleSheet(
+        QString("background-color: %1").arg(color.name()));
+  }
 }
 void MainWindow::onEdgeThicknessChanged(double value) {
-    Settings::instance().setEdgeThickness(static_cast<float>(value));
+  Settings::instance().setEdgeThickness(static_cast<float>(value));
 }
 void MainWindow::onVertexTypeChanged(int index) {
-    Settings::instance().setVertexType(static_cast<Settings::VertexType>(index));
+  Settings::instance().setVertexType(static_cast<Settings::VertexType>(index));
 }
 void MainWindow::onVertexSizeChanged(double value) {
-    Settings::instance().setVertexSize(static_cast<float>(value));
+  Settings::instance().setVertexSize(static_cast<float>(value));
 }
 void MainWindow::onEdgeTypeChanged(int index) {
-    Settings::instance().setEdgeType(static_cast<Settings::EdgeType>(index));
+  Settings::instance().setEdgeType(static_cast<Settings::EdgeType>(index));
 }
 void MainWindow::onDashFactorChanged(double value) {
-    Settings::instance().setDashFactor(static_cast<float>(value));
+  Settings::instance().setDashFactor(static_cast<float>(value));
 }
 
 // ============================================================================
@@ -734,41 +777,8 @@ void MainWindow::onDashFactorChanged(double value) {
 // ============================================================================
 
 void MainWindow::updateUIFromSelection() {
-    auto selected = facade_->GetSelected();
-    if (selected.empty()) {
-        moveXSpin_->blockSignals(true);
-        moveYSpin_->blockSignals(true);
-        moveZSpin_->blockSignals(true);
-        rotateXSpin_->blockSignals(true);
-        rotateYSpin_->blockSignals(true);
-        rotateZSpin_->blockSignals(true);
-        scaleXSpin_->blockSignals(true);
-        scaleYSpin_->blockSignals(true);
-        scaleZSpin_->blockSignals(true);
-        moveXSpin_->setValue(0);
-        moveYSpin_->setValue(0);
-        moveZSpin_->setValue(0);
-        rotateXSpin_->setValue(0);
-        rotateYSpin_->setValue(0);
-        rotateZSpin_->setValue(0);
-        scaleXSpin_->setValue(1);
-        scaleYSpin_->setValue(1);
-        scaleZSpin_->setValue(1);
-        moveXSpin_->blockSignals(false);
-        moveYSpin_->blockSignals(false);
-        moveZSpin_->blockSignals(false);
-        rotateXSpin_->blockSignals(false);
-        rotateYSpin_->blockSignals(false);
-        rotateZSpin_->blockSignals(false);
-        scaleXSpin_->blockSignals(false);
-        scaleYSpin_->blockSignals(false);
-        scaleZSpin_->blockSignals(false);
-        return;
-    }
-    SceneObject* obj = selected.front();
-    Point pos = obj->GetTransform().GetPosition();
-    Point rot = obj->GetTransform().GetRotation();
-    Point scale = obj->GetTransform().GetScale();
+  auto selected = facade_->GetSelected();
+  if (selected.empty()) {
     moveXSpin_->blockSignals(true);
     moveYSpin_->blockSignals(true);
     moveZSpin_->blockSignals(true);
@@ -778,15 +788,15 @@ void MainWindow::updateUIFromSelection() {
     scaleXSpin_->blockSignals(true);
     scaleYSpin_->blockSignals(true);
     scaleZSpin_->blockSignals(true);
-    moveXSpin_->setValue(pos.x);
-    moveYSpin_->setValue(pos.y);
-    moveZSpin_->setValue(pos.z);
-    rotateXSpin_->setValue(rot.x);
-    rotateYSpin_->setValue(rot.y);
-    rotateZSpin_->setValue(rot.z);
-    scaleXSpin_->setValue(scale.x);
-    scaleYSpin_->setValue(scale.y);
-    scaleZSpin_->setValue(scale.z);
+    moveXSpin_->setValue(0);
+    moveYSpin_->setValue(0);
+    moveZSpin_->setValue(0);
+    rotateXSpin_->setValue(0);
+    rotateYSpin_->setValue(0);
+    rotateZSpin_->setValue(0);
+    scaleXSpin_->setValue(1);
+    scaleYSpin_->setValue(1);
+    scaleZSpin_->setValue(1);
     moveXSpin_->blockSignals(false);
     moveYSpin_->blockSignals(false);
     moveZSpin_->blockSignals(false);
@@ -796,85 +806,143 @@ void MainWindow::updateUIFromSelection() {
     scaleXSpin_->blockSignals(false);
     scaleYSpin_->blockSignals(false);
     scaleZSpin_->blockSignals(false);
+    return;
+  }
+  SceneObject* obj = selected.front();
+  Point pos = obj->GetTransform().GetPosition();
+  Point rot = obj->GetTransform().GetRotation();
+  Point scale = obj->GetTransform().GetScale();
+  moveXSpin_->blockSignals(true);
+  moveYSpin_->blockSignals(true);
+  moveZSpin_->blockSignals(true);
+  rotateXSpin_->blockSignals(true);
+  rotateYSpin_->blockSignals(true);
+  rotateZSpin_->blockSignals(true);
+  scaleXSpin_->blockSignals(true);
+  scaleYSpin_->blockSignals(true);
+  scaleZSpin_->blockSignals(true);
+  moveXSpin_->setValue(pos.x);
+  moveYSpin_->setValue(pos.y);
+  moveZSpin_->setValue(pos.z);
+  rotateXSpin_->setValue(rot.x);
+  rotateYSpin_->setValue(rot.y);
+  rotateZSpin_->setValue(rot.z);
+  scaleXSpin_->setValue(scale.x);
+  scaleYSpin_->setValue(scale.y);
+  scaleZSpin_->setValue(scale.z);
+  moveXSpin_->blockSignals(false);
+  moveYSpin_->blockSignals(false);
+  moveZSpin_->blockSignals(false);
+  rotateXSpin_->blockSignals(false);
+  rotateYSpin_->blockSignals(false);
+  rotateZSpin_->blockSignals(false);
+  scaleXSpin_->blockSignals(false);
+  scaleYSpin_->blockSignals(false);
+  scaleZSpin_->blockSignals(false);
 }
 
 void MainWindow::updateModelInfo() {
-    auto selected = facade_->GetSelected();
-    if (selected.empty()) {
-        infoLabel_->setText("No model selected");
-        return;
-    }
-    Mesh* mesh = dynamic_cast<Mesh*>(selected.front());
-    if (!mesh) {
-        infoLabel_->setText("Selected object is not a mesh");
-        return;
-    }
-    QString fileName = QString::fromStdString(mesh->GetSourceFile());
-    QFileInfo fileInfo(fileName);
-    QString shortName = fileInfo.fileName();
-    QString text = QString("File: %1 | Vertices: %2 | Edges: %3")
-                       .arg(shortName)
-                       .arg(mesh->VertexCount())
-                       .arg(mesh->EdgeCount());
-    infoLabel_->setText(text);
+  auto selected = facade_->GetSelected();
+  if (selected.empty()) {
+    infoLabel_->setText("No model selected");
+    return;
+  }
+  Mesh* mesh = dynamic_cast<Mesh*>(selected.front());
+  if (!mesh) {
+    infoLabel_->setText("Selected object is not a mesh");
+    return;
+  }
+  QString fileName = QString::fromStdString(mesh->GetSourceFile());
+  QFileInfo fileInfo(fileName);
+  QString shortName = fileInfo.fileName();
+  QString text = QString("File: %1 | Vertices: %2 | Edges: %3")
+                     .arg(shortName)
+                     .arg(mesh->VertexCount())
+                     .arg(mesh->EdgeCount());
+  infoLabel_->setText(text);
 }
 
 void MainWindow::updateDisplayUI() {
-    auto& s = Settings::instance();
-    bgColorBtn_->setStyleSheet(QString("background-color: %1").arg(s.backgroundColor().name()));
-    edgeColorBtn_->setStyleSheet(QString("background-color: %1").arg(s.edgeColor().name()));
-    vertexColorBtn_->setStyleSheet(QString("background-color: %1").arg(s.vertexColor().name()));
-    selectedEdgeColorBtn_->setStyleSheet(QString("background-color: %1").arg(s.selectedEdgeColor().name()));
-    selectedVertexColorBtn_->setStyleSheet(QString("background-color: %1").arg(s.selectedVertexColor().name()));
-    projectionCombo_->setCurrentIndex(static_cast<int>(s.projectionType()));
-    edgeThicknessSpin_->setValue(s.edgeThickness());
-    vertexTypeCombo_->setCurrentIndex(static_cast<int>(s.vertexType()));
-    vertexSizeSpin_->setValue(s.vertexSize());
-    edgeTypeCombo_->setCurrentIndex(static_cast<int>(s.edgeType()));
-    dashFactorSpin_->setValue(s.dashFactor());
-    if (flipNormalsCheckBox_) flipNormalsCheckBox_->setChecked(s.flipNormals());
-    if (objectColorBtn_) objectColorBtn_->setStyleSheet(QString("background-color: %1").arg(s.objectColor().name()));
+  auto& s = Settings::instance();
+  bgColorBtn_->setStyleSheet(
+      QString("background-color: %1").arg(s.backgroundColor().name()));
+  edgeColorBtn_->setStyleSheet(
+      QString("background-color: %1").arg(s.edgeColor().name()));
+  vertexColorBtn_->setStyleSheet(
+      QString("background-color: %1").arg(s.vertexColor().name()));
+  selectedEdgeColorBtn_->setStyleSheet(
+      QString("background-color: %1").arg(s.selectedEdgeColor().name()));
+  selectedVertexColorBtn_->setStyleSheet(
+      QString("background-color: %1").arg(s.selectedVertexColor().name()));
+  projectionCombo_->setCurrentIndex(static_cast<int>(s.projectionType()));
+  edgeThicknessSpin_->setValue(s.edgeThickness());
+  vertexTypeCombo_->setCurrentIndex(static_cast<int>(s.vertexType()));
+  vertexSizeSpin_->setValue(s.vertexSize());
+  edgeTypeCombo_->setCurrentIndex(static_cast<int>(s.edgeType()));
+  dashFactorSpin_->setValue(s.dashFactor());
+  if (flipNormalsCheckBox_) flipNormalsCheckBox_->setChecked(s.flipNormals());
+  if (objectColorBtn_)
+    objectColorBtn_->setStyleSheet(
+        QString("background-color: %1").arg(s.objectColor().name()));
 }
 
 void MainWindow::updateUiState(AppState newState) {
-    bool canLoad = (newState == AppState::Idle || newState == AppState::Ready);
-    bool canTransform = (newState == AppState::Ready);
-    bool canStartGif = (newState == AppState::Ready);
-    bool canStopGif = (newState == AppState::RecordingGif);
-    bool canScreenshot = (newState == AppState::Ready);
-    newBtn_->setEnabled(canLoad);
-    openBtn_->setEnabled(canLoad);
-    loadBtn_->setEnabled(canLoad);
-    undoBtn_->setEnabled(canTransform);
-    redoBtn_->setEnabled(canTransform);
-    screenshotBtn_->setEnabled(canScreenshot && newState != AppState::RecordingGif);
-    recordBtn_->setEnabled(canStartGif || canStopGif);
-    fitBtn_->setEnabled(canTransform);
-    if (newState == AppState::RecordingGif) recordBtn_->setText("Stop Recording");
-    else recordBtn_->setText("Record GIF");
-    if (newState == AppState::Loading) {
-        setCursor(Qt::WaitCursor);
-        statusBar()->showMessage(tr("Loading model..."));
-    } else {
-        setCursor(Qt::ArrowCursor);
-        if (newState == AppState::Ready) statusBar()->showMessage(tr("Model loaded. Ready."), 2000);
-        else if (newState == AppState::Idle) statusBar()->showMessage(tr("No model loaded."));
-    }
-    if (newState == AppState::Error) {
-        QString errorMsg = QString::fromStdString(facade_->GetErrorMessage());
-        QMessageBox::critical(this, tr("Error"), errorMsg);
-        facade_->ResetError();
-    }
+  bool canLoad = (newState == AppState::Idle || newState == AppState::Ready);
+  bool canTransform = (newState == AppState::Ready);
+  bool canStartGif = (newState == AppState::Ready);
+  bool canStopGif = (newState == AppState::RecordingGif);
+  bool canScreenshot = (newState == AppState::Ready);
+  newBtn_->setEnabled(canLoad);
+  openBtn_->setEnabled(canLoad);
+  loadBtn_->setEnabled(canLoad);
+  undoBtn_->setEnabled(canTransform);
+  redoBtn_->setEnabled(canTransform);
+  screenshotBtn_->setEnabled(canScreenshot &&
+                             newState != AppState::RecordingGif);
+  recordBtn_->setEnabled(canStartGif || canStopGif);
+  fitBtn_->setEnabled(canTransform);
+  if (newState == AppState::RecordingGif)
+    recordBtn_->setText("Stop Recording");
+  else
+    recordBtn_->setText("Record GIF");
+  if (newState == AppState::Loading) {
+    setCursor(Qt::WaitCursor);
+    statusBar()->showMessage(tr("Loading model..."));
+  } else {
+    setCursor(Qt::ArrowCursor);
+    if (newState == AppState::Ready)
+      statusBar()->showMessage(tr("Model loaded. Ready."), 2000);
+    else if (newState == AppState::Idle)
+      statusBar()->showMessage(tr("No model loaded."));
+  }
+  if (newState == AppState::Error) {
+    QString errorMsg = QString::fromStdString(facade_->GetErrorMessage());
+    QMessageBox::critical(this, tr("Error"), errorMsg);
+    facade_->ResetError();
+  }
 }
 
 // ============================================================================
 // SceneObserver
 // ============================================================================
 
-void MainWindow::OnObjectAdded(SceneObject* object) { (void)object; updateModelInfo(); }
-void MainWindow::OnObjectRemoved(SceneObject* object) { (void)object; updateModelInfo(); }
-void MainWindow::OnSelectionChanged(const std::vector<SceneObject*>& selected) { (void)selected; updateUIFromSelection(); updateModelInfo(); }
-void MainWindow::OnTransformChanged(SceneObject* object) { (void)object; updateUIFromSelection(); }
+void MainWindow::OnObjectAdded(SceneObject* object) {
+  (void)object;
+  updateModelInfo();
+}
+void MainWindow::OnObjectRemoved(SceneObject* object) {
+  (void)object;
+  updateModelInfo();
+}
+void MainWindow::OnSelectionChanged(const std::vector<SceneObject*>& selected) {
+  (void)selected;
+  updateUIFromSelection();
+  updateModelInfo();
+}
+void MainWindow::OnTransformChanged(SceneObject* object) {
+  (void)object;
+  updateUIFromSelection();
+}
 void MainWindow::closeEvent(QCloseEvent* event) { event->accept(); }
 
 // ============================================================================
@@ -884,19 +952,29 @@ void MainWindow::closeEvent(QCloseEvent* event) { event->accept(); }
 void MainWindow::onShadingTypeChanged(int index) {
   OpenGLRenderer::ShadingType type;
   switch (index) {
-    case 0: type = OpenGLRenderer::ShadingType::Wireframe; break;
-    case 1: type = OpenGLRenderer::ShadingType::Flat;       break;
-    case 2: type = OpenGLRenderer::ShadingType::Phong;      break;
-    default: type = OpenGLRenderer::ShadingType::Wireframe; break;
+    case 0:
+      type = OpenGLRenderer::ShadingType::Wireframe;
+      break;
+    case 1:
+      type = OpenGLRenderer::ShadingType::Flat;
+      break;
+    case 2:
+      type = OpenGLRenderer::ShadingType::Phong;
+      break;
+    default:
+      type = OpenGLRenderer::ShadingType::Wireframe;
+      break;
   }
 
-  DEBUG_PRINT("=== Shading type changed to " << (index == 0 ? "Wireframe" : (index == 1 ? "Flat" : "Phong")) << " ===");
+  DEBUG_PRINT("=== Shading type changed to "
+              << (index == 0 ? "Wireframe" : (index == 1 ? "Flat" : "Phong"))
+              << " ===");
   glWidget_->setShadingType(type);
 }
 
 void MainWindow::onFlipNormalsChecked(bool checked) {
-    glWidget_->setFlipNormals(checked);
-    Settings::instance().setFlipNormals(checked);
+  glWidget_->setFlipNormals(checked);
+  Settings::instance().setFlipNormals(checked);
 }
 
 // ============================================================================
@@ -904,118 +982,124 @@ void MainWindow::onFlipNormalsChecked(bool checked) {
 // ============================================================================
 
 void MainWindow::onLoadTexture() {
-    QString fileName = QFileDialog::getOpenFileName(this, "Load Texture", "", "BMP Files (*.bmp)");
-    if (fileName.isEmpty()) return;
-    QImage texture;
-    if (!texture.load(fileName)) {
-        QMessageBox::warning(this, "Error", "Failed to load texture");
-        return;
-    }
-    if (texture.width() != texture.height() || texture.width() > 1024) {
-        QMessageBox::warning(this, "Error", "Texture must be square and ≤1024×1024");
-        return;
-    }
-    glWidget_->setTexture(texture);
-    Settings::instance().setTexturePath(fileName);
+  QString fileName = QFileDialog::getOpenFileName(this, "Load Texture", "",
+                                                  "BMP Files (*.bmp)");
+  if (fileName.isEmpty()) return;
+  QImage texture;
+  if (!texture.load(fileName)) {
+    QMessageBox::warning(this, "Error", "Failed to load texture");
+    return;
+  }
+  if (texture.width() != texture.height() || texture.width() > 1024) {
+    QMessageBox::warning(this, "Error",
+                         "Texture must be square and ≤1024×1024");
+    return;
+  }
+  glWidget_->setTexture(texture);
+  Settings::instance().setTexturePath(fileName);
 }
 void MainWindow::onClearTexture() {
-    glWidget_->clearTexture();
-    Settings::instance().setTexturePath("");
+  glWidget_->clearTexture();
+  Settings::instance().setTexturePath("");
 }
 void MainWindow::onObjectColorClicked() {
-    QColor color = QColorDialog::getColor(Settings::instance().objectColor(), this);
-    if (color.isValid()) {
-        Settings::instance().setObjectColor(color);
-        objectColorBtn_->setStyleSheet(QString("background-color: %1").arg(color.name()));
-        glWidget_->setObjectColor(color);
-    }
+  QColor color =
+      QColorDialog::getColor(Settings::instance().objectColor(), this);
+  if (color.isValid()) {
+    Settings::instance().setObjectColor(color);
+    objectColorBtn_->setStyleSheet(
+        QString("background-color: %1").arg(color.name()));
+    glWidget_->setObjectColor(color);
+  }
 }
 
 void MainWindow::onSaveUVMap() {
-    DEBUG_PRINT("=== onSaveUVMap called ===");
-    
-    auto selected = facade_->GetSelected();
-    if (selected.empty()) {
-        QMessageBox::warning(this, "Error", "No model selected");
-        DEBUG_PRINT("No model selected");
-        return;
+  DEBUG_PRINT("=== onSaveUVMap called ===");
+
+  auto selected = facade_->GetSelected();
+  if (selected.empty()) {
+    QMessageBox::warning(this, "Error", "No model selected");
+    DEBUG_PRINT("No model selected");
+    return;
+  }
+
+  Mesh* mesh = dynamic_cast<Mesh*>(selected.front());
+  if (!mesh) {
+    QMessageBox::warning(this, "Error", "Selected object is not a mesh");
+    DEBUG_PRINT("Selected object is not a mesh");
+    return;
+  }
+
+  const auto& uvs = mesh->GetUVs();
+  const auto& edges = mesh->GetEdges();
+  DEBUG_PRINT("UVs count: " << uvs.size() << ", Edges count: " << edges.size());
+
+  if (uvs.empty() || edges.empty()) {
+    QMessageBox::warning(this, "Error", "Model has no UV coordinates or edges");
+    DEBUG_PRINT("UVs or edges empty");
+    return;
+  }
+
+  QString texturePath = Settings::instance().texturePath();
+  DEBUG_PRINT("Texture path from settings: " << texturePath);
+
+  QImage texture;
+  if (texturePath.isEmpty() || !texture.load(texturePath)) {
+    QMessageBox::warning(this, "Error",
+                         "No texture loaded or failed to load texture file");
+    DEBUG_PRINT("Failed to load texture from path: " << texturePath);
+    return;
+  }
+
+  DEBUG_PRINT("Texture loaded: " << texture.width() << "x" << texture.height());
+
+  QImage uvMap = texture.convertToFormat(QImage::Format_RGB32);
+  if (uvMap.isNull()) {
+    QMessageBox::warning(this, "Error", "Failed to convert texture to RGB32");
+    DEBUG_PRINT("Conversion to RGB32 failed");
+    return;
+  }
+
+  QPainter painter(&uvMap);
+  if (!painter.isActive()) {
+    QMessageBox::warning(this, "Error", "Failed to start painting on texture");
+    DEBUG_PRINT("Painter not active");
+    return;
+  }
+
+  painter.setPen(QPen(Qt::red, 2));
+  int linesDrawn = 0;
+  for (const auto& edge : edges) {
+    if (edge.v1 < uvs.size() && edge.v2 < uvs.size()) {
+      const Point2D& p1 = uvs[edge.v1];
+      const Point2D& p2 = uvs[edge.v2];
+      QPointF qp1(p1.u * uvMap.width(), (1.0f - p1.v) * uvMap.height());
+      QPointF qp2(p2.u * uvMap.width(), (1.0f - p2.v) * uvMap.height());
+      painter.drawLine(qp1, qp2);
+      linesDrawn++;
     }
-    
-    Mesh* mesh = dynamic_cast<Mesh*>(selected.front());
-    if (!mesh) {
-        QMessageBox::warning(this, "Error", "Selected object is not a mesh");
-        DEBUG_PRINT("Selected object is not a mesh");
-        return;
-    }
-    
-    const auto& uvs = mesh->GetUVs();
-    const auto& edges = mesh->GetEdges();
-    DEBUG_PRINT("UVs count: " << uvs.size() << ", Edges count: " << edges.size());
-    
-    if (uvs.empty() || edges.empty()) {
-        QMessageBox::warning(this, "Error", "Model has no UV coordinates or edges");
-        DEBUG_PRINT("UVs or edges empty");
-        return;
-    }
-    
-    QString texturePath = Settings::instance().texturePath();
-    DEBUG_PRINT("Texture path from settings: " << texturePath);
-    
-    QImage texture;
-    if (texturePath.isEmpty() || !texture.load(texturePath)) {
-        QMessageBox::warning(this, "Error", "No texture loaded or failed to load texture file");
-        DEBUG_PRINT("Failed to load texture from path: " << texturePath);
-        return;
-    }
-    
-    DEBUG_PRINT("Texture loaded: " << texture.width() << "x" << texture.height());
-    
-    QImage uvMap = texture.convertToFormat(QImage::Format_RGB32);
-    if (uvMap.isNull()) {
-        QMessageBox::warning(this, "Error", "Failed to convert texture to RGB32");
-        DEBUG_PRINT("Conversion to RGB32 failed");
-        return;
-    }
-    
-    QPainter painter(&uvMap);
-    if (!painter.isActive()) {
-        QMessageBox::warning(this, "Error", "Failed to start painting on texture");
-        DEBUG_PRINT("Painter not active");
-        return;
-    }
-    
-    painter.setPen(QPen(Qt::red, 2));
-    int linesDrawn = 0;
-    for (const auto& edge : edges) {
-        if (edge.v1 < uvs.size() && edge.v2 < uvs.size()) {
-            const Point2D& p1 = uvs[edge.v1];
-            const Point2D& p2 = uvs[edge.v2];
-            QPointF qp1(p1.u * uvMap.width(), (1.0f - p1.v) * uvMap.height());
-            QPointF qp2(p2.u * uvMap.width(), (1.0f - p2.v) * uvMap.height());
-            painter.drawLine(qp1, qp2);
-            linesDrawn++;
-        }
-    }
-    painter.end();
-    DEBUG_PRINT("Drawn " << linesDrawn << " lines");
-    
-    QString fileName = QFileDialog::getSaveFileName(this, "Save UV Map", "", "BMP (*.bmp)");
-    if (fileName.isEmpty()) {
-        DEBUG_PRINT("Save dialog cancelled");
-        return;
-    }
-    
-    if (!fileName.endsWith(".bmp", Qt::CaseInsensitive)) {
-        fileName += ".bmp";
-    }
-    
-    if (uvMap.save(fileName)) {
-        DEBUG_PRINT("UV map saved successfully to: " << fileName);
-        QMessageBox::information(this, "Success", "UV map saved successfully");
-    } else {
-        DEBUG_PRINT("Failed to save UV map to: " << fileName);
-        QMessageBox::warning(this, "Error", "Failed to save UV map");
-    }
+  }
+  painter.end();
+  DEBUG_PRINT("Drawn " << linesDrawn << " lines");
+
+  QString fileName =
+      QFileDialog::getSaveFileName(this, "Save UV Map", "", "BMP (*.bmp)");
+  if (fileName.isEmpty()) {
+    DEBUG_PRINT("Save dialog cancelled");
+    return;
+  }
+
+  if (!fileName.endsWith(".bmp", Qt::CaseInsensitive)) {
+    fileName += ".bmp";
+  }
+
+  if (uvMap.save(fileName)) {
+    DEBUG_PRINT("UV map saved successfully to: " << fileName);
+    QMessageBox::information(this, "Success", "UV map saved successfully");
+  } else {
+    DEBUG_PRINT("Failed to save UV map to: " << fileName);
+    QMessageBox::warning(this, "Error", "Failed to save UV map");
+  }
 }
 
 void MainWindow::onSmoothingFactorChanged(double value) {
@@ -1031,17 +1115,21 @@ void MainWindow::onSmoothingFactorChanged(double value) {
     DEBUG_PRINT("Selected object is not a mesh");
     return;
   }
-  
-  DEBUG_PRINT("Updating mesh: " << mesh << " file: " << mesh->GetSourceFile().c_str());
-  DEBUG_PRINT("  vertices: " << mesh->VertexCount() << ", normals: " << mesh->GetNormals().size());
-  
+
+  DEBUG_PRINT("Updating mesh: " << mesh
+                                << " file: " << mesh->GetSourceFile().c_str());
+  DEBUG_PRINT("  vertices: " << mesh->VertexCount()
+                             << ", normals: " << mesh->GetNormals().size());
+
   mesh->ComputeNormals(value);
-  
+
   const auto& newNormals = mesh->GetNormals();
   if (!newNormals.empty()) {
-    DEBUG_PRINT("  first normal after: (" << newNormals[0].x << ", " << newNormals[0].y << ", " << newNormals[0].z << ")");
+    DEBUG_PRINT("  first normal after: (" << newNormals[0].x << ", "
+                                          << newNormals[0].y << ", "
+                                          << newNormals[0].z << ")");
   }
-  
+
   glWidget_->UpdateMeshBuffers(mesh);
   glWidget_->update();
   DEBUG_PRINT("Mesh buffers updated and widget repaint requested");
@@ -1076,36 +1164,47 @@ void MainWindow::connectSignals() {
   connect(redoBtn_, &QPushButton::clicked, this, &MainWindow::onRedo);
 
   // Скриншоты, GIF
-  connect(screenshotBtn_, &QPushButton::clicked, this, &MainWindow::onScreenshot);
+  connect(screenshotBtn_, &QPushButton::clicked, this,
+          &MainWindow::onScreenshot);
   connect(recordBtn_, &QPushButton::clicked, this, &MainWindow::onRecordGif);
   connect(fitBtn_, &QPushButton::clicked, this, &MainWindow::onFit);
 
   // Текстуры
-  connect(loadTextureBtn_, &QPushButton::clicked, this, &MainWindow::onLoadTexture);
-  connect(clearTextureBtn_, &QPushButton::clicked, this, &MainWindow::onClearTexture);
+  connect(loadTextureBtn_, &QPushButton::clicked, this,
+          &MainWindow::onLoadTexture);
+  connect(clearTextureBtn_, &QPushButton::clicked, this,
+          &MainWindow::onClearTexture);
   connect(saveUVMapBtn_, &QPushButton::clicked, this, &MainWindow::onSaveUVMap);
 
   // Настройки отображения
   connect(projectionCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
           this, &MainWindow::onProjectionChanged);
-  connect(bgColorBtn_, &QPushButton::clicked, this, &MainWindow::onBackgroundColorClicked);
-  connect(edgeColorBtn_, &QPushButton::clicked, this, &MainWindow::onEdgeColorClicked);
-  connect(vertexColorBtn_, &QPushButton::clicked, this, &MainWindow::onVertexColorClicked);
-  connect(edgeThicknessSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-          this, &MainWindow::onEdgeThicknessChanged);
+  connect(bgColorBtn_, &QPushButton::clicked, this,
+          &MainWindow::onBackgroundColorClicked);
+  connect(edgeColorBtn_, &QPushButton::clicked, this,
+          &MainWindow::onEdgeColorClicked);
+  connect(vertexColorBtn_, &QPushButton::clicked, this,
+          &MainWindow::onVertexColorClicked);
+  connect(edgeThicknessSpin_,
+          QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
+          &MainWindow::onEdgeThicknessChanged);
   connect(vertexTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
           this, &MainWindow::onVertexTypeChanged);
   connect(vertexSizeSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
           this, &MainWindow::onVertexSizeChanged);
-  connect(selectedEdgeColorBtn_, &QPushButton::clicked, this, &MainWindow::onSelectedEdgeColorClicked);
-  connect(selectedVertexColorBtn_, &QPushButton::clicked, this, &MainWindow::onSelectedVertexColorClicked);
+  connect(selectedEdgeColorBtn_, &QPushButton::clicked, this,
+          &MainWindow::onSelectedEdgeColorClicked);
+  connect(selectedVertexColorBtn_, &QPushButton::clicked, this,
+          &MainWindow::onSelectedVertexColorClicked);
   connect(edgeTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
           this, &MainWindow::onEdgeTypeChanged);
   connect(dashFactorSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
           this, &MainWindow::onDashFactorChanged);
 
   // Освещение и шейдинг
-  connect(shadingTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onShadingTypeChanged);
+  connect(shadingTypeCombo_,
+          QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+          &MainWindow::onShadingTypeChanged);
 
   // Ошибки шейдеров
   connect(glWidget_, &GLWidget::shaderError, this, [this](const QString& msg) {
