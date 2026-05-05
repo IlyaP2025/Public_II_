@@ -2,7 +2,7 @@
 #include <chrono>
 #include <random>
 #include "scene/kd_tree_index.h"
-#include "scene/mesh.h"   // BoundingBox
+#include "scene/mesh.h"
 
 using namespace s21;
 

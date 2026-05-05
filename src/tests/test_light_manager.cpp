@@ -73,7 +73,7 @@ TEST(LightManagerTest, ChangeCallbackIsInvoked) {
 
 // ------------------- Light Commands --------------------
 TEST(LightCommandsTest, AddLightCommandWorks) {
-    Scene scene; // предполагается, что конструктор создаёт всё необходимое
+    Scene scene;
     auto& lm = scene.GetLightManager();
     EXPECT_EQ(lm.GetLightCount(), 0u);
     AddLightCommand cmd(&scene, LightSource{});
@@ -108,27 +108,24 @@ TEST(LightCommandsTest, UpdateLightCommandWorks) {
 
 // ------------------- Facade Light Methods ---------------
 TEST(FacadeLightTest, AddLightViaFacade) {
-    CommandManager cmdMgr;
     auto scene = std::make_shared<Scene>();
-    Facade facade(scene, &cmdMgr); // если конструктор требует CommandManager*
+    Facade facade(scene);  // CommandManager создаётся внутри Facade
     EXPECT_EQ(scene->GetLightManager().GetLightCount(), 0u);
     facade.AddLight(LightSource{});
     EXPECT_EQ(scene->GetLightManager().GetLightCount(), 1u);
 }
 
 TEST(FacadeLightTest, RemoveLightViaFacade) {
-    CommandManager cmdMgr;
     auto scene = std::make_shared<Scene>();
-    Facade facade(scene, &cmdMgr);
+    Facade facade(scene);
     scene->GetLightManager().AddLight(LightSource{});
     facade.RemoveLight(0);
     EXPECT_EQ(scene->GetLightManager().GetLightCount(), 0u);
 }
 
 TEST(FacadeLightTest, UpdateLightViaFacade) {
-    CommandManager cmdMgr;
     auto scene = std::make_shared<Scene>();
-    Facade facade(scene, &cmdMgr);
+    Facade facade(scene);
     LightSource l; l.position.x = 5.0f;
     scene->GetLightManager().AddLight(l);
     LightSource nl; nl.position.x = 99.0f;

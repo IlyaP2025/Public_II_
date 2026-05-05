@@ -36,7 +36,9 @@ LIB_SRCS = \
     $(SRC_DIR)/scene/kd_tree_index.cpp \
     $(SRC_DIR)/loaders/obj_loader.cpp \
     $(SRC_DIR)/loaders/loader_factory.cpp \
-    $(SRC_DIR)/settings/settings.cpp
+    $(SRC_DIR)/settings/settings.cpp \
+    $(SRC_DIR)/facade/facade.cpp \
+    $(SRC_DIR)/state_machine/app_state_machine.cpp
 
 # Тестовые файлы (все test_*.cpp в текущей папке)
 TEST_SRCS = $(wildcard test_*.cpp)
@@ -50,7 +52,9 @@ LIB_OBJS = $(patsubst $(SRC_DIR)/common/%.cpp,$(OBJ_DIR)/lib_common/%.o,$(filter
            $(patsubst $(SRC_DIR)/matrix/%.cpp,$(OBJ_DIR)/lib_matrix/%.o,$(filter $(SRC_DIR)/matrix/%,$(LIB_SRCS))) \
            $(patsubst $(SRC_DIR)/scene/%.cpp,$(OBJ_DIR)/lib_scene/%.o,$(filter $(SRC_DIR)/scene/%,$(LIB_SRCS))) \
            $(patsubst $(SRC_DIR)/loaders/%.cpp,$(OBJ_DIR)/lib_loaders/%.o,$(filter $(SRC_DIR)/loaders/%,$(LIB_SRCS))) \
-           $(patsubst $(SRC_DIR)/settings/%.cpp,$(OBJ_DIR)/lib_settings/%.o,$(filter $(SRC_DIR)/settings/%,$(LIB_SRCS)))
+           $(patsubst $(SRC_DIR)/settings/%.cpp,$(OBJ_DIR)/lib_settings/%.o,$(filter $(SRC_DIR)/settings/%,$(LIB_SRCS))) \
+           $(patsubst $(SRC_DIR)/facade/%.cpp,$(OBJ_DIR)/lib_facade/%.o,$(filter $(SRC_DIR)/facade/%,$(LIB_SRCS))) \
+           $(patsubst $(SRC_DIR)/state_machine/%.cpp,$(OBJ_DIR)/lib_state_machine/%.o,$(filter $(SRC_DIR)/state_machine/%,$(LIB_SRCS)))
 
 TEST_OBJS = $(patsubst test_%.cpp,$(OBJ_DIR)/test_%.o,$(TEST_SRCS))
 
@@ -68,7 +72,7 @@ $(TEST_EXEC): $(LIB_OBJS) $(TEST_OBJS) $(MOC_OBJS)
 	$(CXX) $^ -o $@ $(LDFLAGS_TEST) $(QT_LIBS)
 
 # Правила для создания поддиректорий в OBJ_DIR
-$(OBJ_DIR)/lib_common $(OBJ_DIR)/lib_matrix $(OBJ_DIR)/lib_scene $(OBJ_DIR)/lib_loaders $(OBJ_DIR)/lib_settings $(MOC_DIR):
+$(OBJ_DIR)/lib_common $(OBJ_DIR)/lib_matrix $(OBJ_DIR)/lib_scene $(OBJ_DIR)/lib_loaders $(OBJ_DIR)/lib_settings $(OBJ_DIR)/lib_facade $(OBJ_DIR)/lib_state_machine $(MOC_DIR):
 	mkdir -p $@
 
 # Правила компиляции библиотек
@@ -85,6 +89,12 @@ $(OBJ_DIR)/lib_loaders/%.o: $(SRC_DIR)/loaders/%.cpp | $(OBJ_DIR)/lib_loaders
 	$(CXX) $(CXXFLAGS) $(GCOV_FLAGS) $(INCLUDES) -c $< -o $@
 
 $(OBJ_DIR)/lib_settings/%.o: $(SRC_DIR)/settings/%.cpp | $(OBJ_DIR)/lib_settings
+	$(CXX) $(CXXFLAGS) $(GCOV_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(OBJ_DIR)/lib_facade/%.o: $(SRC_DIR)/facade/%.cpp | $(OBJ_DIR)/lib_facade
+	$(CXX) $(CXXFLAGS) $(GCOV_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(OBJ_DIR)/lib_state_machine/%.o: $(SRC_DIR)/state_machine/%.cpp | $(OBJ_DIR)/lib_state_machine
 	$(CXX) $(CXXFLAGS) $(GCOV_FLAGS) $(INCLUDES) -c $< -o $@
 
 # Правила компиляции тестов
