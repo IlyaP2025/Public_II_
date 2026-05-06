@@ -302,6 +302,7 @@ void OpenGLRenderer::RenderWireframe(const std::vector<const Mesh*>& meshes,
 void OpenGLRenderer::RenderSolid(const std::vector<const Mesh*>& meshes,
                                  const S21Matrix& viewMatrix,
                                  const S21Matrix& projMatrix) {
+  if (!scene_) return;
   solidShader_.use();
   solidShader_.setUniform("flipNormals", flipNormals_ ? 1 : 0);
 
