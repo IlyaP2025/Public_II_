@@ -43,7 +43,7 @@ SOURCES = src/main.cpp \
           src/state_machine/app_state_machine.cpp \
           src/renderer/shader_program.cpp \
           src/view/light_editor_dialog.cpp \
-          src/view/light_control_widget.cpp
+          src/view/light_control_widget.cpp \
           src/objects/sphere_object.cpp \
           src/objects/plane_object.cpp
  
