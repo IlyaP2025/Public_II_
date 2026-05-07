@@ -98,6 +98,10 @@ class MainWindow : public QMainWindow, public SceneObserver {
   void onLightUpdated(size_t index, const LightSource& light);
   void onLightsChanged();
 
+  void onAddSphere();
+  void onAddFloor();
+  void onRenderRT();
+
  private:
   void setupUI();
   void createToolBar();
@@ -159,7 +163,11 @@ class MainWindow : public QMainWindow, public SceneObserver {
 
   QSlider* smoothingSlider_;
 
-  QLabel* infoLabel_;
+  QLabel* infoLabel_i;
+
+  QPushButton* sphereBtn_;
+  QPushButton* floorBtn_;
+  QPushButton* renderRTBtn_;
 
   QTimer* rotationTimer_ = nullptr;
   float originalRotationY_ = 0.0f;

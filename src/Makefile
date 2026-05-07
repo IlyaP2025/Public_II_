@@ -29,7 +29,7 @@ SOURCES = src/main.cpp \
           src/scene/model_builder.cpp \
           src/scene/picking_manager.cpp \
           src/scene/light_manager.cpp \
-	  src/scene/kd_tree_index.cpp \
+          src/scene/kd_tree_index.cpp \
           src/loaders/obj_loader.cpp \
           src/loaders/loader_factory.cpp \
           src/loaders/loader_worker.cpp \
@@ -41,10 +41,12 @@ SOURCES = src/main.cpp \
           src/view/gif_recorder.cpp \
           src/view/settings_dialog.cpp \
           src/state_machine/app_state_machine.cpp \
-	  src/renderer/shader_program.cpp \
+          src/renderer/shader_program.cpp \
           src/view/light_editor_dialog.cpp \
           src/view/light_control_widget.cpp
-
+          src/objects/sphere_object.cpp \
+          src/objects/plane_object.cpp
+ 
 BUILD_DIR = build
 OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
 
