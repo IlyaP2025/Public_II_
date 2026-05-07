@@ -87,6 +87,7 @@ void Scene::Clear() {
     SceneObject* obj = objects_.back().get();
     RemoveObject(obj);
   }
+  analyticObjects_.clear();
   light_manager_.Clear();
   structureDirty_ = true;
 }
@@ -136,6 +137,21 @@ void Scene::RebuildSpatialIndex() {
   auto boxes = GetMeshBoundingBoxes();
   spatialIndex_->Build(boxes);
   structureDirty_ = false;
+}
+
+bool Scene::TraceRay(const Ray& ray, float t_min, float t_max, HitRecord& rec) const {
+    HitRecord tempRec;
+    bool hitAnything = false;
+    float closest = t_max;
+
+    for (const auto& obj : analyticObjects_) {
+        if (obj->Hit(ray, t_min, closest, tempRec)) {
+            hitAnything = true;
+            closest = tempRec.t;
+            rec = tempRec;
+        }
+    }
+    return hitAnything;
 }
 
 }  // namespace s21

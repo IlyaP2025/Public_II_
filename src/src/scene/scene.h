@@ -12,6 +12,7 @@
 #include "scene/light_manager.h"
 #include "scene_object.h"
 #include "scene_observer.h"
+#include "objects/analytic_object.h"
 
 namespace s21 {
 
@@ -46,6 +47,13 @@ class Scene {
   void RebuildSpatialIndex();
   ISpatialIndex* GetSpatialIndex() { return spatialIndex_.get(); }
 
+  void AddAnalyticObject(std::unique_ptr<AnalyticObject> obj) {
+        analyticObjects_.push_back(std::move(obj));
+  }  
+
+  // Простая трассировка одного луча (без учёта освещения, только пересечение)
+  bool TraceRay(const Ray& ray, float t_min, float t_max, HitRecord& rec) const;
+
  private:
   std::vector<std::unique_ptr<SceneObject>> objects_;
   std::vector<SceneObject*> selected_;
@@ -57,6 +65,9 @@ class Scene {
       std::make_unique<KdTreeMeshIndex>();
 
   void NotifyLightsChanged();
+
+  std::vector<std::unique_ptr<AnalyticObject>> analyticObjects_;  
+
 };
 
 }  // namespace s21
