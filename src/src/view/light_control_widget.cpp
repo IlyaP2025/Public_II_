@@ -1,6 +1,5 @@
 #include "light_control_widget.h"
 
-#include <QCheckBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
@@ -11,7 +10,6 @@ namespace s21 {
 
 LightControlWidget::LightControlWidget(QWidget* parent) : QWidget(parent) {
   auto* mainLayout = new QVBoxLayout(this);
-
   auto* headerLayout = new QHBoxLayout;
   headerLayout->addWidget(new QLabel("<b>Light Sources</b>"));
   headerLayout->addStretch();
@@ -20,7 +18,6 @@ LightControlWidget::LightControlWidget(QWidget* parent) : QWidget(parent) {
   connect(addBtn, &QPushButton::clicked, this, &LightControlWidget::onAddLight);
   headerLayout->addWidget(addBtn);
   mainLayout->addLayout(headerLayout);
-
   itemsLayout_ = new QVBoxLayout;
   mainLayout->addLayout(itemsLayout_);
   mainLayout->addStretch();
@@ -79,37 +76,31 @@ void LightControlWidget::rebuildUI() {
     if (child->widget()) delete child->widget();
     delete child;
   }
-
   for (size_t i = 0; i < lights_.size(); ++i) {
     auto* row = new QWidget;
     auto* rowLayout = new QHBoxLayout(row);
     rowLayout->setContentsMargins(2, 2, 2, 2);
-
     auto* cb = new QCheckBox;
     cb->setChecked(lights_[i].enabled);
+    // Лямбда без вызова rebuildUI, чтобы не сбрасывать индексы
     connect(cb, &QCheckBox::toggled, this, [this, i](bool val) {
       if (i < lights_.size() && lights_[i].enabled != val) {
         lights_[i].enabled = val;
-        rebuildUI();
         emit lightUpdated(i, lights_[i]);
         emit lightsChanged();
       }
     });
     rowLayout->addWidget(cb);
-
     rowLayout->addWidget(new QLabel(QString("Light %1").arg(i + 1)));
-
     auto* editBtn = new QPushButton("Edit");
     connect(editBtn, &QPushButton::clicked, this,
             [this, i]() { onEditLight(i); });
     rowLayout->addWidget(editBtn);
-
     auto* delBtn = new QPushButton("X");
     delBtn->setFixedSize(24, 24);
     connect(delBtn, &QPushButton::clicked, this,
             [this, i]() { onRemoveLight(i); });
     rowLayout->addWidget(delBtn);
-
     itemsLayout_->addWidget(row);
   }
 }

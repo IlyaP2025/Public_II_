@@ -41,7 +41,6 @@ MainWindow::MainWindow(std::shared_ptr<Facade> facade, GLWidget* glWidget,
     : QMainWindow(parent), facade_(facade), glWidget_(glWidget) {
   setupUI();
 
-  // Динамический размер окна: 70% от доступного пространства экрана
   QRect screenRect = QApplication::primaryScreen()->availableGeometry();
   resize(screenRect.width() * 0.7, screenRect.height() * 0.7);
 
@@ -79,6 +78,83 @@ MainWindow::~MainWindow() {
   if (auto scene = facade_->GetScene()) {
     scene->RemoveObserver(this);
   }
+}
+
+void MainWindow::connectSignals() {
+  // Трансформации
+  connect(moveXSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onMoveXChanged);
+  connect(moveYSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onMoveYChanged);
+  connect(moveZSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onMoveZChanged);
+  connect(rotateXSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onRotateXChanged);
+  connect(rotateYSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onRotateYChanged);
+  connect(rotateZSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onRotateZChanged);
+  connect(scaleXSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onScaleXChanged);
+  connect(scaleYSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onScaleYChanged);
+  connect(scaleZSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onScaleZChanged);
+
+  // Файловые операции
+  connect(newBtn_, &QPushButton::clicked, this, &MainWindow::onNewModel);
+  connect(openBtn_, &QPushButton::clicked, this, &MainWindow::onOpenModel);
+  connect(loadBtn_, &QPushButton::clicked, this, &MainWindow::onLoadModel);
+  connect(undoBtn_, &QPushButton::clicked, this, &MainWindow::onUndo);
+  connect(redoBtn_, &QPushButton::clicked, this, &MainWindow::onRedo);
+
+  // Скриншоты, GIF
+  connect(screenshotBtn_, &QPushButton::clicked, this,
+          &MainWindow::onScreenshot);
+  connect(recordBtn_, &QPushButton::clicked, this, &MainWindow::onRecordGif);
+  connect(fitBtn_, &QPushButton::clicked, this, &MainWindow::onFit);
+
+  // Текстуры
+  connect(loadTextureBtn_, &QPushButton::clicked, this,
+          &MainWindow::onLoadTexture);
+  connect(clearTextureBtn_, &QPushButton::clicked, this,
+          &MainWindow::onClearTexture);
+  connect(saveUVMapBtn_, &QPushButton::clicked, this, &MainWindow::onSaveUVMap);
+
+  // Настройки отображения
+  connect(projectionCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+          this, &MainWindow::onProjectionChanged);
+  connect(bgColorBtn_, &QPushButton::clicked, this,
+          &MainWindow::onBackgroundColorClicked);
+  connect(edgeColorBtn_, &QPushButton::clicked, this,
+          &MainWindow::onEdgeColorClicked);
+  connect(vertexColorBtn_, &QPushButton::clicked, this,
+          &MainWindow::onVertexColorClicked);
+  connect(edgeThicknessSpin_,
+          QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
+          &MainWindow::onEdgeThicknessChanged);
+  connect(vertexTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+          this, &MainWindow::onVertexTypeChanged);
+  connect(vertexSizeSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onVertexSizeChanged);
+  connect(selectedEdgeColorBtn_, &QPushButton::clicked, this,
+          &MainWindow::onSelectedEdgeColorClicked);
+  connect(selectedVertexColorBtn_, &QPushButton::clicked, this,
+          &MainWindow::onSelectedVertexColorClicked);
+  connect(edgeTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+          this, &MainWindow::onEdgeTypeChanged);
+  connect(dashFactorSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+          this, &MainWindow::onDashFactorChanged);
+
+  // Освещение и шейдинг
+  connect(shadingTypeCombo_,
+          QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+          &MainWindow::onShadingTypeChanged);
+
+  // Ошибки шейдеров
+  connect(glWidget_, &GLWidget::shaderError, this, [this](const QString& msg) {
+    QMessageBox::critical(this, tr("Shader Error"), msg);
+  });
 }
 
 // ============================================================================
@@ -301,7 +377,6 @@ void MainWindow::createDisplayTab(QTabWidget* tabWidget) {
           &MainWindow::onFlipNormalsChecked);
   form->addRow(flipNormalsCheckBox_);
 
-  // Коэффициент сглаживания нормалей
   QLabel* smoothLabel = new QLabel("Smoothing:");
   smoothingSlider_ = new QSlider(Qt::Horizontal);
   smoothingSlider_->setRange(0, 100);
@@ -328,7 +403,6 @@ void MainWindow::createLightsTab(QTabWidget* tabWidget) {
           &MainWindow::onLightRemoved);
   connect(lightControlWidget_, &LightControlWidget::lightUpdated, this,
           &MainWindow::onLightUpdated);
-  // При любом изменении можно сразу обновлять рендерер
   connect(lightControlWidget_, &LightControlWidget::lightsChanged, this,
           &MainWindow::onLightsChanged);
 
@@ -341,46 +415,37 @@ void MainWindow::createLightsTab(QTabWidget* tabWidget) {
 
 void MainWindow::onLightAdded(const LightSource& light) {
   facade_->AddLight(light);
+  lightControlWidget_->setLights(facade_->GetLights());
 }
 
 void MainWindow::onLightRemoved(size_t index) {
-  if (index < facade_->GetScene()->GetLightManager().GetLightCount()) {
+  if (index < facade_->GetScene()->GetLightManager().GetLightCount())
     facade_->RemoveLight(index);
-  }
+  lightControlWidget_->setLights(facade_->GetLights());
 }
 
 void MainWindow::onLightUpdated(size_t index, const LightSource& light) {
-  if (index < facade_->GetScene()->GetLightManager().GetLightCount()) {
+  if (index < facade_->GetScene()->GetLightManager().GetLightCount())
     facade_->UpdateLight(index, light);
-  }
+  lightControlWidget_->setLights(facade_->GetLights());
 }
 
 void MainWindow::onLightsChanged() {
-  // После любого изменения отправляем новый набор источников в рендерер
-  auto lights = facade_->GetLights();
-  // Пока используем временный метод setLights (можно заменить на прямую
-  // передачу через Scene)
   if (glWidget_) {
-    // В будущем заменить на glWidget_->setLights(lights);
     glWidget_->update();
   }
+  Settings::instance().SaveLights(facade_->GetLights());
 }
 
 void MainWindow::loadInitialLights() {
   auto lights = Settings::instance().LoadLights();
-  if (lights.empty()) {
-    // Создаём один источник по умолчанию
-    LightSource defaultLight;
-    defaultLight.position = glm::vec3(2.0f, 3.0f, 4.0f);
-    defaultLight.diffuse = glm::vec3(1.0f, 1.0f, 1.0f);
-    defaultLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
-    defaultLight.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
-    defaultLight.enabled = true;
-    lights.push_back(defaultLight);
+  for (const auto& l : lights) {
+    try {
+      facade_->AddLight(l);
+    } catch (const std::exception& e) {
+      qWarning() << "Failed to load light:" << e.what();
+    }
   }
-
-  for (const auto& l : lights) facade_->AddLight(l);
-
   if (lightControlWidget_) lightControlWidget_->setLights(facade_->GetLights());
 }
 
@@ -412,6 +477,7 @@ void MainWindow::onNewModel() {
     return;
   }
   facade_->GetScene()->Clear();
+  lightControlWidget_->setLights({});
   infoLabel_->setText("No model selected");
   facade_->NotifyModelCleared();
 }
@@ -428,10 +494,11 @@ void MainWindow::onOpenModel() {
                                                   "OBJ Files (*.obj)");
 
   if (fileName.isEmpty()) {
-    return;  // пользователь отменил выбор
+    return;
   }
 
   facade_->GetScene()->Clear();
+  lightControlWidget_->setLights({});
   facade_->NotifyModelCleared();
   isReplaceMode_ = true;
   loadModelFromFile(fileName);
@@ -448,6 +515,7 @@ void MainWindow::onLoadModel() {
                                                   "", "OBJ Files (*.obj)");
   isReplaceMode_ = false;
   loadModelFromFile(fileName);
+  lightControlWidget_->setLights(facade_->GetLights());
 }
 
 void MainWindow::onModelLoaded() {
@@ -943,7 +1011,11 @@ void MainWindow::OnTransformChanged(SceneObject* object) {
   (void)object;
   updateUIFromSelection();
 }
-void MainWindow::closeEvent(QCloseEvent* event) { event->accept(); }
+
+void MainWindow::closeEvent(QCloseEvent* event) {
+  Settings::instance().SaveLights(facade_->GetLights());
+  event->accept();
+}
 
 // ============================================================================
 // Слоты освещения, затенения, флип нормалей
@@ -1133,83 +1205,6 @@ void MainWindow::onSmoothingFactorChanged(double value) {
   glWidget_->UpdateMeshBuffers(mesh);
   glWidget_->update();
   DEBUG_PRINT("Mesh buffers updated and widget repaint requested");
-}
-
-void MainWindow::connectSignals() {
-  // Трансформации
-  connect(moveXSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-          this, &MainWindow::onMoveXChanged);
-  connect(moveYSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-          this, &MainWindow::onMoveYChanged);
-  connect(moveZSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-          this, &MainWindow::onMoveZChanged);
-  connect(rotateXSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-          this, &MainWindow::onRotateXChanged);
-  connect(rotateYSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-          this, &MainWindow::onRotateYChanged);
-  connect(rotateZSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-          this, &MainWindow::onRotateZChanged);
-  connect(scaleXSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-          this, &MainWindow::onScaleXChanged);
-  connect(scaleYSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-          this, &MainWindow::onScaleYChanged);
-  connect(scaleZSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-          this, &MainWindow::onScaleZChanged);
-
-  // Файловые операции
-  connect(newBtn_, &QPushButton::clicked, this, &MainWindow::onNewModel);
-  connect(openBtn_, &QPushButton::clicked, this, &MainWindow::onOpenModel);
-  connect(loadBtn_, &QPushButton::clicked, this, &MainWindow::onLoadModel);
-  connect(undoBtn_, &QPushButton::clicked, this, &MainWindow::onUndo);
-  connect(redoBtn_, &QPushButton::clicked, this, &MainWindow::onRedo);
-
-  // Скриншоты, GIF
-  connect(screenshotBtn_, &QPushButton::clicked, this,
-          &MainWindow::onScreenshot);
-  connect(recordBtn_, &QPushButton::clicked, this, &MainWindow::onRecordGif);
-  connect(fitBtn_, &QPushButton::clicked, this, &MainWindow::onFit);
-
-  // Текстуры
-  connect(loadTextureBtn_, &QPushButton::clicked, this,
-          &MainWindow::onLoadTexture);
-  connect(clearTextureBtn_, &QPushButton::clicked, this,
-          &MainWindow::onClearTexture);
-  connect(saveUVMapBtn_, &QPushButton::clicked, this, &MainWindow::onSaveUVMap);
-
-  // Настройки отображения
-  connect(projectionCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-          this, &MainWindow::onProjectionChanged);
-  connect(bgColorBtn_, &QPushButton::clicked, this,
-          &MainWindow::onBackgroundColorClicked);
-  connect(edgeColorBtn_, &QPushButton::clicked, this,
-          &MainWindow::onEdgeColorClicked);
-  connect(vertexColorBtn_, &QPushButton::clicked, this,
-          &MainWindow::onVertexColorClicked);
-  connect(edgeThicknessSpin_,
-          QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
-          &MainWindow::onEdgeThicknessChanged);
-  connect(vertexTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-          this, &MainWindow::onVertexTypeChanged);
-  connect(vertexSizeSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-          this, &MainWindow::onVertexSizeChanged);
-  connect(selectedEdgeColorBtn_, &QPushButton::clicked, this,
-          &MainWindow::onSelectedEdgeColorClicked);
-  connect(selectedVertexColorBtn_, &QPushButton::clicked, this,
-          &MainWindow::onSelectedVertexColorClicked);
-  connect(edgeTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-          this, &MainWindow::onEdgeTypeChanged);
-  connect(dashFactorSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-          this, &MainWindow::onDashFactorChanged);
-
-  // Освещение и шейдинг
-  connect(shadingTypeCombo_,
-          QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-          &MainWindow::onShadingTypeChanged);
-
-  // Ошибки шейдеров
-  connect(glWidget_, &GLWidget::shaderError, this, [this](const QString& msg) {
-    QMessageBox::critical(this, tr("Shader Error"), msg);
-  });
 }
 
 }  // namespace s21
