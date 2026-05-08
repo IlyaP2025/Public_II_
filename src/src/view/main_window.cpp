@@ -172,7 +172,7 @@ void MainWindow::createToolBar() {
     auto obj = std::make_unique<SphereObject>(1.0f, Point{0, 0, 0});
     auto mesh = obj->GenerateMesh(32);
     facade_->GetScene()->AddObject(std::move(mesh));
-    facade_->GetScene()->AddAnalyticObject(std::make_unique<SphereObject>(*obj));
+    facade_->GetScene()->AddAnalyticObject(std::move(obj));
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
@@ -182,7 +182,7 @@ void MainWindow::createToolBar() {
     auto obj = std::make_unique<CylinderObject>(0.5f, 2.0f, Point{0, 0, 0});
     auto mesh = obj->GenerateMesh(32);
     facade_->GetScene()->AddObject(std::move(mesh));
-    facade_->GetScene()->AddAnalyticObject(std::make_unique<CylinderObject>(*obj));
+    facade_->GetScene()->AddAnalyticObject(std::move(obj));
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
@@ -192,7 +192,7 @@ void MainWindow::createToolBar() {
     auto obj = std::make_unique<ConeObject>(0.5f, 2.0f, Point{0, 0, 0});
     auto mesh = obj->GenerateMesh(32);
     facade_->GetScene()->AddObject(std::move(mesh));
-    facade_->GetScene()->AddAnalyticObject(std::make_unique<ConeObject>(*obj));
+    facade_->GetScene()->AddAnalyticObject(std::move(obj));
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
@@ -202,7 +202,7 @@ void MainWindow::createToolBar() {
     auto obj = std::make_unique<CubeObject>(1.5f, Point{0, 0, 0});
     auto mesh = obj->GenerateMesh();
     facade_->GetScene()->AddObject(std::move(mesh));
-    facade_->GetScene()->AddAnalyticObject(std::make_unique<CubeObject>(*obj));
+    facade_->GetScene()->AddAnalyticObject(std::move(obj));
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
@@ -212,7 +212,7 @@ void MainWindow::createToolBar() {
     auto obj = std::make_unique<PyramidObject>(1.5f, 2.0f, Point{0, 0, 0});
     auto mesh = obj->GenerateMesh();
     facade_->GetScene()->AddObject(std::move(mesh));
-    facade_->GetScene()->AddAnalyticObject(std::make_unique<PyramidObject>(*obj));
+    facade_->GetScene()->AddAnalyticObject(std::move(obj));
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
@@ -1152,20 +1152,33 @@ void MainWindow::onSmoothingFactorChanged(double value) {
 // Новые слоты для пола и рендеринга
 
 void MainWindow::onToggleFloor(bool checked) {
+    const std::string floorName = "Floor";
+    auto* scene = facade_->GetScene().get();
     if (checked) {
-        if (!floorObj_) {
-            floorObj_ = std::make_unique<PlaneObject>(Point{0, -1, 0}, Point{0, 1, 0});
-            auto mesh = floorObj_->GenerateMesh();
-            facade_->GetScene()->AddObject(std::move(mesh));
-            facade_->GetScene()->AddAnalyticObject(std::make_unique<PlaneObject>(*floorObj_));
+        bool exists = false;
+        for (const auto& obj : scene->GetObjects()) {
+            if (obj->GetName() == floorName) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            auto floor = std::make_unique<PlaneObject>(Point{0, -1, 0}, Point{0, 1, 0});
+            auto mesh = floor->GenerateMesh();
+            scene->AddObject(std::move(mesh));
+            scene->AddAnalyticObject(std::move(floor));
         }
     } else {
-        if (floorObj_) {
-            // Упрощённое удаление: очищаем аналитические объекты и пересоздаём сцену без пола
-            facade_->GetScene()->ClearAnalyticObjects();
-            floorObj_.reset();
-            updateModelList();
+        // Удаляем пол
+        const auto& objects = scene->GetObjects();
+        for (const auto& obj : objects) {
+            if (obj->GetName() == floorName) {
+                scene->RemoveObject(obj.get());
+                break; // предполагаем, что пол один
+            }
         }
+        scene->ClearAnalyticObjects(); // очистим все аналитические объекты (или можно найти конкретный)
+        updateModelList();
     }
     glWidget_->update();
 }

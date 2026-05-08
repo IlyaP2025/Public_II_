@@ -186,8 +186,6 @@ class MainWindow : public QMainWindow, public SceneObserver {
 
   std::unique_ptr<GifRecorder> gifRecorder_;
 
-  std::unique_ptr<PlaneObject> floorObj_;
-  bool floorVisible_ = false;
   QListWidget* modelListWidget_ = nullptr;
 };
 
