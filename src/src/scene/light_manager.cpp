@@ -65,4 +65,13 @@ void LightManager::NotifyChange() {
   }
 }
 
+void LightManager::SetDirectionalLight(const DirectionalLight& light) {
+    dirLight_ = light;
+    NotifyChange();
+}
+
+const DirectionalLight& LightManager::GetDirectionalLight() const {
+    return dirLight_;
+}
+
 }  // namespace s21

@@ -3,6 +3,7 @@
 #include "scene/model_builder.h"
 #include "objects/sphere_object.h"
 #include "objects/plane_object.h"
+#include "tracer/ray_tracer.h"
 
 #include <QApplication>
 #include <QCloseEvent>
@@ -1076,26 +1077,21 @@ void MainWindow::onAddFloor() {
 }
 
 void MainWindow::onRenderRT() {
-  int width = 640, height = 480;
-  QImage image(width, height, QImage::Format_RGB32);
-  for (int y = 0; y < height; ++y) {
-    for (int x = 0; x < width; ++x) {
-      float r = float(x) / width;
-      float g = float(y) / height;
-      float b = 0.2f;
-      image.setPixelColor(x, y, QColor::fromRgbF(r, g, b));
-    }
-  }
-  QDialog* dlg = new QDialog(this);
-  dlg->setWindowTitle("Ray Tracing Preview");
-  QLabel* label = new QLabel(dlg);
-  label->setPixmap(QPixmap::fromImage(image));
-  QVBoxLayout* layout = new QVBoxLayout(dlg);
-  layout->addWidget(label);
-  dlg->resize(width + 20, height + 20);
-  dlg->show();
+    if (!facade_->GetScene()) return;
+    auto* scene = facade_->GetScene().get();
+    const Camera& cam = *(glWidget_->getCamera());
+    const auto& lm = dynamic_cast<const LightManager&>(scene->GetLightManager());
+    RayTracer tracer(scene, cam, lm);
+    QImage image = tracer.Render(640, 480, 1);
+    QDialog* dlg = new QDialog(this);
+    dlg->setWindowTitle("Ray Tracing Preview");
+    QLabel* label = new QLabel(dlg);
+    label->setPixmap(QPixmap::fromImage(image));
+    QVBoxLayout* layout = new QVBoxLayout(dlg);
+    layout->addWidget(label);
+    dlg->resize(660, 520);
+    dlg->show();
 }
-
 
 void MainWindow::connectSignals() {
   // Трансформации

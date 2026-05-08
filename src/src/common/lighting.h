@@ -5,6 +5,13 @@
 #include <glm/glm.hpp>
 #include <vector>
 
+struct DirectionalLight {
+    glm::vec3 direction{0.0f, -1.0f, 0.0f};
+    glm::vec3 color{1.0f, 1.0f, 1.0f};
+    float intensity = 1.0f;
+    bool enabled = true;
+};
+
 namespace s21 {
 
 struct LightSource {
@@ -36,6 +43,8 @@ class ILightManager {
   virtual std::vector<LightSource> GetActiveLights() const = 0;
   virtual void Clear() = 0;
   virtual void SetChangeCallback(std::function<void()> callback) = 0;
+  virtual void SetDirectionalLight(const DirectionalLight& light) = 0;
+  virtual const DirectionalLight& GetDirectionalLight() const = 0;
 };
 
 }  // namespace s21

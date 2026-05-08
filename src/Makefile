@@ -45,7 +45,12 @@ SOURCES = src/main.cpp \
           src/view/light_editor_dialog.cpp \
           src/view/light_control_widget.cpp \
           src/objects/sphere_object.cpp \
-          src/objects/plane_object.cpp
+          src/objects/plane_object.cpp \
+	  src/objects/cylinder_object.cpp \
+          src/objects/cone_object.cpp \
+          src/objects/cube_object.cpp \
+          src/objects/pyramid_object.cpp \
+          src/tracer/ray_tracer.cpp
  
 BUILD_DIR = build
 OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))

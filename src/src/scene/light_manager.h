@@ -27,11 +27,15 @@ class LightManager : public ILightManager {
   void Clear() override;
   void SetChangeCallback(std::function<void()> callback) override;
 
+  void SetDirectionalLight(const DirectionalLight& light) override;
+  const DirectionalLight& GetDirectionalLight() const override;
+
  private:
   static constexpr size_t kMaxLights = 5;
   std::vector<LightSource> lights_;
   std::function<void()> change_callback_;
   void NotifyChange();
+  DirectionalLight dirLight_;
 };
 
 }  // namespace s21

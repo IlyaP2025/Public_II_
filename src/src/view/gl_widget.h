@@ -51,6 +51,8 @@ class GLWidget : public QOpenGLWidget,
 
   void setShadingModel(Settings::ShadingModel model);
 
+  const Camera* getCamera() const { return camera_.get(); } 
+
  signals:
   void shaderError(const QString& message);
 
