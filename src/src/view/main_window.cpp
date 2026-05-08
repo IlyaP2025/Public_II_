@@ -2,8 +2,13 @@
 #include "common/debug.h"
 #include "scene/model_builder.h"
 #include "objects/sphere_object.h"
+#include "objects/cylinder_object.h"
+#include "objects/cone_object.h"
+#include "objects/cube_object.h"
+#include "objects/pyramid_object.h"
 #include "objects/plane_object.h"
 #include "tracer/ray_tracer.h"
+#include "view/render_dialog.h"
 
 #include <QApplication>
 #include <QCloseEvent>
@@ -20,6 +25,7 @@
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QListWidget>
 #include <QMessageBox>
 #include <QPainter>
 #include <QProgressDialog>
@@ -129,9 +135,14 @@ void MainWindow::createToolBar() {
   clearTextureBtn_ = new QPushButton(openIcon, "Clear Texture");
   saveUVMapBtn_ = new QPushButton(openIcon, "Save UV Map");
 
-  sphereBtn_ = new QPushButton(openIcon, "Add Sphere");
-  floorBtn_ = new QPushButton(openIcon, "Add Floor");
-  renderRTBtn_ = new QPushButton(screenshotIcon, "Render RT");
+  QPushButton* sphereBtn = new QPushButton("Sphere");
+  QPushButton* cylinderBtn = new QPushButton("Cylinder");
+  QPushButton* coneBtn = new QPushButton("Cone");
+  QPushButton* cubeBtn = new QPushButton("Cube");
+  QPushButton* pyramidBtn = new QPushButton("Pyramid");
+  floorToggleBtn_ = new QPushButton("Floor");
+  floorToggleBtn_->setCheckable(true);
+  QPushButton* renderBtn = new QPushButton("Render RT");
 
   toolbar->addWidget(newBtn_);
   toolbar->addWidget(openBtn_);
@@ -148,10 +159,67 @@ void MainWindow::createToolBar() {
   toolbar->addWidget(clearTextureBtn_);
   toolbar->addWidget(saveUVMapBtn_);
   toolbar->addSeparator();
-  toolbar->addWidget(sphereBtn_);
-  toolbar->addWidget(floorBtn_);
+  toolbar->addWidget(sphereBtn);
+  toolbar->addWidget(cylinderBtn);
+  toolbar->addWidget(coneBtn);
+  toolbar->addWidget(cubeBtn);
+  toolbar->addWidget(pyramidBtn);
+  toolbar->addWidget(floorToggleBtn_);
   toolbar->addSeparator();
-  toolbar->addWidget(renderRTBtn_);
+  toolbar->addWidget(renderBtn);
+
+  connect(sphereBtn, &QPushButton::clicked, this, [this]() {
+    auto obj = std::make_unique<SphereObject>(1.0f, Point{0, 0, 0});
+    auto mesh = obj->GenerateMesh(32);
+    facade_->GetScene()->AddObject(std::move(mesh));
+    facade_->GetScene()->AddAnalyticObject(std::make_unique<SphereObject>(*obj));
+    glWidget_->fitToScene();
+    updateModelInfo();
+    glWidget_->update();
+  });
+
+  connect(cylinderBtn, &QPushButton::clicked, this, [this]() {
+    auto obj = std::make_unique<CylinderObject>(0.5f, 2.0f, Point{0, 0, 0});
+    auto mesh = obj->GenerateMesh(32);
+    facade_->GetScene()->AddObject(std::move(mesh));
+    facade_->GetScene()->AddAnalyticObject(std::make_unique<CylinderObject>(*obj));
+    glWidget_->fitToScene();
+    updateModelInfo();
+    glWidget_->update();
+  });
+
+  connect(coneBtn, &QPushButton::clicked, this, [this]() {
+    auto obj = std::make_unique<ConeObject>(0.5f, 2.0f, Point{0, 0, 0});
+    auto mesh = obj->GenerateMesh(32);
+    facade_->GetScene()->AddObject(std::move(mesh));
+    facade_->GetScene()->AddAnalyticObject(std::make_unique<ConeObject>(*obj));
+    glWidget_->fitToScene();
+    updateModelInfo();
+    glWidget_->update();
+  });
+
+  connect(cubeBtn, &QPushButton::clicked, this, [this]() {
+    auto obj = std::make_unique<CubeObject>(1.5f, Point{0, 0, 0});
+    auto mesh = obj->GenerateMesh();
+    facade_->GetScene()->AddObject(std::move(mesh));
+    facade_->GetScene()->AddAnalyticObject(std::make_unique<CubeObject>(*obj));
+    glWidget_->fitToScene();
+    updateModelInfo();
+    glWidget_->update();
+  });
+
+  connect(pyramidBtn, &QPushButton::clicked, this, [this]() {
+    auto obj = std::make_unique<PyramidObject>(1.5f, 2.0f, Point{0, 0, 0});
+    auto mesh = obj->GenerateMesh();
+    facade_->GetScene()->AddObject(std::move(mesh));
+    facade_->GetScene()->AddAnalyticObject(std::make_unique<PyramidObject>(*obj));
+    glWidget_->fitToScene();
+    updateModelInfo();
+    glWidget_->update();
+  });
+
+  connect(floorToggleBtn_, &QPushButton::toggled, this, &MainWindow::onToggleFloor);
+  connect(renderBtn, &QPushButton::clicked, this, &MainWindow::onRenderRT);
 }
 
 void MainWindow::createRightPanel() {
@@ -173,6 +241,7 @@ void MainWindow::createRightPanel() {
   createTransformTab(tabWidget);
   createDisplayTab(tabWidget);
   createLightsTab(tabWidget);
+  createModelListTab(tabWidget);
 }
 
 void MainWindow::createTransformTab(QTabWidget* tabWidget) {
@@ -344,9 +413,25 @@ void MainWindow::createLightsTab(QTabWidget* tabWidget) {
   tabWidget->addTab(lightControlWidget_, "Lights");
 }
 
+void MainWindow::createModelListTab(QTabWidget* tabWidget) {
+  modelListWidget_ = new QListWidget;
+  connect(modelListWidget_, &QListWidget::currentRowChanged, this, [this](int row) {
+    if (row < 0) return;
+    const auto& objects = facade_->GetScene()->GetObjects();
+    if (row < static_cast<int>(objects.size())) {
+        facade_->GetScene()->SetSelected({objects[row].get()});
+        updateUIFromSelection();
+    }
+  });
+
+  tabWidget->addTab(modelListWidget_, "Models");
+}
+
 // ============================================================================
-// Слоты для освещения
+// Остальные методы (без изменений)
 // ============================================================================
+
+// Слоты для освещения (без изменений)
 
 void MainWindow::onLightAdded(const LightSource& light) {
   facade_->AddLight(light);
@@ -385,9 +470,7 @@ void MainWindow::loadInitialLights() {
     lightControlWidget_->setLights(facade_->GetLights());
 }
 
-// ============================================================================
-// Слоты файловых операций
-// ============================================================================
+// Файловые операции (без изменений)
 
 void MainWindow::loadModelFromFile(const QString& fileName) {
     if (fileName.isEmpty()) return;
@@ -483,13 +566,12 @@ void MainWindow::onModelLoaded() {
   facade_->GetScene()->SetSelected({obj});
   glWidget_->fitToScene();
   updateModelInfo();
+  updateModelList();
   infoLabel_->setText("Model loaded successfully");
   facade_->NotifyLoadFinished(true);
 }
 
-// ============================================================================
-// Слоты Undo/Redo, Screenshot, GIF
-// ============================================================================
+// Undo/Redo, Screenshot, GIF – без изменений
 
 void MainWindow::onUndo() {
     if (!facade_->CanTransform()) return;
@@ -619,9 +701,7 @@ void MainWindow::onFit() {
     glWidget_->fitToBoundingBox(center, size);
 }
 
-// ============================================================================
-// Вспомогательные методы для слотов трансформаций
-// ============================================================================
+// Вспомогательные методы для слотов трансформаций (без изменений)
 
 void MainWindow::applyMove(int axis, double value) {
   auto selected = facade_->GetSelected();
@@ -659,9 +739,7 @@ void MainWindow::applyScale(int axis, double value) {
   facade_->ScaleSelected(delta);
 }
 
-// ============================================================================
-// Слоты трансформаций (используют apply*)
-// ============================================================================
+// Слоты трансформаций (без изменений)
 
 void MainWindow::onMoveXChanged(double value) { applyMove(0, value); }
 void MainWindow::onMoveYChanged(double value) { applyMove(1, value); }
@@ -675,9 +753,7 @@ void MainWindow::onScaleXChanged(double value) { applyScale(0, value); }
 void MainWindow::onScaleYChanged(double value) { applyScale(1, value); }
 void MainWindow::onScaleZChanged(double value) { applyScale(2, value); }
 
-// ============================================================================
-// Слоты настроек
-// ============================================================================
+// Слоты настроек (без изменений)
 
 void MainWindow::onProjectionChanged(int index) {
     Settings::instance().setProjectionType(static_cast<Settings::ProjectionType>(index));
@@ -733,9 +809,7 @@ void MainWindow::onDashFactorChanged(double value) {
     Settings::instance().setDashFactor(static_cast<float>(value));
 }
 
-// ============================================================================
-// Обновление UI
-// ============================================================================
+// Обновление UI (без изменений)
 
 void MainWindow::updateUIFromSelection() {
     auto selected = facade_->GetSelected();
@@ -823,6 +897,17 @@ void MainWindow::updateModelInfo() {
     infoLabel_->setText(text);
 }
 
+void MainWindow::updateModelList() {
+     modelListWidget_->clear();
+    const auto& objects = facade_->GetScene()->GetObjects();
+    for (const auto& obj : objects) {
+        Mesh* mesh = dynamic_cast<Mesh*>(obj.get());
+        if (mesh) {
+            modelListWidget_->addItem(QString::fromStdString(mesh->GetSourceFile()));
+        }
+    }
+}
+
 void MainWindow::updateDisplayUI() {
     auto& s = Settings::instance();
     bgColorBtn_->setStyleSheet(QString("background-color: %1").arg(s.backgroundColor().name()));
@@ -871,23 +956,34 @@ void MainWindow::updateUiState(AppState newState) {
     }
 }
 
-// ============================================================================
-// SceneObserver
-// ============================================================================
+// SceneObserver (без изменений)
 
-void MainWindow::OnObjectAdded(SceneObject* object) { (void)object; updateModelInfo(); }
-void MainWindow::OnObjectRemoved(SceneObject* object) { (void)object; updateModelInfo(); }
-void MainWindow::OnSelectionChanged(const std::vector<SceneObject*>& selected) { (void)selected; updateUIFromSelection(); updateModelInfo(); }
-void MainWindow::OnTransformChanged(SceneObject* object) { (void)object; updateUIFromSelection(); }
+void MainWindow::OnObjectAdded(SceneObject* object) {
+  (void)object;
+  updateModelInfo();
+  updateModelList();
+}
+void MainWindow::OnObjectRemoved(SceneObject* object) {
+  (void)object;
+  updateModelInfo();
+  updateModelList();
+}
+void MainWindow::OnSelectionChanged(const std::vector<SceneObject*>& selected) {
+  (void)selected;
+  updateUIFromSelection();
+  updateModelInfo();
+}
+void MainWindow::OnTransformChanged(SceneObject* object) {
+  (void)object;
+  updateUIFromSelection();
+}
 
 void MainWindow::closeEvent(QCloseEvent* event) {
   Settings::instance().SaveLights(facade_->GetLights());
   event->accept();
 }
 
-// ============================================================================
-// Слоты освещения, затенения, флип нормалей
-// ============================================================================
+// Слоты освещения, затенения, флип нормалей (без изменений)
 
 void MainWindow::onShadingTypeChanged(int index) {
   OpenGLRenderer::ShadingType type;
@@ -907,9 +1003,7 @@ void MainWindow::onFlipNormalsChecked(bool checked) {
     Settings::instance().setFlipNormals(checked);
 }
 
-// ============================================================================
-// Слоты текстур и цвета
-// ============================================================================
+// Текстуры и цвет (без изменений)
 
 void MainWindow::onLoadTexture() {
     QString fileName = QFileDialog::getOpenFileName(this, "Load Texture", "", "BMP Files (*.bmp)");
@@ -1055,42 +1149,34 @@ void MainWindow::onSmoothingFactorChanged(double value) {
   DEBUG_PRINT("Mesh buffers updated and widget repaint requested");
 }
 
-// ===================== Новые слоты =====================
-void MainWindow::onAddSphere() {
-  auto sphere = std::make_unique<SphereObject>(1.0f, Point{0, 0, 0});
-  auto mesh = sphere->GenerateMesh(32);
-  facade_->GetScene()->AddObject(std::move(mesh));
-  // Если нужно аналитическое представление:
-  // facade_->GetScene()->AddAnalyticObject(std::move(sphere));
-  glWidget_->fitToScene();
-  updateModelInfo();
-  glWidget_->update();
-}
+// Новые слоты для пола и рендеринга
 
-void MainWindow::onAddFloor() {
-  auto floor = std::make_unique<PlaneObject>(Point{0, -1, 0}, Point{0, 1, 0});
-  auto mesh = floor->GenerateMesh();
-  facade_->GetScene()->AddObject(std::move(mesh));
-  glWidget_->fitToScene();
-  updateModelInfo();
-  glWidget_->update();
+void MainWindow::onToggleFloor(bool checked) {
+    if (checked) {
+        if (!floorObj_) {
+            floorObj_ = std::make_unique<PlaneObject>(Point{0, -1, 0}, Point{0, 1, 0});
+            auto mesh = floorObj_->GenerateMesh();
+            facade_->GetScene()->AddObject(std::move(mesh));
+            facade_->GetScene()->AddAnalyticObject(std::make_unique<PlaneObject>(*floorObj_));
+        }
+    } else {
+        if (floorObj_) {
+            // Упрощённое удаление: очищаем аналитические объекты и пересоздаём сцену без пола
+            facade_->GetScene()->ClearAnalyticObjects();
+            floorObj_.reset();
+            updateModelList();
+        }
+    }
+    glWidget_->update();
 }
 
 void MainWindow::onRenderRT() {
-    if (!facade_->GetScene()) return;
     auto* scene = facade_->GetScene().get();
     const Camera& cam = *(glWidget_->getCamera());
     const auto& lm = dynamic_cast<const LightManager&>(scene->GetLightManager());
     RayTracer tracer(scene, cam, lm);
-    QImage image = tracer.Render(640, 480, 1);
-    QDialog* dlg = new QDialog(this);
-    dlg->setWindowTitle("Ray Tracing Preview");
-    QLabel* label = new QLabel(dlg);
-    label->setPixmap(QPixmap::fromImage(image));
-    QVBoxLayout* layout = new QVBoxLayout(dlg);
-    layout->addWidget(label);
-    dlg->resize(660, 520);
-    dlg->show();
+    RenderDialog dlg(&tracer, this);
+    dlg.exec();
 }
 
 void MainWindow::connectSignals() {
@@ -1152,11 +1238,6 @@ void MainWindow::connectSignals() {
 
   // Освещение и шейдинг
   connect(shadingTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onShadingTypeChanged);
-
-  // Новые кнопки
-  connect(sphereBtn_, &QPushButton::clicked, this, &MainWindow::onAddSphere);
-  connect(floorBtn_, &QPushButton::clicked, this, &MainWindow::onAddFloor);
-  connect(renderRTBtn_, &QPushButton::clicked, this, &MainWindow::onRenderRT);
 
   // Ошибки шейдеров
   connect(glWidget_, &GLWidget::shaderError, this, [this](const QString& msg) {

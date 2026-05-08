@@ -1,8 +1,8 @@
 #include "ray_tracer.h"
 #include <cmath>
 #include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
 #include "matrix/s21_matrix_oop.h"
+#include "common/transform.h"
 
 namespace s21 {
 
@@ -18,10 +18,17 @@ QImage RayTracer::Render(int width, int height, int samples) const {
         for (int x = 0; x < width; ++x) {
             glm::vec3 color(0.0f);
             for (int s = 0; s < samples; ++s) {
-                Ray ray = GetCameraRay(x, y, width, height, camera_);
+                float u = (x + (s % 2 == 0 ? 0.25f : 0.75f)) / width;
+                float v = (y + (s % 2 == 0 ? 0.25f : 0.75f)) / height;
+                Ray ray = GetCameraRay(static_cast<int>(u * width),
+                                      static_cast<int>(v * height),
+                                      width, height, camera_);
                 HitRecord rec;
                 if (scene_->TraceRay(ray, 0.001f, 1000.0f, rec)) {
                     color += Shade(ray, rec, pointLights, dirLight);
+                } else {
+                    // цвет фона (можно позже брать из настроек)
+                    color += glm::vec3(0.1f, 0.1f, 0.15f);
                 }
             }
             color /= float(samples);
@@ -61,8 +68,7 @@ Ray RayTracer::GetCameraRay(int x, int y, int width, int height, const Camera& c
         static_cast<float>(eye(2,0) / w)
     );
 
-    // Переводим направление в мировое пространство
-    Point worldDir = TransformPoint(invView, dir); // нужна TransformPoint (уже есть в transform.h)
+    Point worldDir = TransformPoint(invView, dir);
     Point worldOrigin = TransformPoint(invView, Point{0,0,0});
     Point direction = worldDir - worldOrigin;
     float len = std::sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
@@ -72,33 +78,56 @@ Ray RayTracer::GetCameraRay(int x, int y, int width, int height, const Camera& c
     return {worldOrigin, direction};
 }
 
+bool RayTracer::IsInShadow(const Point& point, const glm::vec3& lightDir,
+                           float lightDist, float bias) const {
+    Point shadowOrigin = {
+        point.x + lightDir.x * bias,
+        point.y + lightDir.y * bias,
+        point.z + lightDir.z * bias
+    };
+    Point shadowDir = {lightDir.x, lightDir.y, lightDir.z};
+    Ray shadowRay = {shadowOrigin, shadowDir};
+    HitRecord tempRec;
+    if (scene_->TraceRay(shadowRay, 0.001f, lightDist, tempRec))
+        return true;
+    return false;
+}
+
 glm::vec3 RayTracer::Shade(const Ray& ray, const HitRecord& hit,
                            const std::vector<LightSource>& pointLights,
                            const DirectionalLight& dirLight) const {
-    glm::vec3 ambient(0.1f, 0.1f, 0.1f); // глобальный ambient
-    glm::vec3 color = ambient * glm::vec3(hit.material.transparency, hit.material.transparency, hit.material.transparency); // упрощённо
+    const float kShadowBias = 0.01f;
+    glm::vec3 ambient(0.15f, 0.15f, 0.15f);
+    glm::vec3 color = ambient;
+    glm::vec3 objectColor(0.8f, 0.8f, 0.8f);
 
     glm::vec3 normal(hit.normal.x, hit.normal.y, hit.normal.z);
-    if (glm::dot(normal, glm::vec3(ray.direction.x, ray.direction.y, ray.direction.z)) > 0) {
-        normal = -normal;
-    }
+    glm::vec3 viewDir = -glm::vec3(ray.direction.x, ray.direction.y, ray.direction.z);
+    if (glm::dot(normal, viewDir) < 0) normal = -normal;
 
-    // Точечные источники
     for (const auto& light : pointLights) {
         if (!light.enabled) continue;
-        glm::vec3 lightDir = glm::normalize(glm::vec3(light.position.x, light.position.y, light.position.z) -
-                                            glm::vec3(hit.point.x, hit.point.y, hit.point.z));
-        float diff = std::max(glm::dot(normal, lightDir), 0.0f);
-        color += glm::vec3(light.diffuse.r, light.diffuse.g, light.diffuse.b) * diff;
+        glm::vec3 lightPos(light.position.x, light.position.y, light.position.z);
+        glm::vec3 fragPos(hit.point.x, hit.point.y, hit.point.z);
+        glm::vec3 lightDir = glm::normalize(lightPos - fragPos);
+        float lightDist = glm::length(lightPos - fragPos);
+        Point fragPoint = {hit.point.x, hit.point.y, hit.point.z};
+        Point dirToLight = {lightDir.x, lightDir.y, lightDir.z};
+        if (!IsInShadow(fragPoint, lightDir, lightDist, kShadowBias)) {
+            float diff = std::max(glm::dot(normal, lightDir), 0.0f);
+            color += glm::vec3(light.diffuse.r, light.diffuse.g, light.diffuse.b) * diff * objectColor;
+        }
     }
 
-    // Направленный источник
     if (dirLight.enabled) {
         glm::vec3 dir = glm::normalize(glm::vec3(dirLight.direction.x, dirLight.direction.y, dirLight.direction.z));
-        float diff = std::max(glm::dot(normal, -dir), 0.0f);
-        color += glm::vec3(dirLight.color.r, dirLight.color.g, dirLight.color.b) * dirLight.intensity * diff;
+        glm::vec3 lightDir = -dir;
+        Point fragPoint = {hit.point.x, hit.point.y, hit.point.z};
+        if (!IsInShadow(fragPoint, lightDir, 1000.0f, kShadowBias)) {
+            float diff = std::max(glm::dot(normal, lightDir), 0.0f);
+            color += glm::vec3(dirLight.color.r, dirLight.color.g, dirLight.color.b) * dirLight.intensity * diff * objectColor;
+        }
     }
-
     return color;
 }
 

@@ -16,6 +16,7 @@
 #include "light_control_widget.h"
 #include "scene/scene_observer.h"
 #include "settings/settings.h"
+#include "objects/plane_object.h"   // для floorObj_
 
 QT_BEGIN_NAMESPACE
 class QDoubleSpinBox;
@@ -24,6 +25,7 @@ class QLabel;
 class QTabWidget;
 class QComboBox;
 class QGroupBox;
+class QListWidget;                  // forward-декларация
 QT_END_NAMESPACE
 
 namespace s21 {
@@ -92,14 +94,12 @@ class MainWindow : public QMainWindow, public SceneObserver {
 
   void onSmoothingFactorChanged(double value);
 
-  // Свет
   void onLightAdded(const LightSource& light);
   void onLightRemoved(size_t index);
   void onLightUpdated(size_t index, const LightSource& light);
   void onLightsChanged();
 
-  void onAddSphere();
-  void onAddFloor();
+  void onToggleFloor(bool checked);
   void onRenderRT();
 
  private:
@@ -109,8 +109,10 @@ class MainWindow : public QMainWindow, public SceneObserver {
   void createTransformTab(QTabWidget* tabWidget);
   void createDisplayTab(QTabWidget* tabWidget);
   void createLightsTab(QTabWidget* tabWidget);
+  void createModelListTab(QTabWidget* tabWidget);
   void updateUIFromSelection();
   void updateModelInfo();
+  void updateModelList();
   void connectSignals();
   void updateDisplayUI();
   void updateUiState(AppState newState);
@@ -150,6 +152,7 @@ class MainWindow : public QMainWindow, public SceneObserver {
   QPushButton* clearTextureBtn_;
   QPushButton* saveUVMapBtn_;
   QPushButton* objectColorBtn_;
+  QPushButton* floorToggleBtn_;
 
   QDoubleSpinBox* moveXSpin_;
   QDoubleSpinBox* moveYSpin_;
@@ -164,10 +167,6 @@ class MainWindow : public QMainWindow, public SceneObserver {
   QSlider* smoothingSlider_;
 
   QLabel* infoLabel_;
-
-  QPushButton* sphereBtn_;
-  QPushButton* floorBtn_;
-  QPushButton* renderRTBtn_;
 
   QTimer* rotationTimer_ = nullptr;
   float originalRotationY_ = 0.0f;
@@ -186,6 +185,10 @@ class MainWindow : public QMainWindow, public SceneObserver {
   bool isReplaceMode_ = false;
 
   std::unique_ptr<GifRecorder> gifRecorder_;
+
+  std::unique_ptr<PlaneObject> floorObj_;
+  bool floorVisible_ = false;
+  QListWidget* modelListWidget_ = nullptr;
 };
 
 }  // namespace s21

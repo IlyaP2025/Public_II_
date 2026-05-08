@@ -20,6 +20,8 @@ private:
                     const std::vector<LightSource>& pointLights,
                     const DirectionalLight& dirLight) const;
     Ray GetCameraRay(int x, int y, int width, int height, const Camera& camera) const;
+    bool IsInShadow(const Point& point, const glm::vec3& lightDir,
+                    float lightDist, float bias) const;
 
     Scene* scene_;
     const Camera& camera_;
