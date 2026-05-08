@@ -112,7 +112,6 @@ glm::vec3 RayTracer::Shade(const Ray& ray, const HitRecord& hit,
         glm::vec3 lightDir = glm::normalize(lightPos - fragPos);
         float lightDist = glm::length(lightPos - fragPos);
         Point fragPoint = {hit.point.x, hit.point.y, hit.point.z};
-        Point dirToLight = {lightDir.x, lightDir.y, lightDir.z};
         if (!IsInShadow(fragPoint, lightDir, lightDist, kShadowBias)) {
             float diff = std::max(glm::dot(normal, lightDir), 0.0f);
             color += glm::vec3(light.diffuse.r, light.diffuse.g, light.diffuse.b) * diff * objectColor;
