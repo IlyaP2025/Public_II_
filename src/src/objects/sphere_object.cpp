@@ -33,7 +33,9 @@ bool SphereObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec)
     rec.point = ray.origin + Point(ray.direction.x * root,
                                   ray.direction.y * root,
                                   ray.direction.z * root);
-    rec.normal = (rec.point - center_) * (1.0f / radius_);
+    float invRadius = 1.0f / radius_;
+    Point diff = rec.point - center_;
+    rec.normal = Point(diff.x * invRadius, diff.y * invRadius, diff.z * invRadius);
     rec.material = material_;
     return true;
 }

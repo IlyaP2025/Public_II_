@@ -3,9 +3,10 @@
 
 #include <memory>
 #include "common/point.h"
-#include "common/material.h"
-#include "scene/scene_object.h"
 #include "common/ray.h"
+#include "common/material.h"
+#include "scene/mesh.h"
+#include "scene/scene_object.h"
 
 namespace s21 {
 
@@ -21,10 +22,7 @@ public:
     AnalyticObject() = default;
     virtual ~AnalyticObject() = default;
 
-    // Проверка пересечения луча с объектом
     virtual bool Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec) const = 0;
-
-    // Генерация полигональной сетки для отображения
     virtual std::unique_ptr<Mesh> GenerateMesh(int precision = 32) const = 0;
 
     void SetMaterial(const Material& mat) { material_ = mat; }

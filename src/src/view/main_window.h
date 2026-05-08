@@ -163,7 +163,7 @@ class MainWindow : public QMainWindow, public SceneObserver {
 
   QSlider* smoothingSlider_;
 
-  QLabel* infoLabel_i;
+  QLabel* infoLabel_;
 
   QPushButton* sphereBtn_;
   QPushButton* floorBtn_;
