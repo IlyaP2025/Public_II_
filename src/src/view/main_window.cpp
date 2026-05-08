@@ -1059,6 +1059,8 @@ void MainWindow::onAddSphere() {
   auto sphere = std::make_unique<SphereObject>(1.0f, Point{0, 0, 0});
   auto mesh = sphere->GenerateMesh(32);
   facade_->GetScene()->AddObject(std::move(mesh));
+  // Если нужно аналитическое представление:
+  // facade_->GetScene()->AddAnalyticObject(std::move(sphere));
   glWidget_->fitToScene();
   updateModelInfo();
   glWidget_->update();
@@ -1074,7 +1076,6 @@ void MainWindow::onAddFloor() {
 }
 
 void MainWindow::onRenderRT() {
-  // Заглушка рендеринга: создадим картинку с градиентом
   int width = 640, height = 480;
   QImage image(width, height, QImage::Format_RGB32);
   for (int y = 0; y < height; ++y) {
@@ -1085,8 +1086,6 @@ void MainWindow::onRenderRT() {
       image.setPixelColor(x, y, QColor::fromRgbF(r, g, b));
     }
   }
-
-  // Показываем в отдельном окне
   QDialog* dlg = new QDialog(this);
   dlg->setWindowTitle("Ray Tracing Preview");
   QLabel* label = new QLabel(dlg);
@@ -1096,6 +1095,7 @@ void MainWindow::onRenderRT() {
   dlg->resize(width + 20, height + 20);
   dlg->show();
 }
+
 
 void MainWindow::connectSignals() {
   // Трансформации

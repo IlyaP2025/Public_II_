@@ -1,5 +1,6 @@
 #include "sphere_object.h"
 #include <cmath>
+#include <vector>
 #include "common/point.h"
 #include "scene/mesh.h"
 
@@ -39,8 +40,63 @@ bool SphereObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec)
 
 std::unique_ptr<Mesh> SphereObject::GenerateMesh(int precision) const {
     auto mesh = std::make_unique<Mesh>();
-    // Генерация вершин и индексов сферы (можно взять из старого Sphere класса, если есть)
-    // Здесь оставлю заготовку - вы можете скопировать код из процедурной генерации сферы
+    if (precision < 3) precision = 3;
+
+    std::vector<Point> vertices;
+    std::vector<unsigned int> indices;
+    std::vector<Point> normals;
+    std::vector<Point2D> uvs;
+
+    for (int i = 0; i <= precision; ++i) {
+        float theta = i * M_PI / precision;
+        float sinTheta = std::sin(theta);
+        float cosTheta = std::cos(theta);
+        for (int j = 0; j <= precision; ++j) {
+            float phi = j * 2.0f * M_PI / precision;
+            float sinPhi = std::sin(phi);
+            float cosPhi = std::cos(phi);
+
+            Point p(
+                center_.x + radius_ * sinTheta * cosPhi,
+                center_.y + radius_ * cosTheta,
+                center_.z + radius_ * sinTheta * sinPhi
+            );
+            vertices.push_back(p);
+            normals.push_back(Point(sinTheta * cosPhi, cosTheta, sinTheta * sinPhi));
+            uvs.push_back(Point2D(static_cast<float>(j) / precision,
+                                 static_cast<float>(i) / precision));
+        }
+    }
+
+    for (int i = 0; i < precision; ++i) {
+        for (int j = 0; j < precision; ++j) {
+            unsigned int first = i * (precision + 1) + j;
+            unsigned int second = first + precision + 1;
+
+            indices.push_back(first);
+            indices.push_back(second);
+            indices.push_back(first + 1);
+
+            indices.push_back(second);
+            indices.push_back(second + 1);
+            indices.push_back(first + 1);
+        }
+    }
+
+    mesh->SetVertices(vertices);
+    mesh->SetNormals(normals);
+    mesh->SetUVs(uvs);
+    mesh->SetTriangles(indices);
+    mesh->ComputeBoundingSphere();
+
+    std::vector<Edge> edges;
+    for (size_t i = 0; i < indices.size(); i += 3) {
+        edges.push_back(Edge{indices[i], indices[i+1]});
+        edges.push_back(Edge{indices[i+1], indices[i+2]});
+        edges.push_back(Edge{indices[i+2], indices[i]});
+    }
+    mesh->SetEdges(edges);
+
     return mesh;
 }
 

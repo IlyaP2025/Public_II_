@@ -5,13 +5,9 @@
 #include "common/point.h"
 #include "common/material.h"
 #include "scene/scene_object.h"
+#include "common/ray.h"
 
 namespace s21 {
-
-struct Ray {
-    Point origin;
-    Point direction;
-};
 
 struct HitRecord {
     float t;

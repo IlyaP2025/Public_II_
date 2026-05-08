@@ -53,6 +53,8 @@ class Scene {
 
   // Простая трассировка одного луча (без учёта освещения, только пересечение)
   bool TraceRay(const Ray& ray, float t_min, float t_max, HitRecord& rec) const;
+  void AddAnalyticObject(std::unique_ptr<AnalyticObject> obj);
+  std::vector<AnalyticObject*> GetAnalyticObjects() const;
 
  private:
   std::vector<std::unique_ptr<SceneObject>> objects_;

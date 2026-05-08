@@ -154,4 +154,8 @@ bool Scene::TraceRay(const Ray& ray, float t_min, float t_max, HitRecord& rec) c
     return hitAnything;
 }
 
+void Scene::AddAnalyticObject(std::unique_ptr<AnalyticObject> obj) {
+    analyticObjects_.push_back(std::move(obj));
+}
+
 }  // namespace s21

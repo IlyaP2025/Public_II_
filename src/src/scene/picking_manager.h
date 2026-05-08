@@ -6,13 +6,9 @@
 #include "common/point.h"
 #include "scene/camera.h"
 #include "scene/scene.h"
+#include "common/ray.h"
 
 namespace s21 {
-
-struct Ray {
-  Point origin;
-  Point direction;
-};
 
 class PickingManager {
  public:
