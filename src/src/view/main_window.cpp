@@ -745,6 +745,7 @@ void MainWindow::applyMove(int axis, double value) {
     case 1: delta.y = static_cast<float>(value) - selected.front()->GetTransform().GetPosition().y; break;
     case 2: delta.z = static_cast<float>(value) - selected.front()->GetTransform().GetPosition().z; break;
   }
+  qDebug() << "applyMove axis:" << axis << "value:" << value << "delta:" << delta.x << delta.y << delta.z;
   facade_->MoveSelected(delta);
 }
 

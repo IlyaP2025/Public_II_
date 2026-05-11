@@ -385,6 +385,9 @@ void OpenGLRenderer::RenderSolid(const std::vector<const Mesh*>& meshes,
       UpdateNormalMatrixForMesh(buffers, modelMatrix);
       buffers.transformChanged = false;
     }
+    
+    const auto& normals = mesh->GetNormals();
+    qDebug() << "Rendering mesh:" << mesh->GetSourceFile().c_str() << "normals count:" << normals.size();
 
     buffers.vaoTriangles.bind();
     gl_->glDrawArrays(GL_TRIANGLES, 0, buffers.vertexCount);
