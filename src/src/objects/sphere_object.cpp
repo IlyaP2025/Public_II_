@@ -75,13 +75,14 @@ std::unique_ptr<Mesh> SphereObject::GenerateMesh(int precision) const {
             unsigned int first = i * (precision + 1) + j;
             unsigned int second = first + precision + 1;
 
+            // Правильный порядок для внешних нормалей
             indices.push_back(first);
-            indices.push_back(second);
             indices.push_back(first + 1);
+            indices.push_back(second);
 
-            indices.push_back(second);
-            indices.push_back(second + 1);
             indices.push_back(first + 1);
+            indices.push_back(second + 1);
+            indices.push_back(second);
         }
     }
 

@@ -3,6 +3,7 @@
 #include <vector>
 #include "common/point.h"
 #include "scene/mesh.h"
+#include "common/debug.h"
 
 namespace s21 {
 
@@ -12,7 +13,6 @@ ConeObject::ConeObject(float radius, float height, const Point& center)
 }
 
 bool ConeObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec) const {
-    // Вершина конуса (вверху)
     Point apex = {center_.x, center_.y + height_ / 2.0f, center_.z};
     Point baseCenter = {center_.x, center_.y - height_ / 2.0f, center_.z};
     float k = (radius_ / height_) * (radius_ / height_);
@@ -61,18 +61,15 @@ std::unique_ptr<Mesh> ConeObject::GenerateMesh(int precision) const {
     Point apex = {center_.x, center_.y + halfH, center_.z};
     Point baseCenter = {center_.x, center_.y - halfH, center_.z};
 
-    // Вершина конуса
     unsigned int apexIndex = 0;
     vertices.push_back(apex);
     normals.push_back(Point(0, 1, 0));
 
-    // Кольцо основания
     for (int i = 0; i <= precision; ++i) {
         float angle = 2.0f * M_PI * i / precision;
         float x = radius_ * std::cos(angle);
         float z = radius_ * std::sin(angle);
         vertices.push_back({center_.x + x, baseCenter.y, center_.z + z});
-        // Нормаль для точки основания
         Point n = Point(x, 0, z);
         float ln = std::sqrt(n.x * n.x + n.z * n.z);
         if (ln > 1e-6f) {
@@ -81,11 +78,10 @@ std::unique_ptr<Mesh> ConeObject::GenerateMesh(int precision) const {
         normals.push_back(n);
     }
 
-    // Боковые треугольники
     for (unsigned int i = 0; i < static_cast<unsigned int>(precision); ++i) {
-        indices.push_back(apexIndex);
-        indices.push_back(i + 1);
         indices.push_back(i + 2);
+        indices.push_back(i + 1);
+        indices.push_back(apexIndex);
     }
 
     mesh->SetVertices(vertices);
@@ -100,6 +96,42 @@ std::unique_ptr<Mesh> ConeObject::GenerateMesh(int precision) const {
         edges.push_back(Edge{indices[i+2], indices[i]});
     }
     mesh->SetEdges(edges);
+
+    // Отладка
+    DEBUG_PRINT("=== Mesh generated: " << GetName().c_str() << " ===");
+    DEBUG_PRINT("  Vertices: " << mesh->GetVertices().size());
+    if (!mesh->GetVertices().empty()) {
+        const auto& v = mesh->GetVertices();
+        DEBUG_PRINT("  First vertex: (" << v[0].x << ", " << v[0].y << ", " << v[0].z << ")");
+        DEBUG_PRINT("  Last vertex:  (" << v.back().x << ", " << v.back().y << ", " << v.back().z << ")");
+    }
+    const auto& norms = mesh->GetNormals();
+    DEBUG_PRINT("  Normals: " << norms.size());
+    if (!norms.empty()) {
+        DEBUG_PRINT("  First normal: (" << norms[0].x << ", " << norms[0].y << ", " << norms[0].z << ")");
+        if (norms.size() >= 4) {
+            DEBUG_PRINT("  Last normal:  (" << norms.back().x << ", " << norms.back().y << ", " << norms.back().z << ")");
+        }
+    }
+    const auto& tris = mesh->GetTriangles();
+    DEBUG_PRINT("  Triangles: " << tris.size() / 3);
+    if (tris.size() >= 6) {
+        DEBUG_PRINT("  First triangle: " << tris[0] << ", " << tris[1] << ", " << tris[2]);
+        if (mesh->GetVertices().size() > tris[2]) {
+            const Point& a = mesh->GetVertices()[tris[0]];
+            const Point& b = mesh->GetVertices()[tris[1]];
+            const Point& c = mesh->GetVertices()[tris[2]];
+            float ux = b.x - a.x, uy = b.y - a.y, uz = b.z - a.z;
+            float vx = c.x - a.x, vy = c.y - a.y, vz = c.z - a.z;
+            float nx = uy*vz - uz*vy;
+            float ny = uz*vx - ux*vz;
+            float nz = ux*vy - uy*vx;
+            float len = std::sqrt(nx*nx + ny*ny + nz*nz);
+            if (len > 1e-6f) { nx /= len; ny /= len; nz /= len; }
+            DEBUG_PRINT("  Computed normal of first triangle: (" << nx << ", " << ny << ", " << nz << ")");
+        }
+    }
+    DEBUG_PRINT("=== End Mesh ===");
 
     return mesh;
 }

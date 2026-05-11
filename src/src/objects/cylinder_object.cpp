@@ -12,7 +12,6 @@ CylinderObject::CylinderObject(float radius, float height, const Point& center)
 }
 
 bool CylinderObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec) const {
-    // Пересечение с бесконечным цилиндром (ось Y)
     float a = ray.direction.x * ray.direction.x + ray.direction.z * ray.direction.z;
     float b = 2.0f * (ray.direction.x * (ray.origin.x - center_.x) +
                      ray.direction.z * (ray.origin.z - center_.z));
@@ -59,7 +58,6 @@ std::unique_ptr<Mesh> CylinderObject::GenerateMesh(int precision) const {
     Point topCenter = {center_.x, center_.y + halfH, center_.z};
     Point bottomCenter = {center_.x, center_.y - halfH, center_.z};
 
-    // Боковая поверхность
     for (int i = 0; i <= precision; ++i) {
         float angle = 2.0f * M_PI * i / precision;
         float x = radius_ * std::cos(angle);
@@ -78,6 +76,7 @@ std::unique_ptr<Mesh> CylinderObject::GenerateMesh(int precision) const {
         unsigned int bot1 = i * 2 + 1;
         unsigned int bot2 = (i + 1) * 2 + 1;
 
+        // Правильный порядок для внешних нормалей
         indices.push_back(top1);
         indices.push_back(bot1);
         indices.push_back(top2);

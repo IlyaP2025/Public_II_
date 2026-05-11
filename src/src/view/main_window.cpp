@@ -42,6 +42,25 @@
 
 namespace s21 {
 
+// Вспомогательная функция для "прогона" сгенерированного меша через ModelBuilder
+static std::unique_ptr<s21::Mesh> ProcessPrimitiveMesh(std::unique_ptr<s21::Mesh> mesh, const std::string& name = "Primitive") {
+    if (!mesh) return nullptr;
+    
+    // Создаем RawModelData из сгенерированного меша
+    s21::RawModelData data;
+    data.vertices = mesh->GetVertices();
+    data.edges = mesh->GetEdges();
+    data.normals = mesh->GetNormals();
+    data.uvs = mesh->GetUVs();
+    data.triangles = mesh->GetTriangles();
+    data.filename = name;
+    data.success = true;
+    data.smoothingFactor = 1.0f; // максимальное сглаживание
+
+    // Пропускаем через ModelBuilder, который вычислит нормали и оптимизирует
+    return s21::ModelBuilder::BuildFromRawData(data);
+}
+
 // ============================================================================
 // Конструктор / деструктор
 // ============================================================================
@@ -170,8 +189,9 @@ void MainWindow::createToolBar() {
 
   // --- Сфера ---
   connect(sphereBtn, &QPushButton::clicked, this, [this]() {
-    auto obj = std::make_unique<SphereObject>(1.0f, Point{0, 0, 0});
-    auto mesh = obj->GenerateMesh(32);
+    auto obj = std::make_unique<sphere::SphereObject>(1.0f, Point{0, 0, 0});
+    auto mesh = ProcessPrimitiveMesh(obj->GenerateMesh(32), "Sphere");
+    if (!mesh) return;
     auto* scene = facade_->GetScene().get();
     scene->AddObject(std::move(mesh));
     scene->AddAnalyticObject(std::move(obj));
@@ -179,9 +199,6 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
-
-    facade_->NotifyLoadStarted();
-    facade_->NotifyLoadFinished(true);
 
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
@@ -191,7 +208,8 @@ void MainWindow::createToolBar() {
   // --- Цилиндр ---
   connect(cylinderBtn, &QPushButton::clicked, this, [this]() {
     auto obj = std::make_unique<CylinderObject>(0.5f, 2.0f, Point{0, 0, 0});
-    auto mesh = obj->GenerateMesh(32);
+    auto mesh = ProcessPrimitiveMesh(obj->GenerateMesh(32), "Cylinder");
+    if (!mesh) return;
     auto* scene = facade_->GetScene().get();
     scene->AddObject(std::move(mesh));
     scene->AddAnalyticObject(std::move(obj));
@@ -199,9 +217,6 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
-
-    facade_->NotifyLoadStarted();
-    facade_->NotifyLoadFinished(true);
 
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
@@ -211,7 +226,8 @@ void MainWindow::createToolBar() {
   // --- Конус ---
   connect(coneBtn, &QPushButton::clicked, this, [this]() {
     auto obj = std::make_unique<ConeObject>(0.5f, 2.0f, Point{0, 0, 0});
-    auto mesh = obj->GenerateMesh(32);
+    auto mesh = ProcessPrimitiveMesh(obj->GenerateMesh(32), "Cone");
+    if (!mesh) return;
     auto* scene = facade_->GetScene().get();
     scene->AddObject(std::move(mesh));
     scene->AddAnalyticObject(std::move(obj));
@@ -219,9 +235,6 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
-
-    facade_->NotifyLoadStarted();
-    facade_->NotifyLoadFinished(true);
 
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
@@ -231,7 +244,8 @@ void MainWindow::createToolBar() {
   // --- Куб ---
   connect(cubeBtn, &QPushButton::clicked, this, [this]() {
     auto obj = std::make_unique<CubeObject>(1.5f, Point{0, 0, 0});
-    auto mesh = obj->GenerateMesh();
+    auto mesh = ProcessPrimitiveMesh(obj->GenerateMesh(), "Cube");
+    if (!mesh) return;
     auto* scene = facade_->GetScene().get();
     scene->AddObject(std::move(mesh));
     scene->AddAnalyticObject(std::move(obj));
@@ -239,9 +253,6 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
-
-    facade_->NotifyLoadStarted();
-    facade_->NotifyLoadFinished(true);
 
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
@@ -251,7 +262,8 @@ void MainWindow::createToolBar() {
   // --- Пирамида ---
   connect(pyramidBtn, &QPushButton::clicked, this, [this]() {
     auto obj = std::make_unique<PyramidObject>(1.5f, 2.0f, Point{0, 0, 0});
-    auto mesh = obj->GenerateMesh();
+    auto mesh = ProcessPrimitiveMesh(obj->GenerateMesh(), "Pyramid");
+    if (!mesh) return;
     auto* scene = facade_->GetScene().get();
     scene->AddObject(std::move(mesh));
     scene->AddAnalyticObject(std::move(obj));
@@ -259,9 +271,6 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
-
-    facade_->NotifyLoadStarted();
-    facade_->NotifyLoadFinished(true);
 
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
