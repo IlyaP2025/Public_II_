@@ -38,7 +38,6 @@ bool CubeObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec) c
     float absX = std::abs(c.x);
     float absY = std::abs(c.y);
     float absZ = std::abs(c.z);
-    float half = size_ / 2.0f;
     if (absX > absY && absX > absZ) {
         rec.normal = Point(c.x > 0 ? 1.0f : -1.0f, 0, 0);
     } else if (absY > absZ) {
