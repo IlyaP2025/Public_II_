@@ -27,16 +27,17 @@ std::unique_ptr<Mesh> PyramidObject::GenerateMesh(int /*precision*/) const {
         {center_.x - b, center_.y - h, center_.z + b}
     };
 
+    // Вершины: 12 для боковых граней, 6 для основания (всего 18)
     std::vector<Point> verts = {
-        apex, base[0], base[1],
-        apex, base[1], base[2],
-        apex, base[2], base[3],
-        apex, base[3], base[0],
-        base[0], base[1], base[3],
-        base[1], base[2], base[3]
+        apex, base[0], base[1], // грань 0
+        apex, base[1], base[2], // грань 1
+        apex, base[2], base[3], // грань 2
+        apex, base[3], base[0], // грань 3
+        base[0], base[1], base[3], // основание 1
+        base[1], base[2], base[3]  // основание 2
     };
 
-    auto computeNormal = [](const Point& a, const Point& b, const Point& c) {
+    auto computeNormal = [](const Point& a, const Point& b, const Point& c) -> Point {
         Point u = {b.x - a.x, b.y - a.y, b.z - a.z};
         Point v = {c.x - a.x, c.y - a.y, c.z - a.z};
         Point n = {
@@ -45,19 +46,19 @@ std::unique_ptr<Mesh> PyramidObject::GenerateMesh(int /*precision*/) const {
             u.x * v.y - u.y * v.x
         };
         float len = std::sqrt(n.x*n.x + n.y*n.y + n.z*n.z);
+        if (len < 1e-6f) return Point{0,1,0};
         return Point{n.x/len, n.y/len, n.z/len};
     };
 
     std::vector<Point> norms;
+    // Боковые грани
     for (int i = 0; i < 4; ++i) {
         Point n = computeNormal(verts[i*3], verts[i*3+1], verts[i*3+2]);
-        if (n.y < 0) n = Point{-n.x, -n.y, -n.z};
-        norms.push_back(n);
-        norms.push_back(n);
-        norms.push_back(n);
+        if (n.y < 0) n = Point{-n.x, -n.y, -n.z}; // разворачиваем, если нормаль направлена вниз
+        norms.insert(norms.end(), 3, n);
     }
-    norms.push_back({0, -1, 0}); norms.push_back({0, -1, 0}); norms.push_back({0, -1, 0});
-    norms.push_back({0, -1, 0}); norms.push_back({0, -1, 0}); norms.push_back({0, -1, 0});
+    // Основание
+    norms.insert(norms.end(), 6, {0, -1, 0});
 
     mesh->SetVertices(verts);
     mesh->SetNormals(norms);

@@ -14,13 +14,10 @@ ConeObject::ConeObject(float radius, float height, const Point& center)
 bool ConeObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec) const {
     // Вершина конуса (вверху)
     Point apex = {center_.x, center_.y + height_ / 2.0f, center_.z};
-    // Центр основания
     Point baseCenter = {center_.x, center_.y - height_ / 2.0f, center_.z};
-    float tanHalf = radius_ / height_; // тангенс половины угла
+    float k = (radius_ / height_) * (radius_ / height_);
 
-    // Вектор от вершины к точке пересечения
     Point oc = ray.origin - apex;
-    float k = tanHalf * tanHalf;
     float a = ray.direction.x * ray.direction.x + ray.direction.z * ray.direction.z - k * ray.direction.y * ray.direction.y;
     float b = 2.0f * (oc.x * ray.direction.x + oc.z * ray.direction.z - k * oc.y * ray.direction.y);
     float c = oc.x * oc.x + oc.z * oc.z - k * oc.y * oc.y;
@@ -36,19 +33,17 @@ bool ConeObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec) c
     }
 
     Point p = ray.origin + Point(ray.direction.x * t, ray.direction.y * t, ray.direction.z * t);
-    // Проверка, что точка находится между вершиной и основанием
     if (p.y < baseCenter.y || p.y > apex.y) return false;
 
     rec.t = t;
     rec.point = p;
-    // Нормаль конуса (вектор от точки на оси к точке на поверхности)
     Point axisPoint = {center_.x, p.y, center_.z};
     Point normal = p - axisPoint;
     float len = std::sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
     if (len > 1e-6f) {
         rec.normal = Point(normal.x / len, normal.y / len, normal.z / len);
     } else {
-        rec.normal = Point(0, -1, 0); // вершина
+        rec.normal = Point(0, -1, 0);
     }
     rec.material = material_;
     return true;
@@ -66,9 +61,10 @@ std::unique_ptr<Mesh> ConeObject::GenerateMesh(int precision) const {
     Point apex = {center_.x, center_.y + halfH, center_.z};
     Point baseCenter = {center_.x, center_.y - halfH, center_.z};
 
-    // Вершина
+    // Вершина конуса
+    unsigned int apexIndex = 0;
     vertices.push_back(apex);
-    normals.push_back(Point(0, 1, 0)); // приблизительно
+    normals.push_back(Point(0, 1, 0));
 
     // Кольцо основания
     for (int i = 0; i <= precision; ++i) {
@@ -76,7 +72,7 @@ std::unique_ptr<Mesh> ConeObject::GenerateMesh(int precision) const {
         float x = radius_ * std::cos(angle);
         float z = radius_ * std::sin(angle);
         vertices.push_back({center_.x + x, baseCenter.y, center_.z + z});
-        // Нормаль для точки основания — направление от оси к точке
+        // Нормаль для точки основания
         Point n = Point(x, 0, z);
         float ln = std::sqrt(n.x * n.x + n.z * n.z);
         if (ln > 1e-6f) {
@@ -85,9 +81,9 @@ std::unique_ptr<Mesh> ConeObject::GenerateMesh(int precision) const {
         normals.push_back(n);
     }
 
-    // Треугольники боковой поверхности (веер из вершины)
-    for (int i = 0; i < precision; ++i) {
-        indices.push_back(0); // вершина
+    // Боковые треугольники
+    for (unsigned int i = 0; i < static_cast<unsigned int>(precision); ++i) {
+        indices.push_back(apexIndex);
         indices.push_back(i + 1);
         indices.push_back(i + 2);
     }

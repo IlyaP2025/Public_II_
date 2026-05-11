@@ -52,34 +52,41 @@ bool CubeObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec) c
 std::unique_ptr<Mesh> CubeObject::GenerateMesh(int /*precision*/) const {
     auto mesh = std::make_unique<Mesh>();
     float h = size_ / 2.0f;
+    // 24 вершины (по 4 на каждую грань)
     std::vector<Point> verts = {
+        // front (z-)
         {center_.x - h, center_.y - h, center_.z - h},
         {center_.x + h, center_.y - h, center_.z - h},
         {center_.x + h, center_.y + h, center_.z - h},
         {center_.x - h, center_.y + h, center_.z - h},
+        // back (z+)
         {center_.x - h, center_.y - h, center_.z + h},
         {center_.x + h, center_.y - h, center_.z + h},
         {center_.x + h, center_.y + h, center_.z + h},
         {center_.x - h, center_.y + h, center_.z + h},
-        // Дублируем вершины для корректных нормалей
+        // left (x-)
         {center_.x - h, center_.y - h, center_.z - h},
         {center_.x - h, center_.y - h, center_.z + h},
         {center_.x - h, center_.y + h, center_.z + h},
         {center_.x - h, center_.y + h, center_.z - h},
+        // right (x+)
         {center_.x + h, center_.y - h, center_.z - h},
         {center_.x + h, center_.y - h, center_.z + h},
         {center_.x + h, center_.y + h, center_.z + h},
         {center_.x + h, center_.y + h, center_.z - h},
+        // top (y+)
         {center_.x - h, center_.y + h, center_.z - h},
         {center_.x + h, center_.y + h, center_.z - h},
         {center_.x + h, center_.y + h, center_.z + h},
         {center_.x - h, center_.y + h, center_.z + h},
+        // bottom (y-)
         {center_.x - h, center_.y - h, center_.z - h},
         {center_.x + h, center_.y - h, center_.z - h},
         {center_.x + h, center_.y - h, center_.z + h},
         {center_.x - h, center_.y - h, center_.z + h},
     };
     mesh->SetVertices(verts);
+    // 12 треугольников (по 2 на каждую грань)
     mesh->SetTriangles({
         0,1,2, 0,2,3,    // front
         4,5,6, 4,6,7,    // back
@@ -88,16 +95,20 @@ std::unique_ptr<Mesh> CubeObject::GenerateMesh(int /*precision*/) const {
         16,17,18, 16,18,19, // top
         20,21,22, 20,22,23  // bottom
     });
+
+    // Нормали для каждой грани (одинаковы для всех 4 вершин грани)
     std::vector<Point> norms = {
-        {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1},
-        {0, 0,  1}, {0, 0,  1}, {0, 0,  1}, {0, 0,  1},
-        {-1, 0, 0}, {-1, 0, 0}, {-1, 0, 0}, {-1, 0, 0},
-        {1, 0, 0}, {1, 0, 0}, {1, 0, 0}, {1, 0, 0},
-        {0, 1, 0}, {0, 1, 0}, {0, 1, 0}, {0, 1, 0},
-        {0, -1, 0}, {0, -1, 0}, {0, -1, 0}, {0, -1, 0}
+        {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, // front
+        {0, 0,  1}, {0, 0,  1}, {0, 0,  1}, {0, 0,  1}, // back
+        {-1, 0, 0}, {-1, 0, 0}, {-1, 0, 0}, {-1, 0, 0}, // left
+        {1, 0, 0}, {1, 0, 0}, {1, 0, 0}, {1, 0, 0},     // right
+        {0, 1, 0}, {0, 1, 0}, {0, 1, 0}, {0, 1, 0},     // top
+        {0, -1, 0}, {0, -1, 0}, {0, -1, 0}, {0, -1, 0}  // bottom
     };
     mesh->SetNormals(norms);
     mesh->ComputeBoundingSphere();
+
+    // Рёбра
     std::vector<Edge> edges;
     const auto& tris = mesh->GetTriangles();
     for (size_t i = 0; i < tris.size(); i += 3) {

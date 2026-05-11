@@ -35,14 +35,13 @@ bool CylinderObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& re
 
     rec.t = t;
     rec.point = p;
-    // Нормаль в точке на боковой поверхности
     float nx = 2.0f * (p.x - center_.x);
     float nz = 2.0f * (p.z - center_.z);
     float len = std::sqrt(nx * nx + nz * nz);
     if (len > 1e-6f) {
         rec.normal = Point(nx / len, 0.0f, nz / len);
     } else {
-        rec.normal = Point(0, 1, 0); // на торце, но мы их не рендерим
+        rec.normal = Point(0, 1, 0);
     }
     rec.material = material_;
     return true;
@@ -57,7 +56,6 @@ std::unique_ptr<Mesh> CylinderObject::GenerateMesh(int precision) const {
     std::vector<Point> normals;
 
     float halfH = height_ / 2.0f;
-    // Верхний и нижний центры
     Point topCenter = {center_.x, center_.y + halfH, center_.z};
     Point bottomCenter = {center_.x, center_.y - halfH, center_.z};
 
@@ -68,15 +66,12 @@ std::unique_ptr<Mesh> CylinderObject::GenerateMesh(int precision) const {
         float z = radius_ * std::sin(angle);
         Point normal = Point(std::cos(angle), 0.0f, std::sin(angle));
 
-        // Верхнее кольцо
         vertices.push_back({center_.x + x, topCenter.y, center_.z + z});
         normals.push_back(normal);
-        // Нижнее кольцо
         vertices.push_back({center_.x + x, bottomCenter.y, center_.z + z});
         normals.push_back(normal);
     }
 
-    // Индексы боковых треугольников
     for (int i = 0; i < precision; ++i) {
         unsigned int top1 = i * 2;
         unsigned int top2 = (i + 1) * 2;
@@ -97,7 +92,6 @@ std::unique_ptr<Mesh> CylinderObject::GenerateMesh(int precision) const {
     mesh->SetTriangles(indices);
     mesh->ComputeBoundingSphere();
 
-    // Генерация рёбер
     std::vector<Edge> edges;
     for (size_t i = 0; i < indices.size(); i += 3) {
         edges.push_back(Edge{indices[i], indices[i+1]});
