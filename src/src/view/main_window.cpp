@@ -168,76 +168,81 @@ void MainWindow::createToolBar() {
   toolbar->addSeparator();
   toolbar->addWidget(renderBtn);
 
+  // --- Сфера ---
   connect(sphereBtn, &QPushButton::clicked, this, [this]() {
     auto obj = std::make_unique<SphereObject>(1.0f, Point{0, 0, 0});
     auto mesh = obj->GenerateMesh(32);
-    facade_->GetScene()->AddObject(std::move(mesh));
-    facade_->GetScene()->AddAnalyticObject(std::move(obj));
+    auto* scene = facade_->GetScene().get();
+    scene->AddObject(std::move(mesh));
+    scene->AddAnalyticObject(std::move(obj));
+    scene->SetSelected({scene->GetObjects().back().get()});
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
-
-    // Сброс
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
     scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
   });
 
+  // --- Цилиндр ---
   connect(cylinderBtn, &QPushButton::clicked, this, [this]() {
     auto obj = std::make_unique<CylinderObject>(0.5f, 2.0f, Point{0, 0, 0});
     auto mesh = obj->GenerateMesh(32);
-    facade_->GetScene()->AddObject(std::move(mesh));
-    facade_->GetScene()->AddAnalyticObject(std::move(obj));
+    auto* scene = facade_->GetScene().get();
+    scene->AddObject(std::move(mesh));
+    scene->AddAnalyticObject(std::move(obj));
+    scene->SetSelected({scene->GetObjects().back().get()});
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
-
-    // Сброс
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
     scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
   });
 
+  // --- Конус ---
   connect(coneBtn, &QPushButton::clicked, this, [this]() {
     auto obj = std::make_unique<ConeObject>(0.5f, 2.0f, Point{0, 0, 0});
     auto mesh = obj->GenerateMesh(32);
-    facade_->GetScene()->AddObject(std::move(mesh));
-    facade_->GetScene()->AddAnalyticObject(std::move(obj));
+    auto* scene = facade_->GetScene().get();
+    scene->AddObject(std::move(mesh));
+    scene->AddAnalyticObject(std::move(obj));
+    scene->SetSelected({scene->GetObjects().back().get()});
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
-
-    // Сброс
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
     scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
   });
 
+  // --- Куб ---
   connect(cubeBtn, &QPushButton::clicked, this, [this]() {
     auto obj = std::make_unique<CubeObject>(1.5f, Point{0, 0, 0});
     auto mesh = obj->GenerateMesh();
-    facade_->GetScene()->AddObject(std::move(mesh));
-    facade_->GetScene()->AddAnalyticObject(std::move(obj));
+    auto* scene = facade_->GetScene().get();
+    scene->AddObject(std::move(mesh));
+    scene->AddAnalyticObject(std::move(obj));
+    scene->SetSelected({scene->GetObjects().back().get()});
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
-
-    // Сброс
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
     scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
   });
 
+  // --- Пирамида ---
   connect(pyramidBtn, &QPushButton::clicked, this, [this]() {
     auto obj = std::make_unique<PyramidObject>(1.5f, 2.0f, Point{0, 0, 0});
     auto mesh = obj->GenerateMesh();
-    facade_->GetScene()->AddObject(std::move(mesh));
-    facade_->GetScene()->AddAnalyticObject(std::move(obj));
+    auto* scene = facade_->GetScene().get();
+    scene->AddObject(std::move(mesh));
+    scene->AddAnalyticObject(std::move(obj));
+    scene->SetSelected({scene->GetObjects().back().get()});
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
-
-    // Сброс
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
     scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
@@ -444,19 +449,16 @@ void MainWindow::createModelListTab(QTabWidget* tabWidget) {
     if (row < 0) return;
     const auto& objects = facade_->GetScene()->GetObjects();
     if (row < static_cast<int>(objects.size())) {
-        facade_->GetScene()->SetSelected({objects[row].get()});
-        updateUIFromSelection();
+      facade_->GetScene()->SetSelected({objects[row].get()});
+      updateUIFromSelection();
     }
   });
-
   tabWidget->addTab(modelListWidget_, "Models");
 }
 
 // ============================================================================
-// Остальные методы (без изменений)
+// Слоты для освещения
 // ============================================================================
-
-// Слоты для освещения (без изменений)
 
 void MainWindow::onLightAdded(const LightSource& light) {
   facade_->AddLight(light);
@@ -495,7 +497,9 @@ void MainWindow::loadInitialLights() {
     lightControlWidget_->setLights(facade_->GetLights());
 }
 
-// Файловые операции (без изменений)
+// ============================================================================
+// Слоты файловых операций
+// ============================================================================
 
 void MainWindow::loadModelFromFile(const QString& fileName) {
     if (fileName.isEmpty()) return;
@@ -596,7 +600,9 @@ void MainWindow::onModelLoaded() {
   facade_->NotifyLoadFinished(true);
 }
 
-// Undo/Redo, Screenshot, GIF – без изменений
+// ============================================================================
+// Слоты Undo/Redo, Screenshot, GIF
+// ============================================================================
 
 void MainWindow::onUndo() {
     if (!facade_->CanTransform()) return;
@@ -726,7 +732,9 @@ void MainWindow::onFit() {
     glWidget_->fitToBoundingBox(center, size);
 }
 
-// Вспомогательные методы для слотов трансформаций (без изменений)
+// ============================================================================
+// Вспомогательные методы для слотов трансформаций
+// ============================================================================
 
 void MainWindow::applyMove(int axis, double value) {
   auto selected = facade_->GetSelected();
@@ -764,7 +772,9 @@ void MainWindow::applyScale(int axis, double value) {
   facade_->ScaleSelected(delta);
 }
 
-// Слоты трансформаций (без изменений)
+// ============================================================================
+// Слоты трансформаций (используют apply*)
+// ============================================================================
 
 void MainWindow::onMoveXChanged(double value) { applyMove(0, value); }
 void MainWindow::onMoveYChanged(double value) { applyMove(1, value); }
@@ -778,7 +788,9 @@ void MainWindow::onScaleXChanged(double value) { applyScale(0, value); }
 void MainWindow::onScaleYChanged(double value) { applyScale(1, value); }
 void MainWindow::onScaleZChanged(double value) { applyScale(2, value); }
 
-// Слоты настроек (без изменений)
+// ============================================================================
+// Слоты настроек
+// ============================================================================
 
 void MainWindow::onProjectionChanged(int index) {
     Settings::instance().setProjectionType(static_cast<Settings::ProjectionType>(index));
@@ -834,7 +846,9 @@ void MainWindow::onDashFactorChanged(double value) {
     Settings::instance().setDashFactor(static_cast<float>(value));
 }
 
-// Обновление UI (без изменений)
+// ============================================================================
+// Обновление UI
+// ============================================================================
 
 void MainWindow::updateUIFromSelection() {
     auto selected = facade_->GetSelected();
@@ -923,7 +937,7 @@ void MainWindow::updateModelInfo() {
 }
 
 void MainWindow::updateModelList() {
-     modelListWidget_->clear();
+    modelListWidget_->clear();
     const auto& objects = facade_->GetScene()->GetObjects();
     for (const auto& obj : objects) {
         Mesh* mesh = dynamic_cast<Mesh*>(obj.get());
@@ -981,7 +995,9 @@ void MainWindow::updateUiState(AppState newState) {
     }
 }
 
-// SceneObserver (без изменений)
+// ============================================================================
+// SceneObserver
+// ============================================================================
 
 void MainWindow::OnObjectAdded(SceneObject* object) {
   (void)object;
@@ -1008,7 +1024,9 @@ void MainWindow::closeEvent(QCloseEvent* event) {
   event->accept();
 }
 
-// Слоты освещения, затенения, флип нормалей (без изменений)
+// ============================================================================
+// Слоты освещения, затенения, флип нормалей
+// ============================================================================
 
 void MainWindow::onShadingTypeChanged(int index) {
   OpenGLRenderer::ShadingType type;
@@ -1028,7 +1046,9 @@ void MainWindow::onFlipNormalsChecked(bool checked) {
     Settings::instance().setFlipNormals(checked);
 }
 
-// Текстуры и цвет (без изменений)
+// ============================================================================
+// Слоты текстур и цвета
+// ============================================================================
 
 void MainWindow::onLoadTexture() {
     QString fileName = QFileDialog::getOpenFileName(this, "Load Texture", "", "BMP Files (*.bmp)");
@@ -1199,10 +1219,10 @@ void MainWindow::onToggleFloor(bool checked) {
         for (const auto& obj : objects) {
             if (obj->GetName() == floorName) {
                 scene->RemoveObject(obj.get());
-                break; // предполагаем, что пол один
+                break;
             }
         }
-        scene->ClearAnalyticObjects(); // очистим все аналитические объекты (или можно найти конкретный)
+        scene->ClearAnalyticObjects();
         updateModelList();
     }
     glWidget_->update();
