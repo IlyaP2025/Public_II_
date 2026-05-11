@@ -2,10 +2,13 @@
 #include <cmath>
 #include "scene/mesh.h"
 
+#include "plane_object.h"
+#include <cmath>
+#include "scene/mesh.h"
+
 namespace s21 {
 
-PlaneObject::PlaneObject(const Point& point, const Point& normal)
-    : point_(point), normal_(normal) {
+PlaneObject::PlaneObject(const Point& point, const Point& normal) : point_(point), normal_(normal) {
     float len = std::sqrt(normal_.x * normal_.x + normal_.y * normal_.y + normal_.z * normal_.z);
     if (len > 1e-6f) {
         normal_.x /= len; normal_.y /= len; normal_.z /= len;
@@ -13,7 +16,7 @@ PlaneObject::PlaneObject(const Point& point, const Point& normal)
     SetName("Floor");
 }
 
-bool PlaneObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec) const {
+PlaneObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec) const {
     float denom = normal_.x * ray.direction.x + normal_.y * ray.direction.y + normal_.z * ray.direction.z;
     if (std::abs(denom) < 1e-6f) return false;
 
@@ -42,7 +45,7 @@ std::unique_ptr<Mesh> PlaneObject::GenerateMesh(int /*precision*/) const {
         });
         mesh->SetNormals(std::vector<Point>(4, {0, 1, 0}));
         mesh->SetUVs(std::vector<Point2D>(4, {0, 0}));
-        mesh->SetTriangles({0, 1, 2, 0, 2, 3});
+        mesh->SetTriangles({0, 1, 2, 0, 2, 3}); // Два треугольника
     }
     mesh->ComputeBoundingSphere();
     return mesh;

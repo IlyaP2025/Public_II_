@@ -176,6 +176,11 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
+
+    // Сброс
+    moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
+    rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
+    scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
   });
 
   connect(cylinderBtn, &QPushButton::clicked, this, [this]() {
@@ -186,6 +191,11 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
+
+    // Сброс
+    moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
+    rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
+    scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
   });
 
   connect(coneBtn, &QPushButton::clicked, this, [this]() {
@@ -196,6 +206,11 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
+
+    // Сброс
+    moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
+    rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
+    scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
   });
 
   connect(cubeBtn, &QPushButton::clicked, this, [this]() {
@@ -206,6 +221,11 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
+
+    // Сброс
+    moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
+    rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
+    scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
   });
 
   connect(pyramidBtn, &QPushButton::clicked, this, [this]() {
@@ -216,6 +236,11 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
+
+    // Сброс
+    moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
+    rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
+    scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
   });
 
   connect(floorToggleBtn_, &QPushButton::toggled, this, &MainWindow::onToggleFloor);

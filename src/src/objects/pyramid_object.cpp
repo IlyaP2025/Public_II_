@@ -3,8 +3,7 @@
 
 namespace s21 {
 
-PyramidObject::PyramidObject(float base, float height, const Point& center)
-    : base_(base), height_(height), center_(center) {
+PyramidObject::PyramidObject(float base, float height, const Point& center) : base_(base), height_(height), center_(center) {
     SetName("Pyramid");
 }
 
@@ -26,16 +25,51 @@ std::unique_ptr<Mesh> PyramidObject::GenerateMesh(int /*precision*/) const {
         {center_.x + b, center_.y - h, center_.z + b},
         {center_.x - b, center_.y - h, center_.z + b}
     };
+
+    // Каждая грань пирамиды будет иметь свои вершины для корректных нормалей
     std::vector<Point> verts = {
-        apex, base[0], base[1], base[2], base[3]
+        apex, base[0], base[1], // грань 0
+        apex, base[1], base[2], // грань 1
+        apex, base[2], base[3], // грань 2
+        apex, base[3], base[0], // грань 3
+        base[0], base[1], base[3], // основание 1
+        base[1], base[2], base[3]  // основание 2
     };
+
+    auto computeNormal = [](const Point& a, const Point& b, const Point& c) {
+        Point u = {b.x - a.x, b.y - a.y, b.z - a.z};
+        Point v = {c.x - a.x, c.y - a.y, c.z - a.z};
+        Point n = {
+            u.y * v.z - u.z * v.y,
+            u.z * v.x - u.x * v.z,
+            u.x * v.y - u.y * v.x
+        };
+        float len = std::sqrt(n.x*n.x + n.y*n.y + n.z*n.z);
+        return Point{n.x/len, n.y/len, n.z/len};
+    };
+
+    std::vector<Point> norms;
+    for (int i = 0; i < 4; ++i) {
+        Point n = computeNormal(verts[i*3], verts[i*3+1], verts[i*3+2]);
+        // Если нормаль направлена внутрь, разворачиваем
+        if (n.y < 0) n = Point{-n.x, -n.y, -n.z};
+        norms.push_back(n);
+        norms.push_back(n);
+        norms.push_back(n);
+    }
+    // Нормали для основания
+    norms.push_back({0, -1, 0}); norms.push_back({0, -1, 0}); norms.push_back({0, -1, 0});
+    norms.push_back({0, -1, 0}); norms.push_back({0, -1, 0}); norms.push_back({0, -1, 0});
+
     mesh->SetVertices(verts);
+    mesh->SetNormals(norms);
     mesh->SetTriangles({
-        0,1,2,  0,2,3,  0,3,4,  0,4,1,
-        1,3,2,  1,4,3  // основание (два треугольника)
+        0,1,2,  3,4,5,  6,7,8,  9,10,11,
+        12,13,14,  15,16,17
     });
-    mesh->SetNormals(std::vector<Point>(5, Point(0,1,0)));
     mesh->ComputeBoundingSphere();
+
+    // Рёбра
     std::vector<Edge> edges;
     const auto& tri = mesh->GetTriangles();
     for (size_t i = 0; i < tri.size(); i += 3) {
