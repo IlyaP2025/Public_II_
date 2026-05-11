@@ -3,7 +3,8 @@
 
 namespace s21 {
 
-PyramidObject::PyramidObject(float base, float height, const Point& center) : base_(base), height_(height), center_(center) {
+PyramidObject::PyramidObject(float base, float height, const Point& center)
+    : base_(base), height_(height), center_(center) {
     SetName("Pyramid");
 }
 
@@ -26,14 +27,13 @@ std::unique_ptr<Mesh> PyramidObject::GenerateMesh(int /*precision*/) const {
         {center_.x - b, center_.y - h, center_.z + b}
     };
 
-    // Каждая грань пирамиды будет иметь свои вершины для корректных нормалей
     std::vector<Point> verts = {
-        apex, base[0], base[1], // грань 0
-        apex, base[1], base[2], // грань 1
-        apex, base[2], base[3], // грань 2
-        apex, base[3], base[0], // грань 3
-        base[0], base[1], base[3], // основание 1
-        base[1], base[2], base[3]  // основание 2
+        apex, base[0], base[1],
+        apex, base[1], base[2],
+        apex, base[2], base[3],
+        apex, base[3], base[0],
+        base[0], base[1], base[3],
+        base[1], base[2], base[3]
     };
 
     auto computeNormal = [](const Point& a, const Point& b, const Point& c) {
@@ -51,13 +51,11 @@ std::unique_ptr<Mesh> PyramidObject::GenerateMesh(int /*precision*/) const {
     std::vector<Point> norms;
     for (int i = 0; i < 4; ++i) {
         Point n = computeNormal(verts[i*3], verts[i*3+1], verts[i*3+2]);
-        // Если нормаль направлена внутрь, разворачиваем
         if (n.y < 0) n = Point{-n.x, -n.y, -n.z};
         norms.push_back(n);
         norms.push_back(n);
         norms.push_back(n);
     }
-    // Нормали для основания
     norms.push_back({0, -1, 0}); norms.push_back({0, -1, 0}); norms.push_back({0, -1, 0});
     norms.push_back({0, -1, 0}); norms.push_back({0, -1, 0}); norms.push_back({0, -1, 0});
 
@@ -69,7 +67,6 @@ std::unique_ptr<Mesh> PyramidObject::GenerateMesh(int /*precision*/) const {
     });
     mesh->ComputeBoundingSphere();
 
-    // Рёбра
     std::vector<Edge> edges;
     const auto& tri = mesh->GetTriangles();
     for (size_t i = 0; i < tri.size(); i += 3) {
