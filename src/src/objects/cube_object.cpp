@@ -53,53 +53,73 @@ bool CubeObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec) c
 std::unique_ptr<Mesh> CubeObject::GenerateMesh(int /*precision*/) const {
     auto mesh = std::make_unique<Mesh>();
     float h = size_ / 2.0f;
+
+    // 24 вершины (как в OBJ), по 4 на каждую грань
     std::vector<Point> verts = {
-        {center_.x - h, center_.y - h, center_.z - h},
-        {center_.x + h, center_.y - h, center_.z - h},
-        {center_.x + h, center_.y + h, center_.z - h},
-        {center_.x - h, center_.y + h, center_.z - h},
-        {center_.x - h, center_.y - h, center_.z + h},
-        {center_.x + h, center_.y - h, center_.z + h},
-        {center_.x + h, center_.y + h, center_.z + h},
-        {center_.x - h, center_.y + h, center_.z + h},
-        {center_.x - h, center_.y - h, center_.z - h},
-        {center_.x - h, center_.y - h, center_.z + h},
-        {center_.x - h, center_.y + h, center_.z + h},
-        {center_.x - h, center_.y + h, center_.z - h},
-        {center_.x + h, center_.y - h, center_.z - h},
-        {center_.x + h, center_.y - h, center_.z + h},
-        {center_.x + h, center_.y + h, center_.z + h},
-        {center_.x + h, center_.y + h, center_.z - h},
-        {center_.x - h, center_.y + h, center_.z - h},
-        {center_.x + h, center_.y + h, center_.z - h},
-        {center_.x + h, center_.y + h, center_.z + h},
-        {center_.x - h, center_.y + h, center_.z + h},
+        // bottom (y-)
         {center_.x - h, center_.y - h, center_.z - h},
         {center_.x + h, center_.y - h, center_.z - h},
         {center_.x + h, center_.y - h, center_.z + h},
         {center_.x - h, center_.y - h, center_.z + h},
+        // top (y+)
+        {center_.x - h, center_.y + h, center_.z - h},
+        {center_.x + h, center_.y + h, center_.z - h},
+        {center_.x + h, center_.y + h, center_.z + h},
+        {center_.x - h, center_.y + h, center_.z + h},
+        // front (z-)
+        {center_.x - h, center_.y - h, center_.z - h},
+        {center_.x + h, center_.y - h, center_.z - h},
+        {center_.x + h, center_.y + h, center_.z - h},
+        {center_.x - h, center_.y + h, center_.z - h},
+        // back (z+)
+        {center_.x - h, center_.y - h, center_.z + h},
+        {center_.x + h, center_.y - h, center_.z + h},
+        {center_.x + h, center_.y + h, center_.z + h},
+        {center_.x - h, center_.y + h, center_.z + h},
+        // left (x-)
+        {center_.x - h, center_.y - h, center_.z - h},
+        {center_.x - h, center_.y - h, center_.z + h},
+        {center_.x - h, center_.y + h, center_.z + h},
+        {center_.x - h, center_.y + h, center_.z - h},
+        // right (x+)
+        {center_.x + h, center_.y - h, center_.z - h},
+        {center_.x + h, center_.y - h, center_.z + h},
+        {center_.x + h, center_.y + h, center_.z + h},
+        {center_.x + h, center_.y + h, center_.z - h},
     };
-    mesh->SetVertices(verts);
-    mesh->SetTriangles({
-        0,2,1,   0,3,2,
-        4,5,6,   4,6,7,
-        8,9,10,  8,10,11,
-        12,14,13, 12,15,14,
-        16,18,17, 16,19,18,
-        20,21,22, 20,22,23
-    });
+
+    // Исправленные индексы (правая грань теперь смотрит наружу)
+    std::vector<unsigned int> tris = {
+        // bottom
+        0,1,2,  0,2,3,
+        // top
+        4,7,6,  4,6,5,
+        // front
+        8,11,10, 8,10,9,
+        // back
+        12,13,14, 12,14,15,
+        // left
+        16,17,18, 16,18,19,
+        // right (исправлено: 20,22,21 и 20,23,22)
+        20,22,21, 20,23,22
+    };
+
+    mesh->SetTriangles(tris);
+
     std::vector<Point> norms = {
-        {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1},
-        {0, 0,  1}, {0, 0,  1}, {0, 0,  1}, {0, 0,  1},
-        {-1, 0, 0}, {-1, 0, 0}, {-1, 0, 0}, {-1, 0, 0},
-        {1, 0, 0}, {1, 0, 0}, {1, 0, 0}, {1, 0, 0},
-        {0, 1, 0}, {0, 1, 0}, {0, 1, 0}, {0, 1, 0},
-        {0, -1, 0}, {0, -1, 0}, {0, -1, 0}, {0, -1, 0}
+        {0, -1, 0}, {0, -1, 0}, {0, -1, 0}, {0, -1, 0}, // bottom
+        {0,  1, 0}, {0,  1, 0}, {0,  1, 0}, {0,  1, 0}, // top
+        {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, // front
+        {0, 0,  1}, {0, 0,  1}, {0, 0,  1}, {0, 0,  1}, // back
+        {-1, 0, 0}, {-1, 0, 0}, {-1, 0, 0}, {-1, 0, 0}, // left
+        {1, 0, 0}, {1, 0, 0}, {1, 0, 0}, {1, 0, 0}      // right
     };
     mesh->SetNormals(norms);
+
+    mesh->SetVertices(verts);
     mesh->ComputeBoundingSphere();
+
     std::vector<Edge> edges;
-    const auto& tris = mesh->GetTriangles();
     for (size_t i = 0; i < tris.size(); i += 3) {
         edges.push_back(Edge{tris[i], tris[i+1]});
         edges.push_back(Edge{tris[i+1], tris[i+2]});
@@ -110,36 +130,30 @@ std::unique_ptr<Mesh> CubeObject::GenerateMesh(int /*precision*/) const {
     // Отладка
     DEBUG_PRINT("=== Mesh generated: " << GetName().c_str() << " ===");
     DEBUG_PRINT("  Vertices: " << mesh->GetVertices().size());
-    if (!mesh->GetVertices().empty()) {
-        const auto& v = mesh->GetVertices();
-        DEBUG_PRINT("  First vertex: (" << v[0].x << ", " << v[0].y << ", " << v[0].z << ")");
-        DEBUG_PRINT("  Last vertex:  (" << v.back().x << ", " << v.back().y << ", " << v.back().z << ")");
+    const auto& v = mesh->GetVertices();
+    for (size_t i = 0; i < v.size(); ++i) {
+        DEBUG_PRINT("   v[" << i << "]: (" << v[i].x << ", " << v[i].y << ", " << v[i].z << ")");
     }
-    const auto& norms2 = mesh->GetNormals();
-    DEBUG_PRINT("  Normals: " << norms2.size());
-    if (!norms2.empty()) {
-        DEBUG_PRINT("  First normal: (" << norms2[0].x << ", " << norms2[0].y << ", " << norms2[0].z << ")");
-        if (norms2.size() >= 4) {
-            DEBUG_PRINT("  Last normal:  (" << norms2.back().x << ", " << norms2.back().y << ", " << norms2.back().z << ")");
-        }
+    const auto& n = mesh->GetNormals();
+    DEBUG_PRINT("  Normals: " << n.size());
+    for (size_t i = 0; i < n.size(); ++i) {
+        DEBUG_PRINT("   n[" << i << "]: (" << n[i].x << ", " << n[i].y << ", " << n[i].z << ")");
     }
-    const auto& tris2 = mesh->GetTriangles();
-    DEBUG_PRINT("  Triangles: " << tris2.size() / 3);
-    if (tris2.size() >= 6) {
-        DEBUG_PRINT("  First triangle: " << tris2[0] << ", " << tris2[1] << ", " << tris2[2]);
-        if (mesh->GetVertices().size() > tris2[2]) {
-            const Point& a = mesh->GetVertices()[tris2[0]];
-            const Point& b = mesh->GetVertices()[tris2[1]];
-            const Point& c = mesh->GetVertices()[tris2[2]];
-            float ux = b.x - a.x, uy = b.y - a.y, uz = b.z - a.z;
-            float vx = c.x - a.x, vy = c.y - a.y, vz = c.z - a.z;
-            float nx = uy*vz - uz*vy;
-            float ny = uz*vx - ux*vz;
-            float nz = ux*vy - uy*vx;
-            float len = std::sqrt(nx*nx + ny*ny + nz*nz);
-            if (len > 1e-6f) { nx /= len; ny /= len; nz /= len; }
-            DEBUG_PRINT("  Computed normal of first triangle: (" << nx << ", " << ny << ", " << nz << ")");
-        }
+    const auto& t = mesh->GetTriangles();
+    DEBUG_PRINT("  Triangles: " << t.size() / 3);
+    for (size_t i = 0; i < t.size(); i += 3) {
+        DEBUG_PRINT("   tri[" << i/3 << "]: " << t[i] << ", " << t[i+1] << ", " << t[i+2]);
+        const Point& a = v[t[i]];
+        const Point& b = v[t[i+1]];
+        const Point& c = v[t[i+2]];
+        float ux = b.x - a.x, uy = b.y - a.y, uz = b.z - a.z;
+        float vx = c.x - a.x, vy = c.y - a.y, vz = c.z - a.z;
+        float nx = uy*vz - uz*vy;
+        float ny = uz*vx - ux*vz;
+        float nz = ux*vy - uy*vx;
+        float len = std::sqrt(nx*nx + ny*ny + nz*nz);
+        if (len > 1e-6f) { nx /= len; ny /= len; nz /= len; }
+        DEBUG_PRINT("    computed normal: (" << nx << ", " << ny << ", " << nz << ")");
     }
     DEBUG_PRINT("=== End Mesh ===");
 

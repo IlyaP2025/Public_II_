@@ -43,22 +43,27 @@
 namespace s21 {
 
 // Вспомогательная функция для "прогона" сгенерированного меша через ModelBuilder
-static std::unique_ptr<s21::Mesh> ProcessPrimitiveMesh(std::unique_ptr<s21::Mesh> mesh, const std::string& name = "Primitive") {
+static std::unique_ptr<Mesh> ProcessPrimitiveMesh(std::unique_ptr<Mesh> mesh,
+                                                   const std::string& name = "Primitive") {
     if (!mesh) return nullptr;
-    
-    // Создаем RawModelData из сгенерированного меша
-    s21::RawModelData data;
+
+    RawModelData data;
     data.vertices = mesh->GetVertices();
-    data.edges = mesh->GetEdges();
+    data.edges   = mesh->GetEdges();
     data.normals = mesh->GetNormals();
-    data.uvs = mesh->GetUVs();
+    data.uvs     = mesh->GetUVs();
     data.triangles = mesh->GetTriangles();
+    
+    // Заполняем flat_normals и smooth_normals начальными данными,
+    // чтобы ModelBuilder мог вычислить правильные нормали
+    data.flat_normals = mesh->GetNormals();
+    data.smooth_normals = mesh->GetNormals();
+    
     data.filename = name;
-    data.success = true;
+    data.success  = true;
     data.smoothingFactor = 1.0f; // максимальное сглаживание
 
-    // Пропускаем через ModelBuilder, который вычислит нормали и оптимизирует
-    return s21::ModelBuilder::BuildFromRawData(data);
+    return ModelBuilder::BuildFromRawData(data);
 }
 
 // ============================================================================
@@ -189,7 +194,7 @@ void MainWindow::createToolBar() {
 
   // --- Сфера ---
   connect(sphereBtn, &QPushButton::clicked, this, [this]() {
-    auto obj = std::make_unique<sphere::SphereObject>(1.0f, Point{0, 0, 0});
+    auto obj = std::make_unique<SphereObject>(1.0f, Point{0, 0, 0});
     auto mesh = ProcessPrimitiveMesh(obj->GenerateMesh(32), "Sphere");
     if (!mesh) return;
     auto* scene = facade_->GetScene().get();
@@ -199,6 +204,9 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
+
+    facade_->NotifyLoadStarted();
+    facade_->NotifyLoadFinished(true);
 
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
@@ -218,6 +226,9 @@ void MainWindow::createToolBar() {
     updateModelInfo();
     glWidget_->update();
 
+    facade_->NotifyLoadStarted();
+    facade_->NotifyLoadFinished(true);
+
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
     scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
@@ -236,6 +247,9 @@ void MainWindow::createToolBar() {
     updateModelInfo();
     glWidget_->update();
 
+    facade_->NotifyLoadStarted();
+    facade_->NotifyLoadFinished(true);
+
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
     scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
@@ -244,7 +258,7 @@ void MainWindow::createToolBar() {
   // --- Куб ---
   connect(cubeBtn, &QPushButton::clicked, this, [this]() {
     auto obj = std::make_unique<CubeObject>(1.5f, Point{0, 0, 0});
-    auto mesh = ProcessPrimitiveMesh(obj->GenerateMesh(), "Cube");
+    auto mesh = obj->GenerateMesh();
     if (!mesh) return;
     auto* scene = facade_->GetScene().get();
     scene->AddObject(std::move(mesh));
@@ -253,6 +267,9 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
+
+    facade_->NotifyLoadStarted();
+    facade_->NotifyLoadFinished(true);
 
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
@@ -271,6 +288,9 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
+
+    facade_->NotifyLoadStarted();
+    facade_->NotifyLoadFinished(true);
 
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
@@ -774,7 +794,6 @@ void MainWindow::applyMove(int axis, double value) {
     case 1: delta.y = static_cast<float>(value) - selected.front()->GetTransform().GetPosition().y; break;
     case 2: delta.z = static_cast<float>(value) - selected.front()->GetTransform().GetPosition().z; break;
   }
-  qDebug() << "applyMove axis:" << axis << "value:" << value << "delta:" << delta.x << delta.y << delta.z;
   facade_->MoveSelected(delta);
 }
 
@@ -1244,7 +1263,6 @@ void MainWindow::onToggleFloor(bool checked) {
             scene->AddAnalyticObject(std::move(floor));
         }
     } else {
-        // Удаляем пол
         const auto& objects = scene->GetObjects();
         for (const auto& obj : objects) {
             if (obj->GetName() == floorName) {
