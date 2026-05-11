@@ -179,6 +179,10 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
+
+    facade_->NotifyLoadStarted();
+    facade_->NotifyLoadFinished(true);
+
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
     scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
@@ -195,6 +199,10 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
+
+    facade_->NotifyLoadStarted();
+    facade_->NotifyLoadFinished(true);
+
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
     scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
@@ -211,6 +219,10 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
+
+    facade_->NotifyLoadStarted();
+    facade_->NotifyLoadFinished(true);
+
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
     scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
@@ -227,6 +239,10 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
+
+    facade_->NotifyLoadStarted();
+    facade_->NotifyLoadFinished(true);
+
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
     scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);
@@ -243,6 +259,10 @@ void MainWindow::createToolBar() {
     glWidget_->fitToScene();
     updateModelInfo();
     glWidget_->update();
+
+    facade_->NotifyLoadStarted();
+    facade_->NotifyLoadFinished(true);
+
     moveXSpin_->setValue(0); moveYSpin_->setValue(0); moveZSpin_->setValue(0);
     rotateXSpin_->setValue(0); rotateYSpin_->setValue(0); rotateZSpin_->setValue(0);
     scaleXSpin_->setValue(1); scaleYSpin_->setValue(1); scaleZSpin_->setValue(1);

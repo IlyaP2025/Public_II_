@@ -49,6 +49,7 @@ std::unique_ptr<Mesh> SphereObject::GenerateMesh(int precision) const {
     std::vector<Point> normals;
     std::vector<Point2D> uvs;
 
+    // Генерация вершин и нормалей (без изменений, но с учетом порядка)
     for (int i = 0; i <= precision; ++i) {
         float theta = i * M_PI / precision;
         float sinTheta = std::sin(theta);
@@ -64,12 +65,14 @@ std::unique_ptr<Mesh> SphereObject::GenerateMesh(int precision) const {
                 center_.z + radius_ * sinTheta * sinPhi
             );
             vertices.push_back(p);
+            // Нормаль для сферы всегда направлена от центра
             normals.push_back(Point(sinTheta * cosPhi, cosTheta, sinTheta * sinPhi));
             uvs.push_back(Point2D(static_cast<float>(j) / precision,
                                  static_cast<float>(i) / precision));
         }
     }
 
+    // Индексы треугольников (важен порядок обхода)
     for (int i = 0; i < precision; ++i) {
         for (int j = 0; j < precision; ++j) {
             unsigned int first = i * (precision + 1) + j;
@@ -91,6 +94,7 @@ std::unique_ptr<Mesh> SphereObject::GenerateMesh(int precision) const {
     mesh->SetTriangles(indices);
     mesh->ComputeBoundingSphere();
 
+    // Генерация ребер
     std::vector<Edge> edges;
     for (size_t i = 0; i < indices.size(); i += 3) {
         edges.push_back(Edge{indices[i], indices[i+1]});
