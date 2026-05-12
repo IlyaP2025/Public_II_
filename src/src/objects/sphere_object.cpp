@@ -3,6 +3,7 @@
 #include <vector>
 #include "common/point.h"
 #include "scene/mesh.h"
+#include "common/debug.h"
 
 namespace s21 {
 
@@ -44,10 +45,9 @@ std::unique_ptr<Mesh> SphereObject::GenerateMesh(int precision) const {
     auto mesh = std::make_unique<Mesh>();
     if (precision < 3) precision = 3;
 
-    std::vector<Point> vertices;
-    std::vector<unsigned int> indices;
-    std::vector<Point> normals;
-    std::vector<Point2D> uvs;
+    std::vector<Point> baseVerts;
+    std::vector<Point> baseNorms;
+    std::vector<Point2D> baseUVs;
 
     for (int i = 0; i <= precision; ++i) {
         float theta = i * M_PI / precision;
@@ -63,42 +63,90 @@ std::unique_ptr<Mesh> SphereObject::GenerateMesh(int precision) const {
                 center_.y + radius_ * cosTheta,
                 center_.z + radius_ * sinTheta * sinPhi
             );
-            vertices.push_back(p);
-            normals.push_back(Point(sinTheta * cosPhi, cosTheta, sinTheta * sinPhi));
-            uvs.push_back(Point2D(static_cast<float>(j) / precision,
-                                 static_cast<float>(i) / precision));
+            baseVerts.push_back(p);
+            baseNorms.push_back(Point(sinTheta * cosPhi, cosTheta, sinTheta * sinPhi));
+            baseUVs.push_back(Point2D(static_cast<float>(j) / precision,
+                                     static_cast<float>(i) / precision));
         }
     }
+
+    std::vector<Point> verts;
+    std::vector<Point> norms;
+    std::vector<Point2D> uvs;
+    std::vector<unsigned int> tris;
 
     for (int i = 0; i < precision; ++i) {
         for (int j = 0; j < precision; ++j) {
             unsigned int first = i * (precision + 1) + j;
             unsigned int second = first + precision + 1;
 
-            // Правильный порядок для внешних нормалей
-            indices.push_back(first);
-            indices.push_back(first + 1);
-            indices.push_back(second);
+            // Треугольник 1
+            verts.push_back(baseVerts[first]);
+            verts.push_back(baseVerts[first + 1]);
+            verts.push_back(baseVerts[second]);
+            norms.push_back(baseNorms[first]);
+            norms.push_back(baseNorms[first + 1]);
+            norms.push_back(baseNorms[second]);
+            uvs.push_back(baseUVs[first]);
+            uvs.push_back(baseUVs[first + 1]);
+            uvs.push_back(baseUVs[second]);
 
-            indices.push_back(first + 1);
-            indices.push_back(second + 1);
-            indices.push_back(second);
+            // Треугольник 2
+            verts.push_back(baseVerts[first + 1]);
+            verts.push_back(baseVerts[second + 1]);
+            verts.push_back(baseVerts[second]);
+            norms.push_back(baseNorms[first + 1]);
+            norms.push_back(baseNorms[second + 1]);
+            norms.push_back(baseNorms[second]);
+            uvs.push_back(baseUVs[first + 1]);
+            uvs.push_back(baseUVs[second + 1]);
+            uvs.push_back(baseUVs[second]);
         }
     }
 
-    mesh->SetVertices(vertices);
-    mesh->SetNormals(normals);
+    for (size_t k = 0; k < verts.size(); k += 3) {
+        tris.push_back(static_cast<unsigned int>(k));
+        tris.push_back(static_cast<unsigned int>(k + 1));
+        tris.push_back(static_cast<unsigned int>(k + 2));
+    }
+
+    mesh->SetVertices(verts);
+    mesh->SetNormals(norms);
     mesh->SetUVs(uvs);
-    mesh->SetTriangles(indices);
+    mesh->SetTriangles(tris);
     mesh->ComputeBoundingSphere();
 
     std::vector<Edge> edges;
-    for (size_t i = 0; i < indices.size(); i += 3) {
-        edges.push_back(Edge{indices[i], indices[i+1]});
-        edges.push_back(Edge{indices[i+1], indices[i+2]});
-        edges.push_back(Edge{indices[i+2], indices[i]});
+    for (size_t i = 0; i < tris.size(); i += 3) {
+        edges.push_back(Edge{tris[i], tris[i+1]});
+        edges.push_back(Edge{tris[i+1], tris[i+2]});
+        edges.push_back(Edge{tris[i+2], tris[i]});
     }
     mesh->SetEdges(edges);
+
+    // Отладка
+    DEBUG_PRINT("=== Mesh generated: " << GetName().c_str() << " ===");
+    DEBUG_PRINT("  Vertices: " << mesh->GetVertices().size());
+    DEBUG_PRINT("  Normals: " << mesh->GetNormals().size());
+    DEBUG_PRINT("  Triangles: " << mesh->GetTriangles().size() / 3);
+    if (mesh->GetVertices().size() >= 3) {
+        const auto& v = mesh->GetVertices();
+        DEBUG_PRINT("  First vertex: (" << v[0].x << ", " << v[0].y << ", " << v[0].z << ")");
+        DEBUG_PRINT("  Last vertex: (" << v.back().x << ", " << v.back().y << ", " << v.back().z << ")");
+        // Вычислим нормаль первого треугольника
+        const Point& a = v[0];
+        const Point& b = v[1];
+        const Point& c = v[2];
+        float ux = b.x - a.x, uy = b.y - a.y, uz = b.z - a.z;
+        float vx = c.x - a.x, vy = c.y - a.y, vz = c.z - a.z;
+        float nx = uy*vz - uz*vy;
+        float ny = uz*vx - ux*vz;
+        float nz = ux*vy - uy*vx;
+        float len = std::sqrt(nx*nx + ny*ny + nz*nz);
+        if (len > 1e-6f) { nx /= len; ny /= len; nz /= len; }
+        DEBUG_PRINT("  Computed normal of first triangle: (" << nx << ", " << ny << ", " << nz << ")");
+    }
+    DEBUG_PRINT("=== End Mesh ===");
 
     return mesh;
 }
