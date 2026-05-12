@@ -31,20 +31,41 @@ bool PlaneObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec) 
 
 std::unique_ptr<Mesh> PlaneObject::GenerateMesh(int /*precision*/) const {
     auto mesh = std::make_unique<Mesh>();
+    // Для пола с нормалью (0,1,0) создадим два треугольника с развёрнутыми вершинами
     if (std::abs(normal_.y - 1.0f) < 1e-3f) {
         float y = point_.y;
-        std::vector<Point> vertices = {
-            {-5, y, -5}, {5, y, -5}, {5, y, 5}, {-5, y, 5}
+        // Вершины квадрата
+        Point v0{-5, y, -5};
+        Point v1{ 5, y, -5};
+        Point v2{ 5, y,  5};
+        Point v3{-5, y,  5};
+
+        // Первый треугольник: v0, v1, v2
+        // Второй треугольник: v0, v2, v3
+        std::vector<Point> verts = {
+            v0, v1, v2,  // треугольник 1
+            v0, v2, v3   // треугольник 2
         };
-        mesh->SetVertices(vertices);
-        mesh->SetEdges({
-            Edge{0, 1}, Edge{1, 2}, Edge{2, 3}, Edge{3, 0}
-        });
-        mesh->SetNormals(std::vector<Point>(4, {0, 1, 0}));
-        mesh->SetUVs(std::vector<Point2D>(4, {0, 0}));
-        mesh->SetTriangles({0, 1, 2, 0, 2, 3});
+        std::vector<Point> norms(6, {0.0f, 1.0f, 0.0f});
+        std::vector<unsigned int> tris = {0,1,2, 3,4,5};
+
+        mesh->SetVertices(verts);
+        mesh->SetNormals(norms);
+        mesh->SetTriangles(tris);
+        mesh->SetFlatNormals(norms);
+        mesh->SetSmoothNormals(norms);
     }
+    // Остальные ориентации можно добавить при необходимости
     mesh->ComputeBoundingSphere();
+
+    std::vector<Edge> edges;
+    const auto& tri = mesh->GetTriangles();
+    for (size_t i = 0; i < tri.size(); i += 3) {
+        edges.push_back(Edge{tri[i], tri[i+1]});
+        edges.push_back(Edge{tri[i+1], tri[i+2]});
+        edges.push_back(Edge{tri[i+2], tri[i]});
+    }
+    mesh->SetEdges(edges);
     return mesh;
 }
 

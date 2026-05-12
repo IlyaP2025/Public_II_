@@ -296,7 +296,8 @@ connect(floorToggleBtn_, &QPushButton::toggled, this, [this](bool checked) {
         }
         if (!exists) {
             auto floor = std::make_unique<PlaneObject>(Point{0, -1, 0}, Point{0, 1, 0});
-            auto mesh = floor->GenerateMesh();
+            auto mesh = ProcessPrimitiveMesh(floor->GenerateMesh(), "Floor");
+            if (!mesh) return;
             scene->AddObject(std::move(mesh));
             scene->AddAnalyticObject(std::move(floor));
         }
