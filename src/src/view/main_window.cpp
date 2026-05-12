@@ -258,7 +258,7 @@ void MainWindow::createToolBar() {
   // --- Куб ---
   connect(cubeBtn, &QPushButton::clicked, this, [this]() {
     auto obj = std::make_unique<CubeObject>(1.5f, Point{0, 0, 0});
-    auto mesh = obj->GenerateMesh();
+    auto mesh = obj->GenerateMesh(); // теперь 36 вершин
     if (!mesh) return;
     auto* scene = facade_->GetScene().get();
     scene->AddObject(std::move(mesh));
