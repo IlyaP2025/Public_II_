@@ -30,6 +30,7 @@ SOURCES = src/main.cpp \
           src/scene/picking_manager.cpp \
           src/scene/light_manager.cpp \
           src/scene/kd_tree_index.cpp \
+          src/scene/ray_mesh_intersect.cpp \
           src/loaders/obj_loader.cpp \
           src/loaders/loader_factory.cpp \
           src/loaders/loader_worker.cpp \

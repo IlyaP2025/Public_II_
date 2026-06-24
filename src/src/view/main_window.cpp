@@ -249,6 +249,8 @@ connect(coneBtn, &QPushButton::clicked, this, [this]() {
     auto obj = std::make_unique<CubeObject>(1.5f, Point{0, 0, 0});
     auto mesh = obj->GenerateMesh();
     if (!mesh) return;
+    mesh->SetSourceFile("Cube");    
+    mesh->SetName("Cube");          
     auto* scene = facade_->GetScene().get();
     scene->AddObject(std::move(mesh));
     scene->AddAnalyticObject(std::move(obj));
@@ -268,6 +270,8 @@ connect(coneBtn, &QPushButton::clicked, this, [this]() {
     auto obj = std::make_unique<PyramidObject>(1.5f, 2.0f, Point{0, 0, 0});
     auto mesh = obj->GenerateMesh();
     if (!mesh) return;
+    mesh->SetSourceFile("Pyramid");
+    mesh->SetName("Pyramid");
     auto* scene = facade_->GetScene().get();
     scene->AddObject(std::move(mesh));
     scene->AddAnalyticObject(std::move(obj));
@@ -338,6 +342,7 @@ void MainWindow::createRightPanel() {
   createTransformTab(tabWidget);
   createDisplayTab(tabWidget);
   createLightsTab(tabWidget);
+  createMaterialTab(tabWidget);
   createModelListTab(tabWidget);
 }
 
@@ -980,6 +985,29 @@ void MainWindow::updateUIFromSelection() {
     scaleXSpin_->blockSignals(false);
     scaleYSpin_->blockSignals(false);
     scaleZSpin_->blockSignals(false);
+
+    // Обновляем материал
+    if (materialTransSpin_) {
+        auto selected = facade_->GetSelected();
+        if (!selected.empty()) {
+            Mesh* mesh = dynamic_cast<Mesh*>(selected.front());
+            if (mesh) {
+                // блокируем сигналы, чтобы не вызывать повторные изменения
+                materialTransSpin_->blockSignals(true);
+                materialIorSpin_->blockSignals(true);
+                materialReflSpin_->blockSignals(true);
+                materialRoughSpin_->blockSignals(true);
+                materialTransSpin_->setValue(mesh->material.transparency);
+                materialIorSpin_->setValue(mesh->material.ior);
+                materialReflSpin_->setValue(mesh->material.reflectivity);
+                materialRoughSpin_->setValue(mesh->material.roughness);
+                materialTransSpin_->blockSignals(false);
+                materialIorSpin_->blockSignals(false);
+                materialReflSpin_->blockSignals(false);
+                materialRoughSpin_->blockSignals(false);
+            }
+        }
+    }
 }
 
 void MainWindow::updateModelInfo() {
@@ -1369,4 +1397,87 @@ void MainWindow::connectSignals() {
   });
 }
 
+void MainWindow::createMaterialTab(QTabWidget* tabWidget) {
+    auto* materialTab = new QWidget();
+    auto* layout = new QVBoxLayout(materialTab);
+
+    // Transparency
+    auto* transLayout = new QHBoxLayout();
+    transLayout->addWidget(new QLabel("Transparency:"));
+    materialTransSpin_ = new QDoubleSpinBox();   // <-- сохраняем
+    materialTransSpin_->setRange(0.0, 1.0);
+    materialTransSpin_->setSingleStep(0.01);
+    materialTransSpin_->setValue(0.0);
+    connect(materialTransSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, [this](double val) {
+                auto sel = facade_->GetSelected();
+                for (auto* obj : sel) {
+                    if (auto* mesh = dynamic_cast<Mesh*>(obj))
+                        mesh->material.transparency = val;
+                }
+                glWidget_->update();
+            });
+    transLayout->addWidget(materialTransSpin_);
+    layout->addLayout(transLayout);
+
+    // IOR
+    auto* iorLayout = new QHBoxLayout();
+    iorLayout->addWidget(new QLabel("Refraction index:"));
+    materialIorSpin_ = new QDoubleSpinBox();   // <-- сохраняем
+    materialIorSpin_->setRange(1.0, 3.0);
+    materialIorSpin_->setSingleStep(0.01);
+    materialIorSpin_->setValue(1.0);
+    connect(materialIorSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, [this](double val) {
+                auto sel = facade_->GetSelected();
+                for (auto* obj : sel) {
+                    if (auto* mesh = dynamic_cast<Mesh*>(obj))
+                        mesh->material.ior = val;
+                }
+                glWidget_->update();
+            });
+    iorLayout->addWidget(materialIorSpin_);
+    layout->addLayout(iorLayout);
+
+    // Reflectivity
+    auto* reflLayout = new QHBoxLayout();
+    reflLayout->addWidget(new QLabel("Reflectivity:"));
+    materialReflSpin_ = new QDoubleSpinBox();   // <-- сохраняем
+    materialReflSpin_->setRange(0.0, 1.0);
+    materialReflSpin_->setSingleStep(0.01);
+    materialReflSpin_->setValue(0.0);
+    connect(materialReflSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, [this](double val) {
+                auto sel = facade_->GetSelected();
+                for (auto* obj : sel) {
+                    if (auto* mesh = dynamic_cast<Mesh*>(obj))
+                        mesh->material.reflectivity = val;
+                }
+                glWidget_->update();
+            });
+    reflLayout->addWidget(materialReflSpin_);
+    layout->addLayout(reflLayout);
+
+    // Roughness
+    auto* roughLayout = new QHBoxLayout();
+    roughLayout->addWidget(new QLabel("Roughness:"));
+    materialRoughSpin_ = new QDoubleSpinBox();   // <-- сохраняем
+    materialRoughSpin_->setRange(0.0, 1.0);
+    materialRoughSpin_->setSingleStep(0.01);
+    materialRoughSpin_->setValue(0.0);
+    connect(materialRoughSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, [this](double val) {
+                auto sel = facade_->GetSelected();
+                for (auto* obj : sel) {
+                    if (auto* mesh = dynamic_cast<Mesh*>(obj))
+                        mesh->material.roughness = val;
+                }
+                glWidget_->update();
+            });
+    roughLayout->addWidget(materialRoughSpin_);
+    layout->addLayout(roughLayout);
+
+    layout->addStretch();
+    tabWidget->addTab(materialTab, "Material");
+}
 }  // namespace s21

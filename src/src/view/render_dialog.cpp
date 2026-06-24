@@ -1,94 +1,82 @@
 #include "render_dialog.h"
+#include "tracer/ray_tracer.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QFormLayout>
-#include <QFileDialog>
+#include <QLabel>
 #include <QMessageBox>
-#include <QtConcurrent/QtConcurrentRun>
-#include <QFutureWatcher>
+#include <QDateTime>
 
 namespace s21 {
 
 RenderDialog::RenderDialog(RayTracer* tracer, QWidget* parent)
-    : QDialog(parent), tracer_(tracer) {
-    setWindowTitle("Render Settings");
-    setMinimumSize(400, 300);
+    : QDialog(parent), tracer_(tracer)
+{
+    setWindowTitle("Ray Tracing Render");
+    setMinimumSize(400, 350);
 
     auto* mainLayout = new QVBoxLayout(this);
 
-    // Настройки
-    auto* form = new QFormLayout;
-    resolutionCombo_ = new QComboBox;
-    resolutionCombo_->addItem("640x480", QSize(640, 480));
-    resolutionCombo_->addItem("800x600", QSize(800, 600));
-    resolutionCombo_->addItem("1024x768", QSize(1024, 768));
-    resolutionCombo_->addItem("1920x1080", QSize(1920, 1080));
-    resolutionCombo_->addItem("1920x1440", QSize(1920, 1440));
-    form->addRow("Resolution:", resolutionCombo_);
+    // Разрешение
+    auto* resLayout = new QHBoxLayout;
+    resLayout->addWidget(new QLabel("Width:"));
+    widthSpin_ = new QSpinBox;
+    widthSpin_->setRange(1, 1920);
+    widthSpin_->setValue(800);
+    resLayout->addWidget(widthSpin_);
 
-    samplesSpin_ = new QSpinBox;
-    samplesSpin_->setRange(1, 16);
-    samplesSpin_->setValue(4);
-    samplesSpin_->setToolTip("Number of samples per pixel (1 = no anti-aliasing)");
-    form->addRow("Samples:", samplesSpin_);
-    mainLayout->addLayout(form);
+    resLayout->addWidget(new QLabel("Height:"));
+    heightSpin_ = new QSpinBox;
+    heightSpin_->setRange(1, 1440);
+    heightSpin_->setValue(600);
+    resLayout->addWidget(heightSpin_);
+    mainLayout->addLayout(resLayout);
 
-    // Кнопка Render
-    auto* btnLayout = new QHBoxLayout;
-    auto* renderBtn = new QPushButton("Render");
-    connect(renderBtn, &QPushButton::clicked, this, &RenderDialog::onRender);
-    btnLayout->addStretch();
-    btnLayout->addWidget(renderBtn);
-    mainLayout->addLayout(btnLayout);
+    // Формат
+    auto* fmtLayout = new QHBoxLayout;
+    fmtLayout->addWidget(new QLabel("Format:"));
+    formatCombo_ = new QComboBox;
+    formatCombo_->addItems({"BMP", "JPEG", "PNG"});
+    fmtLayout->addWidget(formatCombo_);
+    mainLayout->addLayout(fmtLayout);
 
-    // Прогресс-бар
-    progressBar_ = new QProgressBar;
-    progressBar_->setVisible(false);
-    mainLayout->addWidget(progressBar_);
+    // Кнопка
+    renderBtn_ = new QPushButton("Render");
+    mainLayout->addWidget(renderBtn_);
 
     // Превью
-    imageLabel_ = new QLabel;
-    imageLabel_->setAlignment(Qt::AlignCenter);
-    mainLayout->addWidget(imageLabel_, 1);
+    previewLabel_ = new QLabel;
+    previewLabel_->setMinimumSize(320, 240);
+    previewLabel_->setAlignment(Qt::AlignCenter);
+    previewLabel_->setStyleSheet("border: 1px solid gray;");
+    mainLayout->addWidget(previewLabel_);
 
-    // Кнопка Save (изначально скрыта)
-    saveButton_ = new QPushButton("Save Image");
-    saveButton_->setVisible(false);
-    connect(saveButton_, &QPushButton::clicked, this, [this]() {
-        QString fileName = QFileDialog::getSaveFileName(this, "Save Ray Traced Image", "",
-                                                        "BMP (*.bmp);;JPEG (*.jpg);;PNG (*.png)");
-        if (!fileName.isEmpty()) {
-            renderedImage_.save(fileName);
-            QMessageBox::information(this, "Saved", "Image saved successfully.");
-        }
-    });
-    mainLayout->addWidget(saveButton_);
+    connect(renderBtn_, &QPushButton::clicked, this, &RenderDialog::onRender);
 }
 
 void RenderDialog::onRender() {
-    QSize res = resolutionCombo_->currentData().toSize();
-    int samples = samplesSpin_->value();
+    int w = widthSpin_->value();
+    int h = heightSpin_->value();
+    QString format = formatCombo_->currentText().toLower();
 
-    progressBar_->setVisible(true);
-    progressBar_->setRange(0, 0); // indeterminate
-    saveButton_->setVisible(false);
-    imageLabel_->clear();
+    QImage image = tracer_->Render(w, h, 1);
+    if (image.isNull()) {
+        QMessageBox::warning(this, "Error", "Rendering failed.");
+        return;
+    }
 
-    // Запуск в отдельном потоке
-    auto* watcher = new QFutureWatcher<QImage>(this);
-    connect(watcher, &QFutureWatcher<QImage>::finished, this, [this, watcher]() {
-        renderedImage_ = watcher->result();
-        imageLabel_->setPixmap(QPixmap::fromImage(renderedImage_).scaled(
-            imageLabel_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        progressBar_->setVisible(false);
-        saveButton_->setVisible(true);
-        watcher->deleteLater();
-    });
+    // Сохраняем во временный файл (или запрашиваем путь)
+    QString fileName = QString("raytraced_%1.%2")
+                           .arg(QDateTime::currentSecsSinceEpoch())
+                           .arg(format);
+    if (!image.save(fileName, format.toStdString().c_str())) {
+        QMessageBox::warning(this, "Error", "Failed to save image.");
+        return;
+    }
 
-    QFuture<QImage> future = QtConcurrent::run([this, res, samples]() {
-        return tracer_->Render(res.width(), res.height(), samples);
-    });
-    watcher->setFuture(future);
+    // Показываем превью
+    previewLabel_->setPixmap(QPixmap::fromImage(image).scaled(
+        previewLabel_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    QMessageBox::information(this, "Success", "Image saved as " + fileName);
 }
 
 } // namespace s21

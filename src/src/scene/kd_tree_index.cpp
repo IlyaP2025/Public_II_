@@ -9,6 +9,7 @@ void KdTreeMeshIndex::Build(const std::vector<BoundingBox>& boxes) {
   originalBoxes_ = boxes;
   if (boxes.empty()) {
     root_.reset();
+    built_ = false;          // дерево не готово
     return;
   }
 
@@ -17,11 +18,13 @@ void KdTreeMeshIndex::Build(const std::vector<BoundingBox>& boxes) {
   for (size_t i = 0; i < boxes.size(); ++i) items.emplace_back(boxes[i], i);
 
   root_ = BuildRecursive(std::move(items), 0);
+  built_ = true;             // дерево построено
 }
 
 void KdTreeMeshIndex::Clear() {
   root_.reset();
   originalBoxes_.clear();
+  built_ = false;            // сброс флага
 }
 
 std::unique_ptr<KdTreeMeshIndex::Node> KdTreeMeshIndex::BuildRecursive(

@@ -1,9 +1,8 @@
-#include "scene.h"
-
 #include <cfloat>
-
+#include "scene.h"
 #include "common/debug.h"
 #include "common/transform.h"
+#include "scene/ray_mesh_intersect.h"
 
 namespace s21 {
 
@@ -20,7 +19,7 @@ SceneObject* Scene::AddObject(std::unique_ptr<SceneObject> object,
   for (auto obs : observers_) {
     obs->OnObjectAdded(ptr);
   }
-  structureDirty_ = true;  // структура сцены изменилась
+  structureDirty_ = true;
   return ptr;
 }
 
@@ -53,7 +52,7 @@ void Scene::NotifyTransformChanged(SceneObject* object) {
   for (auto obs : observers_) {
     obs->OnTransformChanged(object);
   }
-  structureDirty_ = true;  // трансформация могла изменить AABB
+  structureDirty_ = true;
 }
 
 void Scene::SetSelected(const std::vector<SceneObject*>& selected) {
@@ -139,11 +138,44 @@ void Scene::RebuildSpatialIndex() {
   structureDirty_ = false;
 }
 
+// ===================== ИСПРАВЛЕННЫЙ МЕТОД =====================
 bool Scene::TraceRay(const Ray& ray, float t_min, float t_max, HitRecord& rec) const {
     HitRecord tempRec;
     bool hitAnything = false;
     float closest = t_max;
 
+    // Проверка мешей через KD-дерево
+    if (spatialIndex_ && spatialIndex_->IsBuilt()) {
+        std::vector<size_t> candidates = spatialIndex_->QueryRay(ray.origin, ray.direction);
+        for (size_t idx : candidates) {
+            if (idx >= objects_.size()) continue;
+            const Mesh* mesh = dynamic_cast<const Mesh*>(objects_[idx].get());
+            if (!mesh) continue;
+            HitRecord meshRec;
+            if (RayMeshIntersect(*mesh, ray, t_min, closest, meshRec)) {
+                if (meshRec.t < closest) {
+                    closest = meshRec.t;
+                    hitAnything = true;
+                    rec = meshRec;
+                }
+            }
+        }
+    } else {
+        for (const auto& obj : objects_) {
+            const Mesh* mesh = dynamic_cast<const Mesh*>(obj.get());
+            if (!mesh) continue;
+            HitRecord meshRec;
+            if (RayMeshIntersect(*mesh, ray, t_min, closest, meshRec)) {
+                if (meshRec.t < closest) {
+                    closest = meshRec.t;
+                    hitAnything = true;
+                    rec = meshRec;
+                }
+            }
+        }
+    }
+
+    // Аналитические объекты
     for (const auto& obj : analyticObjects_) {
         if (obj->Hit(ray, t_min, closest, tempRec)) {
             hitAnything = true;
@@ -151,8 +183,10 @@ bool Scene::TraceRay(const Ray& ray, float t_min, float t_max, HitRecord& rec) c
             rec = tempRec;
         }
     }
+
     return hitAnything;
 }
+// =============================================================
 
 void Scene::AddAnalyticObject(std::unique_ptr<AnalyticObject> obj) {
     analyticObjects_.push_back(std::move(obj));

@@ -2,17 +2,18 @@
 #define S21_SPATIAL_INDEX_H
 
 #include <vector>
-
 #include "common/point.h"
-#include "scene/mesh.h"  // для BoundingBox
 
 namespace s21 {
+
+struct BoundingBox;   // предварительное объявление (полное определение в scene/mesh.h)
 
 class ISpatialIndex {
  public:
   virtual ~ISpatialIndex() = default;
   virtual void Build(const std::vector<BoundingBox>& boxes) = 0;
   virtual void Clear() = 0;
+  virtual bool IsBuilt() const = 0;                     // добавили метод
   virtual std::vector<size_t> QueryRay(const Point& origin,
                                        const Point& direction) const = 0;
 };

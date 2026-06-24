@@ -1,8 +1,10 @@
-#include "ray_tracer.h"
+
 #include <cmath>
 #include <glm/glm.hpp>
+#include "ray_tracer.h"
 #include "matrix/s21_matrix_oop.h"
 #include "common/transform.h"
+#include "scene/ray_mesh_intersect.h"
 
 namespace s21 {
 
@@ -80,16 +82,31 @@ Ray RayTracer::GetCameraRay(int x, int y, int width, int height, const Camera& c
 
 bool RayTracer::IsInShadow(const Point& point, const glm::vec3& lightDir,
                            float lightDist, float bias) const {
-    Point shadowOrigin = {
-        point.x + lightDir.x * bias,
-        point.y + lightDir.y * bias,
-        point.z + lightDir.z * bias
-    };
-    Point shadowDir = {lightDir.x, lightDir.y, lightDir.z};
-    Ray shadowRay = {shadowOrigin, shadowDir};
-    HitRecord tempRec;
-    if (scene_->TraceRay(shadowRay, 0.001f, lightDist, tempRec))
-        return true;
+    Point shadowOrigin = {point.x + lightDir.x * bias,
+                          point.y + lightDir.y * bias,
+                          point.z + lightDir.z * bias};
+    Ray shadowRay{shadowOrigin, {lightDir.x, lightDir.y, lightDir.z}};
+
+    ISpatialIndex* index = scene_->GetSpatialIndex();
+    if (index && index->IsBuilt()) {
+        auto candidates = index->QueryRay(shadowRay.origin, shadowRay.direction);
+        for (size_t idx : candidates) {
+            if (idx >= scene_->GetObjects().size()) continue;
+            const Mesh* mesh = dynamic_cast<const Mesh*>(scene_->GetObjects()[idx].get());
+            if (!mesh) continue;
+            HitRecord tmp;
+            if (RayMeshIntersect(*mesh, shadowRay, 0.001f, lightDist, tmp))
+                return true;
+        }
+    } else {
+        for (const auto& obj : scene_->GetObjects()) {
+            const Mesh* mesh = dynamic_cast<const Mesh*>(obj.get());
+            if (!mesh) continue;
+            HitRecord tmp;
+            if (RayMeshIntersect(*mesh, shadowRay, 0.001f, lightDist, tmp))
+                return true;
+        }
+    }
     return false;
 }
 

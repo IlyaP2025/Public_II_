@@ -16,7 +16,7 @@
 #include "light_control_widget.h"
 #include "scene/scene_observer.h"
 #include "settings/settings.h"
-#include "objects/plane_object.h"   // для floorObj_
+#include "objects/plane_object.h"
 
 QT_BEGIN_NAMESPACE
 class QDoubleSpinBox;
@@ -25,7 +25,7 @@ class QLabel;
 class QTabWidget;
 class QComboBox;
 class QGroupBox;
-class QListWidget;                  // forward-декларация
+class QListWidget;
 QT_END_NAMESPACE
 
 namespace s21 {
@@ -110,6 +110,7 @@ class MainWindow : public QMainWindow, public SceneObserver {
   void createDisplayTab(QTabWidget* tabWidget);
   void createLightsTab(QTabWidget* tabWidget);
   void createModelListTab(QTabWidget* tabWidget);
+  void createMaterialTab(QTabWidget* tabWidget);   // ← новый метод
   void updateUIFromSelection();
   void updateModelInfo();
   void updateModelList();
@@ -163,9 +164,12 @@ class MainWindow : public QMainWindow, public SceneObserver {
   QDoubleSpinBox* scaleXSpin_;
   QDoubleSpinBox* scaleYSpin_;
   QDoubleSpinBox* scaleZSpin_;
+  QDoubleSpinBox* materialTransSpin_ = nullptr;
+  QDoubleSpinBox* materialIorSpin_ = nullptr;
+  QDoubleSpinBox* materialReflSpin_ = nullptr;
+  QDoubleSpinBox* materialRoughSpin_ = nullptr;
 
   QSlider* smoothingSlider_;
-
   QLabel* infoLabel_;
 
   QTimer* rotationTimer_ = nullptr;
@@ -187,6 +191,7 @@ class MainWindow : public QMainWindow, public SceneObserver {
   std::unique_ptr<GifRecorder> gifRecorder_;
 
   QListWidget* modelListWidget_ = nullptr;
+  
 };
 
 }  // namespace s21

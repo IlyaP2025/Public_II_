@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common/transform.h"
+#include "common/material.h"
 
 namespace s21 {
 
@@ -27,6 +28,9 @@ class SceneObject {
   const Transform& GetTransform() const { return transform_; }
   void SetTransform(const Transform& transform) { transform_ = transform; }
 
+  // Материал
+  Material material;
+
   // Иерархия
   void SetParent(SceneObject* parent);
   SceneObject* GetParent() const { return parent_; }
@@ -46,7 +50,7 @@ class SceneObject {
 
  protected:
   std::string name_;
-  std::string sourceFile_;  // добавлено
+  std::string sourceFile_;
   Transform transform_;
   SceneObject* parent_ = nullptr;
   std::vector<std::unique_ptr<SceneObject>> children_;

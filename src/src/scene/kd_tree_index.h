@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "common/spatial_index.h"
+#include "scene/mesh.h"   // необходимо для полного определения BoundingBox
 
 namespace s21 {
 
@@ -12,6 +13,7 @@ class KdTreeMeshIndex : public ISpatialIndex {
  public:
   void Build(const std::vector<BoundingBox>& boxes) override;
   void Clear() override;
+  bool IsBuilt() const override { return built_; }      // реализация
   std::vector<size_t> QueryRay(const Point& origin,
                                const Point& direction) const override;
 
@@ -34,6 +36,7 @@ class KdTreeMeshIndex : public ISpatialIndex {
 
   std::unique_ptr<Node> root_;
   std::vector<BoundingBox> originalBoxes_;
+  bool built_ = false;                                   // флаг готовности
 };
 
 }  // namespace s21

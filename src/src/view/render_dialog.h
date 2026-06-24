@@ -1,15 +1,14 @@
-#ifndef S21_RENDER_DIALOG_H
-#define S21_RENDER_DIALOG_H
+#ifndef RENDER_DIALOG_H
+#define RENDER_DIALOG_H
 
 #include <QDialog>
-#include <QComboBox>
 #include <QSpinBox>
-#include <QProgressBar>
-#include <QLabel>
+#include <QComboBox>
 #include <QPushButton>
-#include "tracer/ray_tracer.h"
+#include <QLabel>
 
 namespace s21 {
+class RayTracer;
 
 class RenderDialog : public QDialog {
     Q_OBJECT
@@ -21,14 +20,12 @@ private slots:
 
 private:
     RayTracer* tracer_;
-    QComboBox* resolutionCombo_;
-    QSpinBox* samplesSpin_;
-    QProgressBar* progressBar_;
-    QLabel* imageLabel_;
-    QPushButton* saveButton_;
-    QImage renderedImage_;
+    QSpinBox* widthSpin_;
+    QSpinBox* heightSpin_;
+    QComboBox* formatCombo_;
+    QPushButton* renderBtn_;
+    QLabel* previewLabel_;
 };
 
 } // namespace s21
-
 #endif
