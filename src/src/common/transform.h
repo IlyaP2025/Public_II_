@@ -28,8 +28,8 @@ class Transform {
   Point scale_;
 };
 
-// Вспомогательная функция для умножения матрицы на точку
 Point TransformPoint(const S21Matrix& m, const Point& p);
+Point TransformDirection(const S21Matrix& m, const Point& d);
 
 }  // namespace s21
 

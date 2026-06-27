@@ -55,14 +55,13 @@ std::unique_ptr<Mesh> ConeObject::GenerateMesh(int precision) const {
     std::vector<Point> vertices;
     std::vector<unsigned int> indices;
     std::vector<Point> normals;
-    std::vector<Point> flat_normals;
-    std::vector<Point> smooth_normals;
+    std::vector<Point2D> uvs;
 
     float halfH = height_ / 2.0f;
     Point apex = {center_.x, center_.y + halfH, center_.z};
     Point baseCenter = {center_.x, center_.y - halfH, center_.z};
 
-    // ---------- Боковая поверхность ----------
+    // Боковая поверхность
     for (int i = 0; i < precision; ++i) {
         float angle1 = 2.0f * M_PI * i / precision;
         float angle2 = 2.0f * M_PI * (i + 1) / precision;
@@ -75,21 +74,24 @@ std::unique_ptr<Mesh> ConeObject::GenerateMesh(int precision) const {
 
         Point u = {base2.x - base1.x, base2.y - base1.y, base2.z - base1.z};
         Point v = {apex.x - base1.x, apex.y - base1.y, apex.z - base1.z};
-        Point n = {
-            u.y * v.z - u.z * v.y,
-            u.z * v.x - u.x * v.z,
-            u.x * v.y - u.y * v.x
-        };
+        Point n = {u.y*v.z - u.z*v.y, u.z*v.x - u.x*v.z, u.x*v.y - u.y*v.x};
         float len = std::sqrt(n.x*n.x + n.y*n.y + n.z*n.z);
         if (len > 1e-6f) { n.x /= len; n.y /= len; n.z /= len; }
         if (n.y < 0) { n.x = -n.x; n.y = -n.y; n.z = -n.z; }
 
+        float u1 = static_cast<float>(i) / precision;
+        float u2 = static_cast<float>(i + 1) / precision;
+
         vertices.push_back(apex);   normals.push_back(n);
         vertices.push_back(base1);  normals.push_back(n);
         vertices.push_back(base2);  normals.push_back(n);
+
+        uvs.emplace_back(0.5f, 1.0f);
+        uvs.emplace_back(u1, 0.0f);
+        uvs.emplace_back(u2, 0.0f);
     }
 
-    // ---------- Нижнее основание ----------
+    // Нижнее основание
     Point normBottom(0.0f, -1.0f, 0.0f);
     for (int i = 0; i < precision; ++i) {
         float angle1 = 2.0f * M_PI * i / precision;
@@ -105,6 +107,10 @@ std::unique_ptr<Mesh> ConeObject::GenerateMesh(int precision) const {
         vertices.push_back(baseCenter); normals.push_back(normBottom);
         vertices.push_back(v1);         normals.push_back(normBottom);
         vertices.push_back(v2);         normals.push_back(normBottom);
+
+        uvs.emplace_back(0.5f, 0.5f);
+        uvs.emplace_back(0.5f + 0.5f * std::cos(angle1), 0.5f + 0.5f * std::sin(angle1));
+        uvs.emplace_back(0.5f + 0.5f * std::cos(angle2), 0.5f + 0.5f * std::sin(angle2));
     }
 
     for (size_t k = 0; k < vertices.size(); k += 3) {
@@ -113,14 +119,12 @@ std::unique_ptr<Mesh> ConeObject::GenerateMesh(int precision) const {
         indices.push_back(static_cast<unsigned int>(k + 2));
     }
 
-    flat_normals = normals;
-    smooth_normals = normals;
-
     mesh->SetVertices(vertices);
     mesh->SetNormals(normals);
     mesh->SetTriangles(indices);
-    mesh->SetFlatNormals(flat_normals);
-    mesh->SetSmoothNormals(smooth_normals);
+    mesh->SetFlatNormals(normals);
+    mesh->SetSmoothNormals(normals);
+    mesh->SetUVs(uvs);
     mesh->ComputeBoundingSphere();
 
     std::vector<Edge> edges;

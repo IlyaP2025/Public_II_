@@ -31,6 +31,12 @@ struct Point {
   }
 
   float length() const { return std::sqrt(x * x + y * y + z * z); }
+
+  Point Normalize() const {
+    float len = length();
+    if (len < 1e-6f) return *this;
+    return Point(x / len, y / len, z / len);
+  }
 };
 
 struct Point2D {

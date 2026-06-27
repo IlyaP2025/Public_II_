@@ -1,5 +1,4 @@
 #include "transform.h"
-
 #include <cmath>
 #include <numbers>
 
@@ -100,6 +99,14 @@ Point TransformPoint(const S21Matrix& m, const Point& p) {
     return Point(static_cast<float>(x), static_cast<float>(y),
                  static_cast<float>(z));
   }
+}
+
+Point TransformDirection(const S21Matrix& m, const Point& d) {
+  // Умножаем только 3x3 часть (без переноса)
+  float x = m(0,0) * d.x + m(0,1) * d.y + m(0,2) * d.z;
+  float y = m(1,0) * d.x + m(1,1) * d.y + m(1,2) * d.z;
+  float z = m(2,0) * d.x + m(2,1) * d.y + m(2,2) * d.z;
+  return Point(x, y, z);
 }
 
 }  // namespace s21

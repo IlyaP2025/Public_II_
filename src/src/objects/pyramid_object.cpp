@@ -6,7 +6,6 @@
 
 namespace s21 {
 
-// Вспомогательная функция пересечения луча с треугольником
 static bool IntersectTriangle(const Ray& ray,
                               const Point& v0, const Point& v1, const Point& v2,
                               float t_min, float t_max,
@@ -73,7 +72,6 @@ bool PyramidObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec
     Point closest_normal;
     bool hit = false;
 
-    // Боковые грани
     for (int i = 0; i < 4; ++i) {
         float t;
         Point normal;
@@ -87,7 +85,6 @@ bool PyramidObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec
         }
     }
 
-    // Основание (два треугольника)
     {
         float t;
         Point normal;
@@ -121,7 +118,6 @@ bool PyramidObject::Hit(const Ray& ray, float t_min, float t_max, HitRecord& rec
     return true;
 }
 
-// Оригинальная реализация GenerateMesh (взята из исходного проекта)
 std::unique_ptr<Mesh> PyramidObject::GenerateMesh(int /*precision*/) const {
     auto mesh = std::make_unique<Mesh>();
     float h = height_ / 2.0f;
@@ -137,6 +133,7 @@ std::unique_ptr<Mesh> PyramidObject::GenerateMesh(int /*precision*/) const {
     std::vector<Point> verts;
     std::vector<Point> norms;
     std::vector<unsigned int> tris;
+    std::vector<Point2D> uvs;
 
     // Боковые грани
     for (int i = 0; i < 4; ++i) {
@@ -151,9 +148,15 @@ std::unique_ptr<Mesh> PyramidObject::GenerateMesh(int /*precision*/) const {
         };
         float len = std::sqrt(n.x*n.x + n.y*n.y + n.z*n.z);
         if (len > 1e-6f) { n.x /= len; n.y /= len; n.z /= len; }
+        if (n.y < 0) { n.x = -n.x; n.y = -n.y; n.z = -n.z; }
+
         verts.push_back(apex); norms.push_back(n);
         verts.push_back(a);    norms.push_back(n);
         verts.push_back(bPt);  norms.push_back(n);
+
+        uvs.emplace_back(0.5f, 1.0f);
+        uvs.emplace_back(0.0f, 0.0f);
+        uvs.emplace_back(1.0f, 0.0f);
     }
 
     // Основание (два треугольника)
@@ -166,6 +169,9 @@ std::unique_ptr<Mesh> PyramidObject::GenerateMesh(int /*precision*/) const {
     verts.push_back(basePts[2]); norms.push_back(nBase);
     verts.push_back(basePts[3]); norms.push_back(nBase);
 
+    uvs.emplace_back(0,0); uvs.emplace_back(1,0); uvs.emplace_back(1,1);
+    uvs.emplace_back(0,0); uvs.emplace_back(1,1); uvs.emplace_back(0,1);
+
     for (size_t k = 0; k < verts.size(); k += 3) {
         tris.push_back(static_cast<unsigned int>(k));
         tris.push_back(static_cast<unsigned int>(k + 1));
@@ -175,6 +181,7 @@ std::unique_ptr<Mesh> PyramidObject::GenerateMesh(int /*precision*/) const {
     mesh->SetVertices(verts);
     mesh->SetNormals(norms);
     mesh->SetTriangles(tris);
+    mesh->SetUVs(uvs);
     mesh->ComputeBoundingSphere();
 
     std::vector<Edge> edges;

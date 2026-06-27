@@ -54,12 +54,13 @@ std::unique_ptr<Mesh> CylinderObject::GenerateMesh(int precision) const {
     std::vector<Point> verts;
     std::vector<Point> norms;
     std::vector<unsigned int> tris;
+    std::vector<Point2D> uvs;
 
     float halfH = height_ / 2.0f;
     Point topCenter(center_.x, center_.y + halfH, center_.z);
     Point bottomCenter(center_.x, center_.y - halfH, center_.z);
 
-    // ---------- Боковая поверхность (каждый треугольник отдельно) ----------
+    // Боковая поверхность
     for (int i = 0; i < precision; ++i) {
         float angle1 = 2.0f * M_PI * i / precision;
         float angle2 = 2.0f * M_PI * (i + 1) / precision;
@@ -70,24 +71,33 @@ std::unique_ptr<Mesh> CylinderObject::GenerateMesh(int precision) const {
         Point normal1(std::cos(angle1), 0.0f, std::sin(angle1));
         Point normal2(std::cos(angle2), 0.0f, std::sin(angle2));
 
+        float u1 = static_cast<float>(i) / precision;
+        float u2 = static_cast<float>(i + 1) / precision;
+
         // Первый треугольник
         verts.push_back({center_.x + x1, topCenter.y, center_.z + z1});
         norms.push_back(normal1);
+        uvs.emplace_back(u1, 1.0f);
         verts.push_back({center_.x + x1, bottomCenter.y, center_.z + z1});
         norms.push_back(normal1);
+        uvs.emplace_back(u1, 0.0f);
         verts.push_back({center_.x + x2, topCenter.y, center_.z + z2});
         norms.push_back(normal2);
+        uvs.emplace_back(u2, 1.0f);
 
         // Второй треугольник
         verts.push_back({center_.x + x2, topCenter.y, center_.z + z2});
         norms.push_back(normal2);
+        uvs.emplace_back(u2, 1.0f);
         verts.push_back({center_.x + x1, bottomCenter.y, center_.z + z1});
         norms.push_back(normal1);
+        uvs.emplace_back(u1, 0.0f);
         verts.push_back({center_.x + x2, bottomCenter.y, center_.z + z2});
         norms.push_back(normal2);
+        uvs.emplace_back(u2, 0.0f);
     }
 
-    // ---------- Верхняя крышка (нормаль строго вверх) ----------
+    // Верхняя крышка
     Point normTop(0.0f, 1.0f, 0.0f);
     for (int i = 0; i < precision; ++i) {
         float angle1 = 2.0f * M_PI * i / precision;
@@ -97,17 +107,20 @@ std::unique_ptr<Mesh> CylinderObject::GenerateMesh(int precision) const {
         float x2 = radius_ * std::cos(angle2);
         float z2 = radius_ * std::sin(angle2);
 
-        Point v0 = topCenter;  // центр крышки
+        Point v0 = topCenter;
         Point v1 = {center_.x + x1, topCenter.y, center_.z + z1};
         Point v2 = {center_.x + x2, topCenter.y, center_.z + z2};
 
-        // Треугольник: центр -> v1 -> v2 (обход против часовой стрелки сверху)
         verts.push_back(v0); norms.push_back(normTop);
         verts.push_back(v1); norms.push_back(normTop);
         verts.push_back(v2); norms.push_back(normTop);
+
+        uvs.emplace_back(0.5f, 0.5f);
+        uvs.emplace_back(0.5f + 0.5f * std::cos(angle1), 0.5f + 0.5f * std::sin(angle1));
+        uvs.emplace_back(0.5f + 0.5f * std::cos(angle2), 0.5f + 0.5f * std::sin(angle2));
     }
 
-    // ---------- Нижняя крышка (нормаль строго вниз) ----------
+    // Нижняя крышка
     Point normBottom(0.0f, -1.0f, 0.0f);
     for (int i = 0; i < precision; ++i) {
         float angle1 = 2.0f * M_PI * i / precision;
@@ -117,17 +130,19 @@ std::unique_ptr<Mesh> CylinderObject::GenerateMesh(int precision) const {
         float x2 = radius_ * std::cos(angle2);
         float z2 = radius_ * std::sin(angle2);
 
-        Point v0 = bottomCenter;  // центр дна
+        Point v0 = bottomCenter;
         Point v1 = {center_.x + x1, bottomCenter.y, center_.z + z1};
         Point v2 = {center_.x + x2, bottomCenter.y, center_.z + z2};
 
-        // Треугольник: центр -> v2 -> v1 (обход против часовой стрелки снизу)
         verts.push_back(v0); norms.push_back(normBottom);
         verts.push_back(v2); norms.push_back(normBottom);
         verts.push_back(v1); norms.push_back(normBottom);
+
+        uvs.emplace_back(0.5f, 0.5f);
+        uvs.emplace_back(0.5f + 0.5f * std::cos(angle2), 0.5f + 0.5f * std::sin(angle2));
+        uvs.emplace_back(0.5f + 0.5f * std::cos(angle1), 0.5f + 0.5f * std::sin(angle1));
     }
 
-    // Индексы: просто последовательно
     for (size_t k = 0; k < verts.size(); k += 3) {
         tris.push_back(static_cast<unsigned int>(k));
         tris.push_back(static_cast<unsigned int>(k + 1));
@@ -137,6 +152,7 @@ std::unique_ptr<Mesh> CylinderObject::GenerateMesh(int precision) const {
     mesh->SetVertices(verts);
     mesh->SetNormals(norms);
     mesh->SetTriangles(tris);
+    mesh->SetUVs(uvs);
     mesh->ComputeBoundingSphere();
 
     std::vector<Edge> edges;
@@ -147,7 +163,6 @@ std::unique_ptr<Mesh> CylinderObject::GenerateMesh(int precision) const {
     }
     mesh->SetEdges(edges);
 
-    // Отладка
     DEBUG_PRINT("=== Mesh generated: " << GetName().c_str() << " ===");
     DEBUG_PRINT("  Vertices: " << mesh->GetVertices().size());
     DEBUG_PRINT("  Normals: " << mesh->GetNormals().size());

@@ -140,9 +140,43 @@ void Scene::RebuildSpatialIndex() {
 
 // ===================== ИСПРАВЛЕННЫЙ МЕТОД =====================
 bool Scene::TraceRay(const Ray& ray, float t_min, float t_max, HitRecord& rec) const {
-    HitRecord tempRec;
     bool hitAnything = false;
     float closest = t_max;
+
+    auto traceMesh = [&](const Mesh* mesh, const Ray& worldRay) -> bool {
+        if (!mesh) return false;
+
+        S21Matrix model = mesh->GetTransform().GetModelMatrix();
+        S21Matrix invModel;
+        try {
+            invModel = model.InverseMatrix();
+        } catch (...) {
+            return false;
+        }
+
+        Point localOrigin = TransformPoint(invModel, worldRay.origin);
+        Point localDir = TransformDirection(invModel, worldRay.direction);
+        Ray localRay{localOrigin, localDir};
+
+        HitRecord meshRec;
+        if (RayMeshIntersect(*mesh, localRay, t_min, closest, meshRec)) {
+            if (meshRec.t < closest) {
+                closest = meshRec.t;
+                rec.t = meshRec.t;
+
+                rec.point = TransformPoint(model, meshRec.point);
+
+                S21Matrix normalMatrix = model;
+                normalMatrix(0,3) = normalMatrix(1,3) = normalMatrix(2,3) = 0.0;
+                Point worldNormal = TransformDirection(normalMatrix, meshRec.normal);
+                rec.normal = worldNormal.Normalize();
+
+                rec.material = meshRec.material;
+                return true;
+            }
+        }
+        return false;
+    };
 
     // Проверка мешей через KD-дерево
     if (spatialIndex_ && spatialIndex_->IsBuilt()) {
@@ -150,37 +184,16 @@ bool Scene::TraceRay(const Ray& ray, float t_min, float t_max, HitRecord& rec) c
         for (size_t idx : candidates) {
             if (idx >= objects_.size()) continue;
             const Mesh* mesh = dynamic_cast<const Mesh*>(objects_[idx].get());
-            if (!mesh) continue;
-            HitRecord meshRec;
-            if (RayMeshIntersect(*mesh, ray, t_min, closest, meshRec)) {
-                if (meshRec.t < closest) {
-                    closest = meshRec.t;
-                    hitAnything = true;
-                    rec = meshRec;
-                }
+            if (traceMesh(mesh, ray)) {
+                hitAnything = true;
             }
         }
     } else {
         for (const auto& obj : objects_) {
             const Mesh* mesh = dynamic_cast<const Mesh*>(obj.get());
-            if (!mesh) continue;
-            HitRecord meshRec;
-            if (RayMeshIntersect(*mesh, ray, t_min, closest, meshRec)) {
-                if (meshRec.t < closest) {
-                    closest = meshRec.t;
-                    hitAnything = true;
-                    rec = meshRec;
-                }
+            if (traceMesh(mesh, ray)) {
+                hitAnything = true;
             }
-        }
-    }
-
-    // Аналитические объекты
-    for (const auto& obj : analyticObjects_) {
-        if (obj->Hit(ray, t_min, closest, tempRec)) {
-            hitAnything = true;
-            closest = tempRec.t;
-            rec = tempRec;
         }
     }
 

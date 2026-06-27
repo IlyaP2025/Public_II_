@@ -54,44 +54,43 @@ std::unique_ptr<Mesh> CubeObject::GenerateMesh(int /*precision*/) const {
     auto mesh = std::make_unique<Mesh>();
     float h = size_ / 2.0f;
 
-    // 36 развёрнутых вершин (по 6 на каждую грань, как после OBJ-загрузчика)
     std::vector<Point> verts = {
-        // bottom (y-): 0..5
+        // bottom (y-)
         {center_.x - h, center_.y - h, center_.z - h},
         {center_.x + h, center_.y - h, center_.z - h},
         {center_.x + h, center_.y - h, center_.z + h},
         {center_.x - h, center_.y - h, center_.z + h},
         {center_.x - h, center_.y - h, center_.z - h},
         {center_.x + h, center_.y - h, center_.z + h},
-        // top (y+): 6..11
+        // top (y+)
         {center_.x - h, center_.y + h, center_.z - h},
         {center_.x + h, center_.y + h, center_.z - h},
         {center_.x + h, center_.y + h, center_.z + h},
         {center_.x - h, center_.y + h, center_.z + h},
         {center_.x - h, center_.y + h, center_.z - h},
         {center_.x + h, center_.y + h, center_.z + h},
-        // front (z-): 12..17
+        // front (z-)
         {center_.x - h, center_.y - h, center_.z - h},
         {center_.x + h, center_.y - h, center_.z - h},
         {center_.x + h, center_.y + h, center_.z - h},
         {center_.x - h, center_.y + h, center_.z - h},
         {center_.x - h, center_.y - h, center_.z - h},
         {center_.x + h, center_.y + h, center_.z - h},
-        // back (z+): 18..23
+        // back (z+)
         {center_.x - h, center_.y - h, center_.z + h},
         {center_.x + h, center_.y - h, center_.z + h},
         {center_.x + h, center_.y + h, center_.z + h},
         {center_.x - h, center_.y + h, center_.z + h},
         {center_.x - h, center_.y - h, center_.z + h},
         {center_.x + h, center_.y + h, center_.z + h},
-        // left (x-): 24..29
+        // left (x-)
         {center_.x - h, center_.y - h, center_.z - h},
         {center_.x - h, center_.y - h, center_.z + h},
         {center_.x - h, center_.y + h, center_.z + h},
         {center_.x - h, center_.y + h, center_.z - h},
         {center_.x - h, center_.y - h, center_.z - h},
         {center_.x - h, center_.y + h, center_.z + h},
-        // right (x+): 30..35
+        // right (x+)
         {center_.x + h, center_.y - h, center_.z - h},
         {center_.x + h, center_.y - h, center_.z + h},
         {center_.x + h, center_.y + h, center_.z + h},
@@ -100,7 +99,6 @@ std::unique_ptr<Mesh> CubeObject::GenerateMesh(int /*precision*/) const {
         {center_.x + h, center_.y + h, center_.z + h},
     };
 
-    // Индексы треугольников
     std::vector<unsigned int> tris = {
         0,1,2,  3,4,5,      // bottom
         6,7,8,  9,10,11,    // top
@@ -111,22 +109,24 @@ std::unique_ptr<Mesh> CubeObject::GenerateMesh(int /*precision*/) const {
     };
     mesh->SetTriangles(tris);
 
-    // Нормали (по 6 на каждую грань)
     std::vector<Point> norms = {
-        // bottom
-        {0,-1,0}, {0,-1,0}, {0,-1,0}, {0,-1,0}, {0,-1,0}, {0,-1,0},
-        // top
-        {0,1,0}, {0,1,0}, {0,1,0}, {0,1,0}, {0,1,0}, {0,1,0},
-        // front
-        {0,0,-1}, {0,0,-1}, {0,0,-1}, {0,0,-1}, {0,0,-1}, {0,0,-1},
-        // back
-        {0,0,1}, {0,0,1}, {0,0,1}, {0,0,1}, {0,0,1}, {0,0,1},
-        // left
-        {-1,0,0}, {-1,0,0}, {-1,0,0}, {-1,0,0}, {-1,0,0}, {-1,0,0},
-        // right
-        {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}
+        {0,-1,0},{0,-1,0},{0,-1,0},{0,-1,0},{0,-1,0},{0,-1,0},
+        {0,1,0},{0,1,0},{0,1,0},{0,1,0},{0,1,0},{0,1,0},
+        {0,0,-1},{0,0,-1},{0,0,-1},{0,0,-1},{0,0,-1},{0,0,-1},
+        {0,0,1},{0,0,1},{0,0,1},{0,0,1},{0,0,1},{0,0,1},
+        {-1,0,0},{-1,0,0},{-1,0,0},{-1,0,0},{-1,0,0},{-1,0,0},
+        {1,0,0},{1,0,0},{1,0,0},{1,0,0},{1,0,0},{1,0,0}
     };
     mesh->SetNormals(norms);
+
+    std::vector<Point2D> uvs;
+    const std::vector<Point2D> faceUV = {
+        {0,0}, {1,0}, {1,1}, {0,1}, {0,0}, {1,1}
+    };
+    for (int i = 0; i < 6; ++i) {
+        uvs.insert(uvs.end(), faceUV.begin(), faceUV.end());
+    }
+    mesh->SetUVs(uvs);
 
     mesh->SetVertices(verts);
     mesh->ComputeBoundingSphere();
@@ -139,7 +139,6 @@ std::unique_ptr<Mesh> CubeObject::GenerateMesh(int /*precision*/) const {
     }
     mesh->SetEdges(edges);
 
-    // Отладка
     DEBUG_PRINT("=== Mesh generated: " << GetName().c_str() << " ===");
     DEBUG_PRINT("  Vertices: " << mesh->GetVertices().size());
     DEBUG_PRINT("  Normals: " << mesh->GetNormals().size());
