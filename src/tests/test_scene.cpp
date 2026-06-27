@@ -6,7 +6,6 @@
 
 using namespace s21;
 
-// Mock observer для проверки вызовов
 class MockSceneObserver : public SceneObserver {
  public:
   void OnObjectAdded(SceneObject* obj) override { added = obj; }
@@ -104,7 +103,6 @@ TEST(SceneTest, GetAllMeshes) {
   Scene scene;
   auto mesh1 = std::make_unique<Mesh>();
   auto mesh2 = std::make_unique<Mesh>();
-  // Добавим ещё не-Mesh объект (если есть другой тип)
   struct NonMesh : public SceneObject {};
   auto non = std::make_unique<NonMesh>();
 
@@ -126,7 +124,6 @@ TEST(SceneTest, Clear) {
   scene.AddObject(std::move(mesh));
   scene.Clear();
   EXPECT_TRUE(scene.GetObjects().empty());
-  // Также проверяем, что выделение сброшено
   EXPECT_TRUE(scene.GetSelected().empty());
 }
 
@@ -147,5 +144,41 @@ TEST(SceneTest, ClearRemovesAllObjectsAndResetsSelection) {
 
   EXPECT_TRUE(scene.GetObjects().empty());
   EXPECT_TRUE(scene.GetSelected().empty());
-  // Указатели ptr1 и ptr2 теперь невалидны, но это ожидаемо.
+}
+
+TEST(SceneTest, TraceRayEmptyScene) {
+  Scene scene;
+  Ray ray{{0,0,-1}, {0,0,1}};
+  HitRecord rec;
+  EXPECT_FALSE(scene.TraceRay(ray, 0.0f, 100.0f, rec));
+}
+
+TEST(SceneTest, TraceRaySingleMesh) {
+  Scene scene;
+  auto mesh = std::make_unique<Mesh>();
+  mesh->SetVertices({{0,0,0},{1,0,0},{0,1,0}});
+  mesh->SetTriangles({0,1,2});
+  scene.AddObject(std::move(mesh));
+  scene.RebuildSpatialIndex();
+
+  Ray ray{{0.1, 0.1, -1}, {0,0,1}};
+  HitRecord rec;
+  EXPECT_TRUE(scene.TraceRay(ray, 0.0f, 100.0f, rec));
+}
+
+TEST(SceneTest, TraceRayWithTransform) {
+  Scene scene;
+  auto mesh = std::make_unique<Mesh>();
+  mesh->SetVertices({{0,0,0},{1,0,0},{0,1,0}});
+  mesh->SetTriangles({0,1,2});
+  Transform t;
+  t.SetPosition(Point(10, 0, 0));
+  mesh->SetTransform(t);
+  scene.AddObject(std::move(mesh));
+  scene.RebuildSpatialIndex();
+
+  Ray ray{{10.1, 0.1, -1}, {0,0,1}};
+  HitRecord rec;
+  EXPECT_TRUE(scene.TraceRay(ray, 0.0f, 100.0f, rec));
+  EXPECT_NEAR(rec.point.x, 10.1, 0.01);
 }

@@ -122,7 +122,9 @@ TEST_F(CameraTest, SetZoomFactor) {
   cam.SetZoomFactor(0.00005f);
   EXPECT_FLOAT_EQ(cam.GetZoomFactor(), 0.0001f);
   cam.SetZoomFactor(20000.0f);
-  EXPECT_FLOAT_EQ(cam.GetZoomFactor(), 10000.0f);
+  EXPECT_FLOAT_EQ(cam.GetZoomFactor(), 20000.0f);
+  cam.SetZoomFactor(200000.0f);
+  EXPECT_FLOAT_EQ(cam.GetZoomFactor(), 100000.0f);
 }
 
 TEST_F(CameraTest, SetNearFarPlanes) {
