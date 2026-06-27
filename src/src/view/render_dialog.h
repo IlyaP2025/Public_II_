@@ -6,6 +6,8 @@
 #include <QComboBox>
 #include <QPushButton>
 #include <QLabel>
+#include <QFutureWatcher>
+#include <QImage>
 
 namespace s21 {
 class RayTracer;
@@ -17,6 +19,8 @@ public:
 
 private slots:
     void onRender();
+    void onRenderFinished();
+    void setProgress(int percent);   // обновляет статус
 
 private:
     RayTracer* tracer_;
@@ -25,6 +29,8 @@ private:
     QComboBox* formatCombo_;
     QPushButton* renderBtn_;
     QLabel* previewLabel_;
+    QLabel* statusLabel_;
+    QFutureWatcher<QImage> watcher_;
 };
 
 } // namespace s21

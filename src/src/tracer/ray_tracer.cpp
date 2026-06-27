@@ -1,5 +1,9 @@
-
 #include <cmath>
+#include <future>
+#include <vector>
+#include <algorithm>
+#include <functional>
+
 #include <glm/glm.hpp>
 #include "ray_tracer.h"
 #include "matrix/s21_matrix_oop.h"
@@ -11,7 +15,68 @@ namespace s21 {
 RayTracer::RayTracer(Scene* scene, const Camera& camera, const LightManager& lightManager)
     : scene_(scene), camera_(camera), lightManager_(lightManager) {}
 
+// Параллельный рендеринг (без прогресса) – можно не использовать, но оставлен
 QImage RayTracer::Render(int width, int height, int samples) const {
+    QImage image(width, height, QImage::Format_RGB32);
+    const int bytesPerLine = image.bytesPerLine();
+    uchar* bits = image.bits();
+
+    auto pointLights = lightManager_.GetActiveLights();
+    const auto& dirLight = lightManager_.GetDirectionalLight();
+
+    unsigned int numThreads = std::max(1u, std::thread::hardware_concurrency());
+    numThreads = std::min(numThreads, static_cast<unsigned int>(height));
+    const int rowsPerThread = (height + numThreads - 1) / numThreads;
+
+    std::vector<std::future<void>> futures;
+    futures.reserve(numThreads);
+
+    for (unsigned int t = 0; t < numThreads; ++t) {
+        const int startY = t * rowsPerThread;
+        const int endY = std::min(startY + rowsPerThread, height);
+        if (startY >= endY) break;
+
+        futures.push_back(std::async(std::launch::async, [&, startY, endY]() {
+            for (int y = startY; y < endY; ++y) {
+                uchar* line = bits + y * bytesPerLine;
+                for (int x = 0; x < width; ++x) {
+                    glm::vec3 color(0.0f);
+                    for (int s = 0; s < samples; ++s) {
+                        float u = (x + (s % 2 == 0 ? 0.25f : 0.75f)) / width;
+                        float v = (y + (s % 2 == 0 ? 0.25f : 0.75f)) / height;
+                        Ray ray = GetCameraRay(static_cast<int>(u * width),
+                                              static_cast<int>(v * height),
+                                              width, height, camera_);
+                        HitRecord rec;
+                        if (scene_->TraceRay(ray, 0.001f, 1000.0f, rec)) {
+                            color += Shade(ray, rec, pointLights, dirLight);
+                        } else {
+                            color += glm::vec3(0.1f, 0.1f, 0.15f);
+                        }
+                    }
+                    color /= float(samples);
+                    color = glm::clamp(color, 0.0f, 1.0f);
+
+                    QRgb* pixel = reinterpret_cast<QRgb*>(line + x * sizeof(QRgb));
+                    int r = static_cast<int>(color.r * 255.0f);
+                    int g = static_cast<int>(color.g * 255.0f);
+                    int b = static_cast<int>(color.b * 255.0f);
+                    *pixel = qRgb(r, g, b);
+                }
+            }
+        }));
+    }
+
+    for (auto& fut : futures) {
+        fut.wait();
+    }
+
+    return image;
+}
+
+// Последовательный рендеринг с прогрессом (используется в диалоге)
+QImage RayTracer::RenderWithProgress(int width, int height, int samples,
+                                     std::function<void(int)> progressCallback) const {
     QImage image(width, height, QImage::Format_RGB32);
     auto pointLights = lightManager_.GetActiveLights();
     const auto& dirLight = lightManager_.GetDirectionalLight();
@@ -29,13 +94,16 @@ QImage RayTracer::Render(int width, int height, int samples) const {
                 if (scene_->TraceRay(ray, 0.001f, 1000.0f, rec)) {
                     color += Shade(ray, rec, pointLights, dirLight);
                 } else {
-                    // цвет фона (можно позже брать из настроек)
                     color += glm::vec3(0.1f, 0.1f, 0.15f);
                 }
             }
             color /= float(samples);
             color = glm::clamp(color, 0.0f, 1.0f);
             image.setPixelColor(x, y, QColor::fromRgbF(color.r, color.g, color.b));
+        }
+        if (progressCallback) {
+            int percent = static_cast<int>(100.0f * (y + 1) / height);
+            progressCallback(percent);
         }
     }
     return image;

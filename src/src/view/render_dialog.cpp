@@ -5,6 +5,7 @@
 #include <QLabel>
 #include <QMessageBox>
 #include <QDateTime>
+#include <QtConcurrent/QtConcurrentRun>
 
 namespace s21 {
 
@@ -12,11 +13,10 @@ RenderDialog::RenderDialog(RayTracer* tracer, QWidget* parent)
     : QDialog(parent), tracer_(tracer)
 {
     setWindowTitle("Ray Tracing Render");
-    setMinimumSize(400, 350);
+    setMinimumSize(400, 400);
 
     auto* mainLayout = new QVBoxLayout(this);
 
-    // Разрешение
     auto* resLayout = new QHBoxLayout;
     resLayout->addWidget(new QLabel("Width:"));
     widthSpin_ = new QSpinBox;
@@ -31,7 +31,6 @@ RenderDialog::RenderDialog(RayTracer* tracer, QWidget* parent)
     resLayout->addWidget(heightSpin_);
     mainLayout->addLayout(resLayout);
 
-    // Формат
     auto* fmtLayout = new QHBoxLayout;
     fmtLayout->addWidget(new QLabel("Format:"));
     formatCombo_ = new QComboBox;
@@ -39,11 +38,13 @@ RenderDialog::RenderDialog(RayTracer* tracer, QWidget* parent)
     fmtLayout->addWidget(formatCombo_);
     mainLayout->addLayout(fmtLayout);
 
-    // Кнопка
     renderBtn_ = new QPushButton("Render");
     mainLayout->addWidget(renderBtn_);
 
-    // Превью
+    statusLabel_ = new QLabel;
+    statusLabel_->setAlignment(Qt::AlignCenter);
+    mainLayout->addWidget(statusLabel_);
+
     previewLabel_ = new QLabel;
     previewLabel_->setMinimumSize(320, 240);
     previewLabel_->setAlignment(Qt::AlignCenter);
@@ -51,32 +52,57 @@ RenderDialog::RenderDialog(RayTracer* tracer, QWidget* parent)
     mainLayout->addWidget(previewLabel_);
 
     connect(renderBtn_, &QPushButton::clicked, this, &RenderDialog::onRender);
+    connect(&watcher_, &QFutureWatcher<QImage>::finished,
+            this, &RenderDialog::onRenderFinished);
 }
 
 void RenderDialog::onRender() {
     int w = widthSpin_->value();
     int h = heightSpin_->value();
-    QString format = formatCombo_->currentText().toLower();
 
-    QImage image = tracer_->Render(w, h, 1);
+    renderBtn_->setEnabled(false);
+    statusLabel_->setText("Rendering... 0%");
+    statusLabel_->repaint();
+
+    QFuture<QImage> future = QtConcurrent::run([this, w, h]() -> QImage {
+        return tracer_->RenderWithProgress(w, h, 1,
+            [this](int percent) {
+                QMetaObject::invokeMethod(this, "setProgress", Qt::QueuedConnection,
+                                         Q_ARG(int, percent));
+            });
+    });
+    watcher_.setFuture(future);
+}
+
+void RenderDialog::onRenderFinished() {
+    QImage image = watcher_.result();
+
+    renderBtn_->setEnabled(true);
+
     if (image.isNull()) {
+        statusLabel_->setText("Rendering failed.");
         QMessageBox::warning(this, "Error", "Rendering failed.");
         return;
     }
 
-    // Сохраняем во временный файл (или запрашиваем путь)
+    QString format = formatCombo_->currentText().toLower();
     QString fileName = QString("raytraced_%1.%2")
                            .arg(QDateTime::currentSecsSinceEpoch())
                            .arg(format);
     if (!image.save(fileName, format.toStdString().c_str())) {
+        statusLabel_->setText("Failed to save.");
         QMessageBox::warning(this, "Error", "Failed to save image.");
         return;
     }
 
-    // Показываем превью
     previewLabel_->setPixmap(QPixmap::fromImage(image).scaled(
         previewLabel_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    QMessageBox::information(this, "Success", "Image saved as " + fileName);
+    statusLabel_->setText("Saved as " + fileName);
+}
+
+void RenderDialog::setProgress(int percent) {
+    statusLabel_->setText(QString("Rendering... %1%").arg(percent));
+    statusLabel_->repaint();
 }
 
 } // namespace s21

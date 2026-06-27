@@ -38,9 +38,9 @@ void Camera::SetProjectionType(Settings::ProjectionType type) {
 }
 
 void Camera::SetZoomFactor(float factor) {
-  // Расширяем допустимый диапазон, чтобы вмещать очень большие или очень
-  // маленькие объекты
-  zoomFactor_ = std::clamp(factor, 0.0001f, 10000.0f);
+  zoomFactor_ = std::clamp(factor, 0.0001f, 100000.0f);  // было 10000, расширено
+  // Дальняя плоскость должна оставаться больше, чем радиус видимости
+  farPlane_ = std::max(farPlane_, zoomFactor_ * 20.0f);
 }
 
 void Camera::SetNearPlane(float nearPlane) { nearPlane_ = nearPlane; }
@@ -163,25 +163,21 @@ void Camera::Rotate(float deltaX, float deltaY) {
 }
 
 void Camera::Zoom(float delta) {
-  // delta > 0 – приближение (колёсико вверх), delta < 0 – отдаление
   float dx = position_[0] - target_[0];
   float dy = position_[1] - target_[1];
   float dz = position_[2] - target_[2];
   float radius = std::sqrt(dx * dx + dy * dy + dz * dz);
 
-  const float minRadius = 0.5f;
-  const float maxRadius = 50000.0f;  // увеличен для огромных объектов
+  const float minRadius = 0.1f;
+  const float maxRadius = 500000.0f;  // было 50000, увеличено
 
-  // Относительное изменение: при delta = 1 радиус умножается на 0.9
-  // (приближение на 10%) при delta = -1 радиус умножается на 1.1 (отдаление на
-  // 10%)
   float factor = 1.0f;
   if (delta > 0) {
-    factor = 1.0f - delta * 0.1f;  // например, 10% за единицу delta
+    factor = 1.0f - delta * 0.1f;   // приближение
     if (factor < 0.001f) factor = 0.001f;
   } else if (delta < 0) {
-    factor = 1.0f - delta * 0.1f;  // delta отрицательный, factor > 1
-    if (factor > 1000.0f) factor = 1000.0f;  // ограничиваем максимальный рост
+    factor = 1.0f - delta * 0.1f;   // отдаление, factor > 1
+    if (factor > 1000.0f) factor = 1000.0f;
   }
 
   float newRadius = radius * factor;
@@ -194,10 +190,12 @@ void Camera::Zoom(float delta) {
   position_[1] = target_[1] + dy * scale;
   position_[2] = target_[2] + dz * scale;
 
+  // Динамическая дальняя плоскость: всегда чуть дальше камеры
+  farPlane_ = std::max(farPlane_, newRadius * 2.0f);
+
   if (projectionType_ == Settings::ProjectionType::Orthographic) {
-    // Для ортографической проекции также меняем zoomFactor пропорционально
     float newZoom = zoomFactor_ * factor;
-    SetZoomFactor(newZoom);  // используем сеттер с ограничениями
+    SetZoomFactor(newZoom);
   }
 }
 
