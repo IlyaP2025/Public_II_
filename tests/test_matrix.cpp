@@ -1059,6 +1059,106 @@ TEST(AdditionalTests, MatrixProperties) {
     EXPECT_TRUE(AB_T.EqMatrix(B_T_A_T));
 }
 
+// ===================== Apply =====================
+TEST(S21MatrixTest, ApplySigmoid) {
+  s21::S21Matrix m(2, 2);
+  m(0,0)=0.0; m(0,1)=1.0; m(1,0)=-1.0; m(1,1)=2.0;
+  m.Apply([](double x) { return 1.0 / (1.0 + exp(-x)); });
+  EXPECT_NEAR(m(0,0), 0.5, 1e-6);
+  EXPECT_NEAR(m(0,1), 0.73105857863, 1e-6);
+  EXPECT_NEAR(m(1,0), 0.26894142137, 1e-6);
+  EXPECT_NEAR(m(1,1), 0.88079707797, 1e-6);
+}
+
+TEST(S21MatrixTest, ApplySquare) {
+  s21::S21Matrix m(1, 3);
+  m(0,0)=1.0; m(0,1)=2.0; m(0,2)=3.0;
+  m.Apply([](double x) { return x * x; });
+  EXPECT_DOUBLE_EQ(m(0,0), 1.0);
+  EXPECT_DOUBLE_EQ(m(0,1), 4.0);
+  EXPECT_DOUBLE_EQ(m(0,2), 9.0);
+}
+
+// ===================== Transpose =====================
+TEST(S21MatrixTest, TransposeSquare) {
+  s21::S21Matrix m(2, 2);
+  m(0,0)=1; m(0,1)=2; m(1,0)=3; m(1,1)=4;
+  s21::S21Matrix t = m.Transpose();
+  EXPECT_EQ(t.GetRows(), 2);
+  EXPECT_EQ(t.GetCols(), 2);
+  EXPECT_DOUBLE_EQ(t(0,0), 1);
+  EXPECT_DOUBLE_EQ(t(0,1), 3);
+  EXPECT_DOUBLE_EQ(t(1,0), 2);
+  EXPECT_DOUBLE_EQ(t(1,1), 4);
+}
+
+TEST(S21MatrixTest, TransposeRectangular) {
+  s21::S21Matrix m(2, 3);
+  m(0,0)=1; m(0,1)=2; m(0,2)=3;
+  m(1,0)=4; m(1,1)=5; m(1,2)=6;
+  s21::S21Matrix t = m.Transpose();
+  EXPECT_EQ(t.GetRows(), 3);
+  EXPECT_EQ(t.GetCols(), 2);
+  EXPECT_DOUBLE_EQ(t(0,0), 1);
+  EXPECT_DOUBLE_EQ(t(0,1), 4);
+  EXPECT_DOUBLE_EQ(t(1,0), 2);
+  EXPECT_DOUBLE_EQ(t(1,1), 5);
+  EXPECT_DOUBLE_EQ(t(2,0), 3);
+  EXPECT_DOUBLE_EQ(t(2,1), 6);
+}
+
+// ===================== HadamardProduct =====================
+TEST(S21MatrixTest, HadamardProductValid) {
+  s21::S21Matrix a(2, 2), b(2, 2);
+  a(0,0)=1; a(0,1)=2; a(1,0)=3; a(1,1)=4;
+  b(0,0)=5; b(0,1)=6; b(1,0)=7; b(1,1)=8;
+  s21::S21Matrix c = a.HadamardProduct(b);
+  EXPECT_DOUBLE_EQ(c(0,0), 5);
+  EXPECT_DOUBLE_EQ(c(0,1), 12);
+  EXPECT_DOUBLE_EQ(c(1,0), 21);
+  EXPECT_DOUBLE_EQ(c(1,1), 32);
+}
+
+TEST(S21MatrixTest, HadamardProductMismatch) {
+  s21::S21Matrix a(2, 3), b(3, 2);
+  EXPECT_THROW(a.HadamardProduct(b), std::invalid_argument);
+}
+
+// ===================== Move Assignment =====================
+TEST(S21MatrixTest, MoveAssignment) {
+  s21::S21Matrix src(3, 3);
+  src(0,0)=99.0;
+  s21::S21Matrix dst;
+  dst = std::move(src);
+  EXPECT_EQ(dst.GetRows(), 3);
+  EXPECT_EQ(dst.GetCols(), 3);
+  EXPECT_DOUBLE_EQ(dst(0,0), 99.0);
+  // Исходный объект должен быть "пустым"
+  EXPECT_EQ(src.GetRows(), 0);
+  EXPECT_EQ(src.GetCols(), 0);
+}
+
+// ===================== Scalar Multiplication Operators =====================
+TEST(S21MatrixTest, OperatorMulScalar) {
+  s21::S21Matrix m(2, 2);
+  m(0,0)=1; m(0,1)=2; m(1,0)=3; m(1,1)=4;
+  s21::S21Matrix r = m * 2.5;
+  EXPECT_DOUBLE_EQ(r(0,0), 2.5);
+  EXPECT_DOUBLE_EQ(r(0,1), 5.0);
+  EXPECT_DOUBLE_EQ(r(1,0), 7.5);
+  EXPECT_DOUBLE_EQ(r(1,1), 10.0);
+}
+
+TEST(S21MatrixTest, OperatorMulEqualScalar) {
+  s21::S21Matrix m(2, 2);
+  m(0,0)=1; m(0,1)=2; m(1,0)=3; m(1,1)=4;
+  m *= 0.5;
+  EXPECT_DOUBLE_EQ(m(0,0), 0.5);
+  EXPECT_DOUBLE_EQ(m(0,1), 1.0);
+  EXPECT_DOUBLE_EQ(m(1,0), 1.5);
+  EXPECT_DOUBLE_EQ(m(1,1), 2.0);
+}
+
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
