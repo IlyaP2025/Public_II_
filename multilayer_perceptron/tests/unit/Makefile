@@ -6,14 +6,13 @@
 LIBMLP_DIR = ../../libmlp
 INCLUDES = -I$(LIBMLP_DIR)/src -I$(LIBMLP_DIR)/include/mlp
 SRC_DIR = $(LIBMLP_DIR)/src
-REPORT_DIR = ../../report
+REPORT_DIR = ../../reporti
 
 CXX = g++
 CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -g -fPIC
 GCOV_FLAGS = -fprofile-arcs -ftest-coverage
 LDFLAGS = -lgtest -lgtest_main -lpthread -lgcov
 
-INCLUDES = -I$(INCLUDE_DIR)
 OBJ_DIR = obj
 
 LIB_SRCS = $(SRC_DIR)/matrix/s21_matrix_oop.cpp
