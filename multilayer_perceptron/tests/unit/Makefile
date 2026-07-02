@@ -15,7 +15,9 @@ LDFLAGS = -lgtest -lgtest_main -lpthread -lgcov
 
 OBJ_DIR = obj
 
-LIB_SRCS = $(SRC_DIR)/matrix/s21_matrix_oop.cpp
+LIB_SRCS = $(SRC_DIR)/matrix/s21_matrix_oop.cpp \
+	   $(SRC_DIR)/perceptron/matrix_perceptron.cpp
+
 TEST_SRCS = $(wildcard *.cpp)
 
 LIB_OBJS = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/lib_%.o,$(LIB_SRCS))
