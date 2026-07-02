@@ -10,7 +10,7 @@ using namespace s21::mlp;
 
 TEST(EmnistTest, LoadAndTrain) {
   // Проверяем, что файл существует
-  std::string path = "../datasets/emnist-letters-train.csv";
+  std::string path = "../../datasets/emnist-letters-train.csv";
   std::ifstream test_file(path);
   if (!test_file.is_open()) {
     GTEST_SKIP() << "Dataset not found: " << path;
