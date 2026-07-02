@@ -4,6 +4,7 @@
 #include "trainer/simple_trainer.h"
 #include <iostream>
 #include <cmath>
+#include <fstream>
 
 using namespace s21::mlp;
 
