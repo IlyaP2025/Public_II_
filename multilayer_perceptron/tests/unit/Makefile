@@ -4,7 +4,7 @@
 # ------------------------------------------------------------
 
 LIBMLP_DIR = ../../libmlp
-INCLUDE_DIR = $(LIBMLP_DIR)/include/mlp
+INCLUDE_DIR = $(LIBMLP_DIR)/src
 SRC_DIR = $(LIBMLP_DIR)/src
 REPORT_DIR = ../../report
 
