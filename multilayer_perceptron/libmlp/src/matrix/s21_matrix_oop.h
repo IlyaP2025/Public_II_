@@ -80,6 +80,11 @@ class S21Matrix {
 
   // Дружественные операторы
   friend S21Matrix operator*(double num, const S21Matrix& matrix);
+
+  // Методы для MLP
+  void Apply(const std::function<double(double)>& func);
+  S21Matrix HadamardProduct(const S21Matrix& other) const;
+
 };
 
 // Дружественный оператор умножения числа на матрицу

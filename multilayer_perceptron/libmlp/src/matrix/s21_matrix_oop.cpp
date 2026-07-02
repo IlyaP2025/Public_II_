@@ -625,3 +625,28 @@ S21Matrix operator*(double num, const S21Matrix& matrix) {
   return matrix * num;
 }
 
+// ==================== ДОПОЛНИТЕЛЬНЫЕ ОПЕРАЦИИ ДЛЯ MLP ====================
+
+void S21Matrix::Apply(const std::function<double(double)>& func) {
+  for (int i = 0; i < rows_; ++i) {
+    for (int j = 0; j < cols_; ++j) {
+      matrix_[i][j] = func(matrix_[i][j]);
+    }
+  }
+}
+
+S21Matrix S21Matrix::HadamardProduct(const S21Matrix& other) const {
+  if (rows_ != other.rows_ || cols_ != other.cols_) {
+    throw std::invalid_argument(
+        "Matrices must have same dimensions for Hadamard product");
+  }
+  S21Matrix result(rows_, cols_);
+  for (int i = 0; i < rows_; ++i) {
+    for (int j = 0; j < cols_; ++j) {
+      result.matrix_[i][j] = matrix_[i][j] * other.matrix_[i][j];
+    }
+  }
+  return result;
+}
+
+
