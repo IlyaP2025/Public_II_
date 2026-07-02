@@ -1,6 +1,7 @@
 #ifndef MLP_IDATALOADER_H
 #define MLP_IDATALOADER_H
 
+#include "ITrainer.h"
 #include <utility>
 #include <vector>
 #include <string>
