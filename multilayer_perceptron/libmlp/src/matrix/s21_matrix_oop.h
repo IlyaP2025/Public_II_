@@ -1,71 +1,89 @@
 #ifndef S21_MATRIX_OOP_H
 #define S21_MATRIX_OOP_H
 
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstring>
-#include <functional>
 #include <iostream>
 #include <stdexcept>
-#include <utility>
-
-namespace s21 {
 
 class S21Matrix {
+ private:
+  int rows_;
+  int cols_;
+  double** matrix_;
+
+  // Вспомогательные приватные методы
+  bool CheckValidity() const;
+  bool CheckSquare() const;
+  void AllocateMemory();
+  void DeallocateMemory();
+  void SafeCopy(const S21Matrix& other);
+  S21Matrix GetMinorMatrix(int exclude_row, int exclude_col) const;
+  void MultiplyInternal(const S21Matrix& other, S21Matrix* result) const;
+  void CalculateAlgebraicComplements(S21Matrix* result) const;
+
+  // Методы для определителя
+  double CalculateDeterminant1x1() const;
+  double CalculateDeterminant2x2() const;
+  double CalculateDeterminantRecursive() const;
+  double CalculateDeterminantGaussian() const;
+  void PerformGaussianElimination(S21Matrix* matrix_copy, int* sign_multiplier,
+                                  bool* is_zero_det) const;
+  void SwapMatrixRows(int row1, int row2);
+  void EliminateRowsBelow(int pivot_row);
+
  public:
   // Конструкторы и деструктор
-  S21Matrix();
-  S21Matrix(int rows, int cols);
-  S21Matrix(const S21Matrix& other);
-  S21Matrix(S21Matrix&& other) noexcept;
-  ~S21Matrix();
+  S21Matrix();                    // Базовый конструктор (3x3)
+  S21Matrix(int rows, int cols);  // Параметризированный конструктор
+  S21Matrix(const S21Matrix& other);  // Конструктор копирования
+  S21Matrix(S21Matrix&& other) noexcept;  // Конструктор перемещения
+  ~S21Matrix();                           // Деструктор
 
   // Операторы присваивания
   S21Matrix& operator=(const S21Matrix& other);
   S21Matrix& operator=(S21Matrix&& other) noexcept;
 
-  // Доступ к элементам
-  double& operator()(int row, int col);
-  const double& operator()(int row, int col) const;
+  // Accessor и Mutator
+  int get_rows() const;
+  int get_cols() const;
+  void set_rows(int rows);
+  void set_cols(int cols);
 
-  // Арифметические операторы
-  S21Matrix operator+(const S21Matrix& other) const;
-  S21Matrix operator-(const S21Matrix& other) const;
-  S21Matrix operator*(const S21Matrix& other) const;        // матричное умножение
-  S21Matrix operator*(double num) const;                    // умножение на скаляр
-  S21Matrix& operator+=(const S21Matrix& other);
-  S21Matrix& operator-=(const S21Matrix& other);
-  S21Matrix& operator*=(const S21Matrix& other);            // поэлементное (Адамар)
-  S21Matrix& operator*=(double num);
-
-  // Поэлементное применение функции (сигмоида и т.п.)
-  void Apply(const std::function<double(double)>& func);
-
-  // Транспонирование
-  S21Matrix Transpose() const;
-
-  // Произведение Адамара (поэлементное умножение)
-  S21Matrix HadamardProduct(const S21Matrix& other) const;
-
-  // Методы для работы с размерностями
-  int GetRows() const;
-  int GetCols() const;
-
-  // Утилиты
+  // Основные операции с матрицами
   bool EqMatrix(const S21Matrix& other) const;
   void SumMatrix(const S21Matrix& other);
   void SubMatrix(const S21Matrix& other);
-  void MulNumber(const double num);
+  void MulNumber(double number);
   void MulMatrix(const S21Matrix& other);
+  S21Matrix Transpose() const;
+  S21Matrix CalcComplements() const;
+  double Determinant() const;
+  S21Matrix InverseMatrix() const;
 
- private:
-  int rows_, cols_;
-  double** matrix_;
+  // Перегрузка операторов
+  S21Matrix operator+(const S21Matrix& other) const;
+  S21Matrix operator-(const S21Matrix& other) const;
+  S21Matrix operator*(const S21Matrix& other) const;
+  S21Matrix operator*(double number) const;
+  bool operator==(const S21Matrix& other) const;
+  S21Matrix& operator+=(const S21Matrix& other);
+  S21Matrix& operator-=(const S21Matrix& other);
+  S21Matrix& operator*=(const S21Matrix& other);
+  S21Matrix& operator*=(double number);
 
-  void AllocateMemory();
-  void FreeMemory();
-  void CopyFrom(const S21Matrix& other);
+  // Операторы индексации
+  double& operator()(int row, int col);
+  const double& operator()(int row, int col) const;
+
+  // Дружественные операторы
+  friend S21Matrix operator*(double num, const S21Matrix& matrix);
 };
 
-}  // namespace s21
+// Дружественный оператор умножения числа на матрицу
+S21Matrix operator*(double num, const S21Matrix& matrix);
 
 #endif  // S21_MATRIX_OOP_H
+
