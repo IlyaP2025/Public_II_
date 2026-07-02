@@ -1082,8 +1082,8 @@ TEST(S21MatrixTest, TransposeSquare) {
   S21Matrix m(2, 2);
   m(0,0)=1; m(0,1)=2; m(1,0)=3; m(1,1)=4;
   S21Matrix t = m.Transpose();
-  EXPECT_EQ(t.GetRows(), 2);
-  EXPECT_EQ(t.GetCols(), 2);
+  EXPECT_EQ(t.get_rows(), 2);
+  EXPECT_EQ(t.get_cols(), 2);
   EXPECT_DOUBLE_EQ(t(0,0), 1);
   EXPECT_DOUBLE_EQ(t(0,1), 3);
   EXPECT_DOUBLE_EQ(t(1,0), 2);
@@ -1095,8 +1095,8 @@ TEST(S21MatrixTest, TransposeRectangular) {
   m(0,0)=1; m(0,1)=2; m(0,2)=3;
   m(1,0)=4; m(1,1)=5; m(1,2)=6;
   S21Matrix t = m.Transpose();
-  EXPECT_EQ(t.GetRows(), 3);
-  EXPECT_EQ(t.GetCols(), 2);
+  EXPECT_EQ(t.get_rows(), 3);
+  EXPECT_EQ(t.get_cols(), 2);
   EXPECT_DOUBLE_EQ(t(0,0), 1);
   EXPECT_DOUBLE_EQ(t(0,1), 4);
   EXPECT_DOUBLE_EQ(t(1,0), 2);
@@ -1130,12 +1130,12 @@ TEST(S21MatrixTest, MoveAssignment) {
   src(0,0)=99.0;
   S21Matrix dst;
   dst = std::move(src);
-  EXPECT_EQ(dst.GetRows(), 3);
-  EXPECT_EQ(dst.GetCols(), 3);
+  EXPECT_EQ(dst.get_rows(), 3);
+  EXPECT_EQ(dst.get_cols(), 3);
   EXPECT_DOUBLE_EQ(dst(0,0), 99.0);
   // Исходный объект должен быть "пустым"
-  EXPECT_EQ(src.GetRows(), 0);
-  EXPECT_EQ(src.GetCols(), 0);
+  EXPECT_EQ(src.get_rows(), 0);
+  EXPECT_EQ(src.get_cols(), 0);
 }
 
 // ===================== Scalar Multiplication Operators =====================
