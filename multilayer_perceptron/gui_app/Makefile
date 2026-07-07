@@ -2,7 +2,7 @@ CXX = g++
 CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -g -fPIC $(shell pkg-config --cflags Qt5Widgets)
 LDFLAGS = $(shell pkg-config --libs Qt5Widgets) -L../libmlp -lmlp
 
-INCLUDES = -I../libmlp/include/mlp
+INCLUDES = -I. -I../libmlp/include/mlp
 
 SOURCES = main.cpp view/MainWindow.cpp controller/AppController.cpp
 OBJECTS = $(patsubst %.cpp,build/%.o,$(SOURCES))

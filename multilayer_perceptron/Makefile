@@ -16,6 +16,7 @@ libmlp:
 	$(MAKE) -C $(LIBMLP_DIR) all
 
 gui: libmlp
+	$(MAKE) -C $(LIBMLP_DIR) all
 	$(MAKE) -C $(GUI_DIR) all
 
 tests:

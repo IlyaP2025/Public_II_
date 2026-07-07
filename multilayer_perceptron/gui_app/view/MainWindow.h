@@ -23,6 +23,11 @@ public:
     void appendLog(const QString &text);
     void setTrainingEnabled(bool enabled);
 
+    // Елементы управления процессом
+    void setStartEnabled(bool enabled);
+    void setPauseEnabled(bool enabled);
+    void setStopEnabled(bool enabled);
+
 signals:
     void startTraining(double learningRate, int epochs);
     void pauseTraining();

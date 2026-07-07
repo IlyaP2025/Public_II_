@@ -76,5 +76,17 @@ void MainWindow::setTrainingEnabled(bool enabled) {
     stopBtn_->setEnabled(!enabled);
 }
 
+void MainWindow::setStartEnabled(bool enabled) {
+    startBtn_->setEnabled(enabled);
+}
+
+void MainWindow::setPauseEnabled(bool enabled) {
+    pauseBtn_->setEnabled(enabled);
+}
+
+void MainWindow::setStopEnabled(bool enabled) {
+    stopBtn_->setEnabled(enabled);
+}
+
 }  // namespace mlp
 }  // namespace s21

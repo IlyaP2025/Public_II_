@@ -5,6 +5,8 @@
 #include <memory>
 #include <thread>
 #include <atomic>
+#include <mutex>
+#include <condition_variable>
 
 #include "view/MainWindow.h"
 #include "perceptron/matrix_perceptron.h"
