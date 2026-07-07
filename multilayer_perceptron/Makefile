@@ -3,7 +3,7 @@
 # Управляет сборкой библиотеки, тестов и GUI-приложения
 # ------------------------------------------------------------
 
-.PHONY: all tests clean install uninstall dvi dist gcov_report
+.PHONY: all tests clean install uninstall dvi dist gcov_report gui
 
 LIBMLP_DIR = libmlp
 TEST_DIR = tests/unit
@@ -14,6 +14,9 @@ all: libmlp
 
 libmlp:
 	$(MAKE) -C $(LIBMLP_DIR) all
+
+gui: libmlp
+	$(MAKE) -C $(GUI_DIR) all
 
 tests:
 	$(MAKE) -C $(TEST_DIR) test
@@ -44,3 +47,4 @@ dist:
 clean:
 	$(MAKE) -C $(LIBMLP_DIR) clean
 	$(MAKE) -C $(TEST_DIR) clean
+	$(MAKE) -C $(GUI_DIR) clean
