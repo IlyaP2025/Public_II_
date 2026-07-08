@@ -85,9 +85,15 @@ void AppController::onTrainingFinished() {
 
 void AppController::runTraining(double learningRate, int epochs) {
     trainingThread_ = std::thread([this, learningRate, epochs]() {
-        window_->appendLog("Loading EMNIST dataset...");
+        QMetaObject::invokeMethod(window_, [this]() {
+            window_->appendLog("Loading EMNIST dataset...");
+        }, Qt::QueuedConnection);
+
         auto [train, test] = loader_.Load("../../datasets/emnist-letters-train.csv", 0.2);
-        window_->appendLog(QString("Train: %1, Test: %2").arg(train.size()).arg(test.size()));
+
+        QMetaObject::invokeMethod(window_, [this, train_size = train.size(), test_size = test.size()]() {
+            window_->appendLog(QString("Train: %1, Test: %2").arg(train_size).arg(test_size));
+        }, Qt::QueuedConnection);
 
         SimpleTrainer trainer(learningRate, epochs, true);
 
