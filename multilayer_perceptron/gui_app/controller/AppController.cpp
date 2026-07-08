@@ -85,31 +85,39 @@ void AppController::onTrainingFinished() {
 
 void AppController::runTraining(double learningRate, int epochs) {
     trainingThread_ = std::thread([this, learningRate, epochs]() {
-        QMetaObject::invokeMethod(window_, [this]() {
-            window_->appendLog("Loading EMNIST dataset...");
-        }, Qt::QueuedConnection);
-
-        auto [train, test] = loader_.Load("../../datasets/emnist-letters-train.csv", 0.2);
-
-        QMetaObject::invokeMethod(window_, [this, train_size = train.size(), test_size = test.size()]() {
-            window_->appendLog(QString("Train: %1, Test: %2").arg(train_size).arg(test_size));
-        }, Qt::QueuedConnection);
-
-        SimpleTrainer trainer(learningRate, epochs, true);
-
-        auto onEpoch = [this](int epoch, double trainLoss, double validLoss) {
-            if (stopRequested_) return;
-            std::unique_lock<std::mutex> lock(pauseMutex_);
-            pauseCV_.wait(lock, [this]() { return !pauseRequested_ || stopRequested_; });
-            if (stopRequested_) return;
-            QMetaObject::invokeMethod(window_, [this, epoch, trainLoss, validLoss]() {
-                window_->appendLog(QString("Epoch %1: train=%2 valid=%3")
-                    .arg(epoch).arg(trainLoss, 0, 'f', 6).arg(validLoss, 0, 'f', 6));
+        try {
+            QMetaObject::invokeMethod(window_, [this]() {
+                window_->appendLog("Loading EMNIST dataset...");
             }, Qt::QueuedConnection);
-        };
 
-        trainer.Train(*perceptron_, train, test, onEpoch);
-        QMetaObject::invokeMethod(this, &AppController::onTrainingFinished, Qt::QueuedConnection);
+            // ИСПРАВЛЕНО: путь относительно корня проекта
+            auto [train, test] = loader_.Load("datasets/emnist-letters-train.csv", 0.2);
+
+            QMetaObject::invokeMethod(window_, [this, train_size = train.size(), test_size = test.size()]() {
+                window_->appendLog(QString("Train: %1, Test: %2").arg(train_size).arg(test_size));
+            }, Qt::QueuedConnection);
+
+            SimpleTrainer trainer(learningRate, epochs, true);
+
+            auto onEpoch = [this](int epoch, double trainLoss, double validLoss) {
+                if (stopRequested_) return;
+                std::unique_lock<std::mutex> lock(pauseMutex_);
+                pauseCV_.wait(lock, [this]() { return !pauseRequested_ || stopRequested_; });
+                if (stopRequested_) return;
+                QMetaObject::invokeMethod(window_, [this, epoch, trainLoss, validLoss]() {
+                    window_->appendLog(QString("Epoch %1: train=%2 valid=%3")
+                        .arg(epoch).arg(trainLoss, 0, 'f', 6).arg(validLoss, 0, 'f', 6));
+                }, Qt::QueuedConnection);
+            };
+
+            trainer.Train(*perceptron_, train, test, onEpoch);
+            QMetaObject::invokeMethod(this, &AppController::onTrainingFinished, Qt::QueuedConnection);
+        } catch (const std::exception& e) {
+            QMetaObject::invokeMethod(window_, [this, msg = std::string(e.what())]() {
+                window_->appendLog(QString("Error: %1").arg(QString::fromStdString(msg)));
+                setState(TrainingState::Idle);
+            }, Qt::QueuedConnection);
+        }
     });
 }
 
