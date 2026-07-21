@@ -4,7 +4,8 @@
 #include <cstring>
 #include <algorithm>
 #include <cmath>
-
+#include <cstdint>
+ 
 namespace s21 {
 namespace mlp {
 
