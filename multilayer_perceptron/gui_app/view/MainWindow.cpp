@@ -173,7 +173,8 @@ void MainWindow::setupUI() {
                 layers.push_back(neurons);
             }
         } else { // Manual
-            if (manualLayerSpins_.size() != static_cast<size_t>(hiddenLayersSpin_->value())) {
+            // Исправлено: приведение к int для сравнения без знакового предупреждения
+            if (static_cast<int>(manualLayerSpins_.size()) != hiddenLayersSpin_->value()) {
                 QMessageBox::warning(this, "Error", "Layer count mismatch. Please re-apply.");
                 return;
             }
