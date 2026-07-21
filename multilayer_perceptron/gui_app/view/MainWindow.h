@@ -11,8 +11,6 @@
 #include <QTabWidget>
 #include <QComboBox>
 
-class QFormLayout;
-
 namespace s21 {
 namespace mlp {
 
@@ -49,18 +47,16 @@ private:
     QLabel *progressLabel_;
 
     // Settings
-    QFormLayout *formLayout_;
     QSpinBox *inputSizeSpin_;
     QSpinBox *outputSizeSpin_;
     QSpinBox *hiddenLayersSpin_;
     QComboBox *modeCombo_;
-    QWidget *manualContainer_;
-    QVector<QSpinBox*> manualLayerSpins_;
+    QWidget *manualContainer_;           // контейнер с полями (будет скрываться/показываться)
+    QVector<QSpinBox*> manualLayerSpins_; // поля для слоёв
     QPushButton *applyBtn_;
 
     void rebuildManualFields();
     void fillLinearDistribution();
-    void setManualFieldsVisible(bool visible);
 };
 
 } // namespace mlp

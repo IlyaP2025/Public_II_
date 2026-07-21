@@ -86,45 +86,56 @@ void MainWindow::setupUI() {
     QWidget *settingsTab = new QWidget();
     QVBoxLayout *settLayout = new QVBoxLayout(settingsTab);
 
+    // Группа архитектурных параметров
     QGroupBox *archGroup = new QGroupBox("Network Architecture");
-    formLayout_ = new QFormLayout;
+    QFormLayout *formLayout = new QFormLayout;
 
     inputSizeSpin_ = new QSpinBox();
     inputSizeSpin_->setRange(1, 10000);
     inputSizeSpin_->setValue(784);
-    formLayout_->addRow("Input size:", inputSizeSpin_);
+    formLayout->addRow("Input size:", inputSizeSpin_);
 
     outputSizeSpin_ = new QSpinBox();
     outputSizeSpin_->setRange(1, 1000);
     outputSizeSpin_->setValue(26);
-    formLayout_->addRow("Output size:", outputSizeSpin_);
+    formLayout->addRow("Output size:", outputSizeSpin_);
 
     hiddenLayersSpin_ = new QSpinBox();
     hiddenLayersSpin_->setRange(2, 10);
     hiddenLayersSpin_->setValue(2);
-    formLayout_->addRow("Hidden layers:", hiddenLayersSpin_);
+    formLayout->addRow("Hidden layers:", hiddenLayersSpin_);
 
     modeCombo_ = new QComboBox();
     modeCombo_->addItem("Linear", 0);
     modeCombo_->addItem("Manual", 1);
-    formLayout_->addRow("Mode:", modeCombo_);
+    formLayout->addRow("Mode:", modeCombo_);
 
-    // Контейнер для ручного ввода слоёв (НЕ добавляем в лейаут сейчас)
+    archGroup->setLayout(formLayout);
+    settLayout->addWidget(archGroup);
+
+    // Контейнер для ручного ввода слоёв (появится ниже группы)
     manualContainer_ = new QWidget();
     QVBoxLayout *manualLayout = new QVBoxLayout(manualContainer_);
     manualLayout->setContentsMargins(0, 0, 0, 0);
+    settLayout->addWidget(manualContainer_);
+    manualContainer_->hide();   // изначально скрыт
 
-    // Переключение режима
+    // Кнопка Apply
+    applyBtn_ = new QPushButton("Apply");
+    settLayout->addWidget(applyBtn_);
+    settLayout->addStretch();
+
+    tabWidget_->addTab(settingsTab, "Settings");
+
+    // При переключении режима показываем/прячем контейнер
     connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, [this, settingsTab](int index) {
+            this, [this](int index) {
         if (index == 1) {
             rebuildManualFields();
-            setManualFieldsVisible(true);
+            manualContainer_->show();
         } else {
-            setManualFieldsVisible(false);
+            manualContainer_->hide();
         }
-        // Принудительно обновляем вкладку
-        settingsTab->adjustSize();
     });
 
     // При изменении числа слоёв, входа или выхода в ручном режиме пересчитываем
@@ -141,16 +152,8 @@ void MainWindow::setupUI() {
         if (modeCombo_->currentIndex() == 1) fillLinearDistribution();
     });
 
-    // Инициализация – Linear (контейнер скрыт и удалён из лейаута)
+    // Инициализация – Linear
     modeCombo_->setCurrentIndex(0);
-
-    archGroup->setLayout(formLayout_);
-    settLayout->addWidget(archGroup);
-
-    applyBtn_ = new QPushButton("Apply");
-    settLayout->addWidget(applyBtn_);
-    settLayout->addStretch();
-    tabWidget_->addTab(settingsTab, "Settings");
 
     // Обработчик Apply
     connect(applyBtn_, &QPushButton::clicked, this, [this]() {
@@ -222,24 +225,6 @@ void MainWindow::fillLinearDistribution() {
         neurons = std::max(1, neurons);
         manualLayerSpins_[i]->setValue(neurons);
     }
-}
-
-void MainWindow::setManualFieldsVisible(bool visible) {
-    if (visible) {
-        // Добавляем строку с контейнером в formLayout_, если её там ещё нет
-        if (formLayout_->indexOf(manualContainer_) == -1) {
-            formLayout_->addRow(manualContainer_);
-        }
-        manualContainer_->show();
-    } else {
-        // Удаляем строку из formLayout_, но не удаляем сам виджет
-        formLayout_->removeWidget(manualContainer_);
-        manualContainer_->hide();
-    }
-    // Принудительно сообщаем лейауту, что нужно пересчитаться
-    formLayout_->invalidate();
-    formLayout_->activate();
-    manualContainer_->adjustSize();
 }
 
 // Публичные методы для контроллера
