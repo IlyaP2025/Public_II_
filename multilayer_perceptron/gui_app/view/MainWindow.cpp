@@ -118,9 +118,15 @@ void MainWindow::setupUI() {
     // Переключение режима отображения контейнера
     connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, [this](int index) {
-        manualContainer_->setVisible(index == 1);
-        if (index == 1) {
-            rebuildManualFields();   // при входе в Manual – заполнить поля линейно
+        bool isManual = (index == 1);
+        manualContainer_->setVisible(isManual);
+        if (isManual) {
+            rebuildManualFields();
+        }
+        // Принудительно обновляем геометрию контейнера и его родителя
+        manualContainer_->adjustSize();
+        if (auto* parent = manualContainer_->parentWidget()) {
+            parent->adjustSize();
         }
     });
 
@@ -147,7 +153,6 @@ void MainWindow::setupUI() {
     // Инициализация: Linear по умолчанию
     modeCombo_->setCurrentIndex(0);
     manualContainer_->setVisible(false);
-    rebuildManualFields();  // на случай, если пользователь сразу переключит в Manual
 
     archGroup->setLayout(formLayout);
     settLayout->addWidget(archGroup);
@@ -173,7 +178,6 @@ void MainWindow::setupUI() {
                 layers.push_back(neurons);
             }
         } else { // Manual
-            // Исправлено: приведение к int для сравнения без знакового предупреждения
             if (static_cast<int>(manualLayerSpins_.size()) != hiddenLayersSpin_->value()) {
                 QMessageBox::warning(this, "Error", "Layer count mismatch. Please re-apply.");
                 return;
@@ -194,7 +198,6 @@ void MainWindow::setupUI() {
 
 // ------------------ Вспомогательные методы -----------------
 void MainWindow::rebuildManualFields() {
-    // Очищаем старые поля
     QLayout *layout = manualContainer_->layout();
     if (layout) {
         QLayoutItem *child;
@@ -211,12 +214,12 @@ void MainWindow::rebuildManualFields() {
         row->addWidget(new QLabel(QString("Layer %1:").arg(i)));
         QSpinBox *spin = new QSpinBox();
         spin->setRange(1, 1024);
-        spin->setValue(0);      // временно
         row->addWidget(spin);
         manualContainer_->layout()->addItem(row);
         manualLayerSpins_.append(spin);
     }
-    fillLinearDistribution();   // сразу заполняем линейным распределением
+    fillLinearDistribution();   // автоматически заполняем разумными значениями
+    manualContainer_->adjustSize();
 }
 
 void MainWindow::fillLinearDistribution() {
