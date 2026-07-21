@@ -4,6 +4,7 @@
 #include <QGroupBox>
 #include <QFormLayout>
 #include <QMessageBox>
+#include <cmath>
 
 namespace s21 {
 namespace mlp {
@@ -88,7 +89,6 @@ void MainWindow::setupUI() {
     QGroupBox *archGroup = new QGroupBox("Network Architecture");
     QFormLayout *formLayout = new QFormLayout;
 
-    // Входной и выходной размеры
     inputSizeSpin_ = new QSpinBox();
     inputSizeSpin_->setRange(1, 10000);
     inputSizeSpin_->setValue(784);
@@ -100,43 +100,85 @@ void MainWindow::setupUI() {
     formLayout->addRow("Output size:", outputSizeSpin_);
 
     // Число скрытых слоёв
-    hiddenLayersCombo_ = new QComboBox();
-    for (int i = 2; i <= 5; ++i) {
-        hiddenLayersCombo_->addItem(QString::number(i), i);
-    }
-    formLayout->addRow("Hidden layers:", hiddenLayersCombo_);
+    hiddenLayersSpin_ = new QSpinBox();
+    hiddenLayersSpin_->setRange(2, 10);
+    hiddenLayersSpin_->setValue(2);
+    formLayout->addRow("Hidden layers:", hiddenLayersSpin_);
 
-    // Контейнер для полей Layer 1..N (изначально пустые)
-    QWidget *neuronsWidget = new QWidget();
-    QVBoxLayout *neuronsLayout = new QVBoxLayout(neuronsWidget);
-    neuronsLayout->setContentsMargins(0, 0, 0, 0);
-    formLayout->addRow(neuronsWidget);
+    // Режим: Linear / Manual
+    modeCombo_ = new QComboBox();
+    modeCombo_->addItem("Linear", 0);
+    modeCombo_->addItem("Manual", 1);
+    formLayout->addRow("Mode:", modeCombo_);
 
-    auto rebuildNeuronFields = [this, neuronsLayout]() {
-        // Очищаем старые поля
+    // Контейнер для ручных полей (по умолчанию скрыт, т.к. режим Linear)
+    manualContainer_ = new QWidget();
+    QVBoxLayout *manualLayout = new QVBoxLayout(manualContainer_);
+    manualLayout->setContentsMargins(0, 0, 0, 0);
+    formLayout->addRow(manualContainer_);
+
+    // Функция пересоздания полей и заполнения линейным распределением
+    rebuildManualFields = [this, manualLayout]() {
+        // Очистка
         QLayoutItem *child;
-        while ((child = neuronsLayout->takeAt(0)) != nullptr) {
+        while ((child = manualLayout->takeAt(0)) != nullptr) {
             delete child->widget();
             delete child;
         }
-        neuronSpinBoxes_.clear();
-        int layers = hiddenLayersCombo_->currentData().toInt();
+        manualLayerSpins_.clear();
+        int layers = hiddenLayersSpin_->value();
         for (int i = 1; i <= layers; ++i) {
             QHBoxLayout *row = new QHBoxLayout;
-            row->addWidget(new QLabel(QString("Layer %1 neurons:").arg(i)));
+            row->addWidget(new QLabel(QString("Layer %1:").arg(i)));
             QSpinBox *spin = new QSpinBox();
             spin->setRange(1, 1024);
-            spin->setValue(0);          // 0 означает "не задано"
-            spin->setSpecialValueText(""); // пустой текст при 0
+            spin->setValue(0); // временно
             row->addWidget(spin);
-            neuronsLayout->addLayout(row);
-            neuronSpinBoxes_.append(spin);
+            manualLayout->addLayout(row);
+            manualLayerSpins_.append(spin);
+        }
+        fillLinearDistribution(); // сразу заполняем линейно
+    };
+
+    // Автоматический расчёт линейной цепочки и запись в поля
+    fillLinearDistribution = [this]() {
+        if (manualLayerSpins_.isEmpty()) return;
+        int input = inputSizeSpin_->value();
+        int output = outputSizeSpin_->value();
+        int num = manualLayerSpins_.size();
+        double step = static_cast<double>(input - output) / (num + 1);
+        for (int i = 0; i < num; ++i) {
+            int neurons = static_cast<int>(input - step * (i + 1) + 0.5);
+            neurons = std::max(1, neurons);
+            manualLayerSpins_[i]->setValue(neurons);
         }
     };
 
-    connect(hiddenLayersCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, rebuildNeuronFields);
-    rebuildNeuronFields(); // начальное заполнение
+    // При изменении числа слоёв или входа/выхода пересчитываем поля (если Manual)
+    connect(hiddenLayersSpin_, QOverload<int>::of(&QSpinBox::valueChanged), this, [this]() {
+        rebuildManualFields();
+    });
+    connect(inputSizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged), this, [this]() {
+        if (modeCombo_->currentIndex() == 1) fillLinearDistribution();
+    });
+    connect(outputSizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged), this, [this]() {
+        if (modeCombo_->currentIndex() == 1) fillLinearDistribution();
+    });
+
+    // Переключение режима: показываем/прячем контейнер и заполняем поля при входе в Manual
+    connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index) {
+        manualContainer_->setVisible(index == 1);   // 1 = Manual
+        if (index == 1) {
+            // При входе в ручной режим перестраиваем поля и заполняем линейным распределением
+            rebuildManualFields();
+        }
+    });
+
+    // Инициализация
+    modeCombo_->setCurrentIndex(0); // Linear по умолчанию
+    manualContainer_->setVisible(false);
+    // Первичное заполнение (для Manual, если бы он был открыт)
+    rebuildManualFields();
 
     archGroup->setLayout(formLayout);
     settLayout->addWidget(archGroup);
@@ -146,46 +188,32 @@ void MainWindow::setupUI() {
     settLayout->addStretch();
     tabWidget_->addTab(settingsTab, "Settings");
 
-    // Обработчик кнопки Apply
+    // Обработчик Apply
     connect(applyBtn_, &QPushButton::clicked, this, [this]() {
         std::vector<size_t> layers;
         layers.push_back(inputSizeSpin_->value());
 
-        bool allEmpty = true;
-        for (auto* spin : neuronSpinBoxes_) {
-            if (spin->value() > 0) {
-                allEmpty = false;
-                break;
-            }
-        }
-
-        if (allEmpty) {
-            // Автоматический линейный расчёт
+        if (modeCombo_->currentIndex() == 0) { // Linear
             int input = inputSizeSpin_->value();
             int output = outputSizeSpin_->value();
-            int num = neuronSpinBoxes_.size();
-            if (num > 0) {
-                double step = static_cast<double>(input - output) / (num + 1);
-                for (int i = 0; i < num; ++i) {
-                    int neurons = static_cast<int>(input - step * (i + 1) + 0.5);
-                    neurons = std::max(1, neurons);
-                    neuronSpinBoxes_[i]->setValue(neurons);
-                }
+            int num = hiddenLayersSpin_->value();
+            double step = static_cast<double>(input - output) / (num + 1);
+            for (int i = 1; i <= num; ++i) {
+                int neurons = static_cast<int>(input - step * i + 0.5);
+                neurons = std::max(1, neurons);
+                layers.push_back(neurons);
             }
-            // Повторно собираем значения из полей
-            for (auto* spin : neuronSpinBoxes_) {
-                layers.push_back(spin->value());
+        } else { // Manual
+            if (manualLayerSpins_.size() != hiddenLayersSpin_->value()) {
+                QMessageBox::warning(this, "Error", "Layer count mismatch. Please re-apply.");
+                return;
             }
-        } else {
-            // Используем значения, введённые пользователем
-            for (auto* spin : neuronSpinBoxes_) {
-                int val = spin->value();
-                if (val <= 0) {
-                    QMessageBox::warning(this, "Error",
-                        "All layer sizes must be set. Fill them manually or press Apply with empty fields for automatic linear distribution.");
+            for (auto* spin : manualLayerSpins_) {
+                if (spin->value() <= 0) {
+                    QMessageBox::warning(this, "Error", "All layer sizes must be positive.");
                     return;
                 }
-                layers.push_back(val);
+                layers.push_back(spin->value());
             }
         }
 

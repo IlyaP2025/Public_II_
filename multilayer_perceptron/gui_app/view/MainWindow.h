@@ -19,16 +19,13 @@ class MainWindow : public QMainWindow {
 public:
     explicit MainWindow(QWidget *parent = nullptr);
 
-    // Обновление интерфейса из контроллера
     void setStatus(const QString &status);
     void appendLog(const QString &text);
 
-    // Управление кнопками обучения
     void setStartEnabled(bool enabled);
     void setPauseEnabled(bool enabled);
     void setStopEnabled(bool enabled);
 
-    // Индикация прогресса
     void setProgress(int current, int total);
     void resetProgress();
 
@@ -42,23 +39,26 @@ private:
     void setupUI();
     QTabWidget *tabWidget_;
 
-    // --- Вкладка Training ---
+    // Training
     QDoubleSpinBox *learningRateSpin_;
     QSpinBox *epochsSpin_;
-    QPushButton *startBtn_;
-    QPushButton *pauseBtn_;
-    QPushButton *stopBtn_;
+    QPushButton *startBtn_, *pauseBtn_, *stopBtn_;
     QPlainTextEdit *logEdit_;
     QLabel *statusLabel_;
     QProgressBar *progressBar_;
     QLabel *progressLabel_;
 
-    // --- Вкладка Settings ---
+    // Settings
     QSpinBox *inputSizeSpin_;
     QSpinBox *outputSizeSpin_;
-    QComboBox *hiddenLayersCombo_;
-    QVector<QSpinBox*> neuronSpinBoxes_;  // поля Layer 1..N
+    QSpinBox *hiddenLayersSpin_;            // 2..10
+    QComboBox *modeCombo_;                  // Linear / Manual
+    QWidget *manualContainer_;              // контейнер с полями для Manual
+    QVector<QSpinBox*> manualLayerSpins_;   // поля нейронов
     QPushButton *applyBtn_;
+
+    void rebuildManualFields();             // пересоздаёт поля при изменении числа слоёв
+    void fillLinearDistribution();          // заполняет поля линейным распределением (для Manual)
 };
 
 } // namespace mlp
