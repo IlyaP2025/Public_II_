@@ -1,5 +1,6 @@
 #include "AppController.h"
 #include <QApplication>
+#include <QFileDialog>
 #include <iostream>
 #include <iomanip>
 #include <random>
@@ -16,6 +17,7 @@ AppController::AppController(QObject *parent) : QObject(parent) {
     connect(window_, &MainWindow::pauseTraining, this, &AppController::onPauseTraining);
     connect(window_, &MainWindow::stopTraining, this, &AppController::onStopTraining);
     connect(window_, &MainWindow::applySettings, this, &AppController::onApplySettings);
+    connect(window_, &MainWindow::loadBmp, this, &AppController::onLoadBmp);   // новое соединение
 
     perceptron_ = std::make_unique<MatrixPerceptron>(std::vector<size_t>{784, 128, 26});
 }
@@ -94,7 +96,6 @@ void AppController::onApplySettings(const std::vector<size_t>& layers) {
         }, Qt::QueuedConnection);
         return;
     }
-    // Пересоздаём перцептрон
     try {
         perceptron_ = std::make_unique<MatrixPerceptron>(layers);
         QMetaObject::invokeMethod(window_, [this, layers]() {
@@ -112,6 +113,34 @@ void AppController::onApplySettings(const std::vector<size_t>& layers) {
     }
 }
 
+void AppController::onLoadBmp() {
+    if (state_ != TrainingState::Idle) {
+        QMetaObject::invokeMethod(window_, [this]() {
+            window_->appendLog("Cannot load BMP while training.");
+        }, Qt::QueuedConnection);
+        return;
+    }
+
+    QString fileName = QFileDialog::getOpenFileName(window_, "Open BMP", "", "BMP Files (*.bmp)");
+    if (fileName.isEmpty()) return;
+
+    try {
+        std::vector<double> pixels = BmpLoader::LoadImage(fileName.toStdString());
+        std::vector<double> output = perceptron_->Predict(pixels);
+
+        int classIdx = std::max_element(output.begin(), output.end()) - output.begin();
+        char letter = 'A' + classIdx;
+
+        QMetaObject::invokeMethod(window_, [this, pixels, output, letter]() {
+            window_->displayPrediction(pixels, output, letter);
+        }, Qt::QueuedConnection);
+    } catch (const std::exception& e) {
+        QMetaObject::invokeMethod(window_, [this, msg = std::string(e.what())]() {
+            window_->appendLog(QString("BMP load error: %1").arg(QString::fromStdString(msg)));
+        }, Qt::QueuedConnection);
+    }
+}
+
 void AppController::runTraining(double learningRate, int epochs) {
     trainingThread_ = std::thread([this, learningRate, epochs]() {
         try {
@@ -125,17 +154,15 @@ void AppController::runTraining(double learningRate, int epochs) {
                 window_->appendLog(QString("Train: %1, Test: %2").arg(train_size).arg(test_size));
             }, Qt::QueuedConnection);
 
-            // Ручной цикл обучения с прогрессом
             std::random_device rd;
             std::mt19937 g(rd());
-            const int reportInterval = 5000; // обновление прогресса каждые 5000 примеров
+            const int reportInterval = 5000;
 
             for (int epoch = 0; epoch < epochs && !stopRequested_; ++epoch) {
                 std::shuffle(train.begin(), train.end(), g);
                 int total = static_cast<int>(train.size());
 
                 for (int i = 0; i < total && !stopRequested_; ++i) {
-                    // Обработка паузы
                     std::unique_lock<std::mutex> lock(pauseMutex_);
                     pauseCV_.wait(lock, [this]() { return !pauseRequested_ || stopRequested_; });
                     if (stopRequested_) break;
@@ -145,7 +172,6 @@ void AppController::runTraining(double learningRate, int epochs) {
                     perceptron_->Backward(sample.second);
                     perceptron_->UpdateWeights(learningRate);
 
-                    // Обновление прогресса
                     if ((i + 1) % reportInterval == 0 || (i + 1) == total) {
                         int current = i + 1;
                         QMetaObject::invokeMethod(window_, [this, current, total]() {
@@ -156,7 +182,6 @@ void AppController::runTraining(double learningRate, int epochs) {
 
                 if (stopRequested_) break;
 
-                // Расчёт ошибки после эпохи
                 double trainLoss = 0.0;
                 for (const auto& s : train) {
                     auto out = perceptron_->Predict(s.first);

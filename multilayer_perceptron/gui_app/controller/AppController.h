@@ -13,6 +13,7 @@
 #include "view/MainWindow.h"
 #include "perceptron/matrix_perceptron.h"
 #include "data/emnist_loader.h"
+#include "data/bmp_loader.h"
 
 namespace s21 {
 namespace mlp {
@@ -32,6 +33,7 @@ private slots:
     void onStopTraining();
     void onTrainingFinished();
     void onApplySettings(const std::vector<size_t>& layers);
+    void onLoadBmp();   // обработка запроса загрузки BMP
 
 private:
     void setState(TrainingState state);

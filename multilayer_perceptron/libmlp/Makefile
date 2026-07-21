@@ -14,7 +14,8 @@ BUILD_DIR = build
 SOURCES = $(SRC_DIR)/matrix/s21_matrix_oop.cpp \
 	  $(SRC_DIR)/perceptron/matrix_perceptron.cpp \
 	  $(SRC_DIR)/data/emnist_loader.cpp \
-	  $(SRC_DIR)/trainer/simple_trainer.cpp
+	  $(SRC_DIR)/trainer/simple_trainer.cpp \
+      $(SRC_DIR)/data/bmp_loader.cpp
 
 OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
 TARGET = libmlp.a
