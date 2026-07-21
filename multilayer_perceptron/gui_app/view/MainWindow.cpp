@@ -109,33 +109,21 @@ void MainWindow::setupUI() {
     modeCombo_->addItem("Manual", 1);
     formLayout_->addRow("Mode:", modeCombo_);
 
-    // Контейнер для ручного ввода слоёв – добавляем в лейаут всегда, но скрываем
+    // Контейнер для ручного ввода слоёв (НЕ добавляем в лейаут сейчас)
     manualContainer_ = new QWidget();
     QVBoxLayout *manualLayout = new QVBoxLayout(manualContainer_);
     manualLayout->setContentsMargins(0, 0, 0, 0);
-    formLayout_->addRow(manualContainer_);   // теперь он всегда в лейауте
-    manualContainer_->hide();                // изначально скрыт
 
     // Переключение режима
     connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, [this, settingsTab](int index) {
         if (index == 1) {
-            rebuildManualFields();          // создаём поля
-            manualContainer_->show();       // показываем контейнер
+            rebuildManualFields();
+            setManualFieldsVisible(true);
         } else {
-            manualContainer_->hide();       // прячем контейнер
+            setManualFieldsVisible(false);
         }
-        // Принудительно обновляем компоновку
-        formLayout_->invalidate();
-        formLayout_->activate();
-        manualContainer_->adjustSize();
-        // Обновляем всех родителей до вкладки
-        QWidget *parent = manualContainer_->parentWidget();
-        while (parent) {
-            parent->adjustSize();
-            parent = parent->parentWidget();
-        }
-        // Дополнительно обновляем вкладку настроек
+        // Принудительно обновляем вкладку
         settingsTab->adjustSize();
     });
 
@@ -153,7 +141,7 @@ void MainWindow::setupUI() {
         if (modeCombo_->currentIndex() == 1) fillLinearDistribution();
     });
 
-    // Инициализация – Linear
+    // Инициализация – Linear (контейнер скрыт и удалён из лейаута)
     modeCombo_->setCurrentIndex(0);
 
     archGroup->setLayout(formLayout_);
@@ -234,6 +222,24 @@ void MainWindow::fillLinearDistribution() {
         neurons = std::max(1, neurons);
         manualLayerSpins_[i]->setValue(neurons);
     }
+}
+
+void MainWindow::setManualFieldsVisible(bool visible) {
+    if (visible) {
+        // Добавляем строку с контейнером в formLayout_, если её там ещё нет
+        if (formLayout_->indexOf(manualContainer_) == -1) {
+            formLayout_->addRow(manualContainer_);
+        }
+        manualContainer_->show();
+    } else {
+        // Удаляем строку из formLayout_, но не удаляем сам виджет
+        formLayout_->removeWidget(manualContainer_);
+        manualContainer_->hide();
+    }
+    // Принудительно сообщаем лейауту, что нужно пересчитаться
+    formLayout_->invalidate();
+    formLayout_->activate();
+    manualContainer_->adjustSize();
 }
 
 // Публичные методы для контроллера

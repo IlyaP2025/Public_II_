@@ -11,7 +11,7 @@
 #include <QTabWidget>
 #include <QComboBox>
 
-class QFormLayout;   // опережающее объявление
+class QFormLayout;
 
 namespace s21 {
 namespace mlp {
@@ -49,7 +49,7 @@ private:
     QLabel *progressLabel_;
 
     // Settings
-    QFormLayout *formLayout_;            // <-- добавлено
+    QFormLayout *formLayout_;
     QSpinBox *inputSizeSpin_;
     QSpinBox *outputSizeSpin_;
     QSpinBox *hiddenLayersSpin_;
@@ -60,7 +60,7 @@ private:
 
     void rebuildManualFields();
     void fillLinearDistribution();
-    void setManualFieldsVisible(bool visible);  // новый метод
+    void setManualFieldsVisible(bool visible);
 };
 
 } // namespace mlp
