@@ -11,6 +11,8 @@
 #include <QTabWidget>
 #include <QComboBox>
 
+class QFormLayout;   // опережающее объявление
+
 namespace s21 {
 namespace mlp {
 
@@ -21,11 +23,9 @@ public:
 
     void setStatus(const QString &status);
     void appendLog(const QString &text);
-
     void setStartEnabled(bool enabled);
     void setPauseEnabled(bool enabled);
     void setStopEnabled(bool enabled);
-
     void setProgress(int current, int total);
     void resetProgress();
 
@@ -49,16 +49,18 @@ private:
     QLabel *progressLabel_;
 
     // Settings
+    QFormLayout *formLayout_;            // <-- добавлено
     QSpinBox *inputSizeSpin_;
     QSpinBox *outputSizeSpin_;
-    QSpinBox *hiddenLayersSpin_;            // 2..10
-    QComboBox *modeCombo_;                  // Linear / Manual
-    QWidget *manualContainer_;              // контейнер с полями для Manual
-    QVector<QSpinBox*> manualLayerSpins_;   // поля нейронов
+    QSpinBox *hiddenLayersSpin_;
+    QComboBox *modeCombo_;
+    QWidget *manualContainer_;
+    QVector<QSpinBox*> manualLayerSpins_;
     QPushButton *applyBtn_;
 
-    void rebuildManualFields();             // пересоздаёт поля при изменении числа слоёв
-    void fillLinearDistribution();          // заполняет поля линейным распределением (для Manual)
+    void rebuildManualFields();
+    void fillLinearDistribution();
+    void setManualFieldsVisible(bool visible);  // новый метод
 };
 
 } // namespace mlp
