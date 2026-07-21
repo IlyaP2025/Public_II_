@@ -79,8 +79,22 @@ void MainWindow::setupUI() {
     // ================= Вкладка Experiment =================
     QWidget *experimentTab = new QWidget();
     QVBoxLayout *expLayout = new QVBoxLayout(experimentTab);
-    expLayout->addWidget(new QLabel("Experiment tab – coming soon."));
+
+    loadBmpBtn_ = new QPushButton("Load BMP");
+    expLayout->addWidget(loadBmpBtn_);
+
+    imageLabel_ = new QLabel();
+    imageLabel_->setFixedSize(140, 140);
+    imageLabel_->setStyleSheet("border: 1px solid black;");
+    expLayout->addWidget(imageLabel_);
+
+    predictionLabel_ = new QLabel("Prediction: ");
+    expLayout->addWidget(predictionLabel_);
+
+    expLayout->addStretch();
     tabWidget_->addTab(experimentTab, "Experiment");
+
+    connect(loadBmpBtn_, &QPushButton::clicked, this, &MainWindow::loadBmp);
 
     // ================= Вкладка Settings =================
     QWidget *settingsTab = new QWidget();
@@ -110,30 +124,27 @@ void MainWindow::setupUI() {
     formLayout->addRow("Mode:", modeCombo_);
 
     archGroup->setLayout(formLayout);
-    settLayout->addWidget(archGroup);          // группа архитектуры
+    settLayout->addWidget(archGroup);
 
-    // Кнопка Apply
     applyBtn_ = new QPushButton("Apply");
     settLayout->addWidget(applyBtn_);
     settLayout->addStretch();
     tabWidget_->addTab(settingsTab, "Settings");
 
-    // --- Контейнер для ручного ввода слоёв (создаём, но НЕ добавляем в лейаут) ---
+    // Контейнер для ручного ввода слоёв (создаём, но не добавляем сразу)
     manualContainer_ = new QWidget();
     QVBoxLayout *manualLayout = new QVBoxLayout(manualContainer_);
     manualLayout->setContentsMargins(0, 0, 0, 0);
 
-    // Переключение режима: вставляем/удаляем контейнер в settLayout
+    // Переключение режима: вставляем/удаляем контейнер
     connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, [this, settLayout, settingsTab](int index) {
         if (index == 1) {   // Manual
-            rebuildManualFields();                  // создаём поля
-            // Вставляем контейнер сразу после archGroup (индекс 1)
+            rebuildManualFields();
             if (settLayout->indexOf(manualContainer_) == -1) {
                 settLayout->insertWidget(1, manualContainer_);
             }
             manualContainer_->show();
-            // Принудительно обновляем родительский лейаут
             settLayout->invalidate();
             settLayout->activate();
         } else {            // Linear
@@ -159,7 +170,6 @@ void MainWindow::setupUI() {
         if (manualContainer_->isVisible()) fillLinearDistribution();
     });
 
-    // Инициализация – Linear (контейнер скрыт)
     modeCombo_->setCurrentIndex(0);
 
     // Обработчик Apply
@@ -202,7 +212,7 @@ void MainWindow::rebuildManualFields() {
     if (layout) {
         QLayoutItem *child;
         while ((child = layout->takeAt(0)) != nullptr) {
-            delete child->widget();   // удаляем виджеты-ряды
+            delete child->widget();
             delete child;
         }
     }
@@ -210,30 +220,22 @@ void MainWindow::rebuildManualFields() {
 
     int layers = hiddenLayersSpin_->value();
     for (int i = 1; i <= layers; ++i) {
-        // 1. Создаём виджет-контейнер для строки
         QWidget *rowWidget = new QWidget(manualContainer_);
         QHBoxLayout *rowLayout = new QHBoxLayout(rowWidget);
         rowLayout->setContentsMargins(0, 0, 0, 0);
 
-        // 2. Добавляем лейбл
         QLabel *label = new QLabel(QString("Layer %1:").arg(i));
         rowLayout->addWidget(label);
 
-        // 3. Добавляем спинбокс
         QSpinBox *spin = new QSpinBox();
         spin->setRange(1, 1024);
         rowLayout->addWidget(spin);
 
-        // 4. Добавляем виджет-строку в основной вертикальный лэйаут
         manualContainer_->layout()->addWidget(rowWidget);
-
-        // 5. Сохраняем указатель на спинбокс
         manualLayerSpins_.append(spin);
     }
-
     fillLinearDistribution();
 
-    // Обновление геометрии (желательно, но после addWidget уже не так критично)
     layout->invalidate();
     layout->activate();
     manualContainer_->updateGeometry();
@@ -252,7 +254,30 @@ void MainWindow::fillLinearDistribution() {
     }
 }
 
-// Публичные методы для контроллера
+// --------------- Метод для Experiment ---------------
+void MainWindow::displayPrediction(const std::vector<double>& pixels,
+                                   const std::vector<double>& probs, char letter) {
+    QImage img(28, 28, QImage::Format_Grayscale8);
+    for (int y = 0; y < 28; ++y) {
+        uchar* line = img.scanLine(y);
+        for (int x = 0; x < 28; ++x) {
+            int val = static_cast<int>(pixels[y * 28 + x] * 255);
+            if (val < 0) val = 0;
+            if (val > 255) val = 255;
+            line[x] = static_cast<uchar>(val);
+        }
+    }
+    QPixmap pixmap = QPixmap::fromImage(img).scaled(140, 140, Qt::KeepAspectRatio, Qt::FastTransformation);
+    imageLabel_->setPixmap(pixmap);
+
+    QString probStr = QString("Predicted: %1\n").arg(letter);
+    for (int i = 0; i < 26; ++i) {
+        probStr += QString("%1: %2%  ").arg(QChar('A' + i)).arg(probs[i] * 100, 0, 'f', 1);
+    }
+    predictionLabel_->setText(probStr);
+}
+
+// Общие публичные методы
 void MainWindow::setStatus(const QString &status) { statusLabel_->setText(status); }
 void MainWindow::appendLog(const QString &text) { logEdit_->appendPlainText(text); }
 void MainWindow::setStartEnabled(bool enabled) { startBtn_->setEnabled(enabled); }
