@@ -51,7 +51,8 @@ private:
     QSpinBox *outputSizeSpin_;
     QSpinBox *hiddenLayersSpin_;
     QComboBox *modeCombo_;
-    QWidget *manualContainer_;           // контейнер с полями (будет скрываться/показываться)
+    QWidget *manualTab_;                 // отдельная вкладка для ручного ввода
+    int manualTabIndex_;                 // её индекс
     QVector<QSpinBox*> manualLayerSpins_; // поля для слоёв
     QPushButton *applyBtn_;
 

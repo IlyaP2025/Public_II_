@@ -86,7 +86,6 @@ void MainWindow::setupUI() {
     QWidget *settingsTab = new QWidget();
     QVBoxLayout *settLayout = new QVBoxLayout(settingsTab);
 
-    // Группа архитектурных параметров
     QGroupBox *archGroup = new QGroupBox("Network Architecture");
     QFormLayout *formLayout = new QFormLayout;
 
@@ -113,47 +112,48 @@ void MainWindow::setupUI() {
     archGroup->setLayout(formLayout);
     settLayout->addWidget(archGroup);
 
-    // Контейнер для ручного ввода слоёв (появится ниже группы)
-    manualContainer_ = new QWidget();
-    QVBoxLayout *manualLayout = new QVBoxLayout(manualContainer_);
-    manualLayout->setContentsMargins(0, 0, 0, 0);
-    settLayout->addWidget(manualContainer_);
-    manualContainer_->hide();   // изначально скрыт
-
-    // Кнопка Apply
     applyBtn_ = new QPushButton("Apply");
     settLayout->addWidget(applyBtn_);
     settLayout->addStretch();
-
     tabWidget_->addTab(settingsTab, "Settings");
 
-    // При переключении режима показываем/прячем контейнер
+    // ================= Вкладка Manual Layers =================
+    manualTab_ = new QWidget();
+    QVBoxLayout *manualLayout = new QVBoxLayout(manualTab_);
+    manualLayout->setContentsMargins(10, 10, 10, 10);
+    manualTabIndex_ = tabWidget_->addTab(manualTab_, "Layers");
+    // Изначально вкладка отключена
+    tabWidget_->setTabEnabled(manualTabIndex_, false);
+
+    // Переключение режима – исправленный порядок действий
     connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, [this](int index) {
-        if (index == 1) {
+        if (index == 1) {   // Manual
+            // Включаем вкладку и показываем её ДО создания полей
+            tabWidget_->setTabEnabled(manualTabIndex_, true);
+            tabWidget_->setCurrentIndex(manualTabIndex_);
             rebuildManualFields();
-            manualContainer_->show();
-        } else {
-            manualContainer_->hide();
+        } else {            // Linear
+            tabWidget_->setTabEnabled(manualTabIndex_, false);
         }
+        // Принудительное обновление геометрии
+        manualTab_->adjustSize();
+        tabWidget_->adjustSize();
     });
 
-    // При изменении числа слоёв, входа или выхода в ручном режиме пересчитываем
+    // Обновление полей при изменении параметров (только если вкладка активна)
     connect(hiddenLayersSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
             this, [this]() {
-        if (modeCombo_->currentIndex() == 1) rebuildManualFields();
+        if (tabWidget_->isTabEnabled(manualTabIndex_)) rebuildManualFields();
     });
     connect(inputSizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
             this, [this]() {
-        if (modeCombo_->currentIndex() == 1) fillLinearDistribution();
+        if (tabWidget_->isTabEnabled(manualTabIndex_)) fillLinearDistribution();
     });
     connect(outputSizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
             this, [this]() {
-        if (modeCombo_->currentIndex() == 1) fillLinearDistribution();
+        if (tabWidget_->isTabEnabled(manualTabIndex_)) fillLinearDistribution();
     });
-
-    // Инициализация – Linear
-    modeCombo_->setCurrentIndex(0);
 
     // Обработчик Apply
     connect(applyBtn_, &QPushButton::clicked, this, [this]() {
@@ -191,7 +191,7 @@ void MainWindow::setupUI() {
 
 // --------------- Вспомогательные методы ---------------
 void MainWindow::rebuildManualFields() {
-    QLayout *layout = manualContainer_->layout();
+    QLayout *layout = manualTab_->layout();
     if (layout) {
         QLayoutItem *child;
         while ((child = layout->takeAt(0)) != nullptr) {
@@ -208,7 +208,7 @@ void MainWindow::rebuildManualFields() {
         QSpinBox *spin = new QSpinBox();
         spin->setRange(1, 1024);
         row->addWidget(spin);
-        manualContainer_->layout()->addItem(row);
+        manualTab_->layout()->addItem(row);
         manualLayerSpins_.append(spin);
     }
     fillLinearDistribution();
