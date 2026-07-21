@@ -110,52 +110,60 @@ void MainWindow::setupUI() {
     formLayout->addRow("Mode:", modeCombo_);
 
     archGroup->setLayout(formLayout);
-    settLayout->addWidget(archGroup);
+    settLayout->addWidget(archGroup);          // группа архитектуры
 
+    // Кнопка Apply (пока добавлена, но будет сдвигаться)
     applyBtn_ = new QPushButton("Apply");
     settLayout->addWidget(applyBtn_);
     settLayout->addStretch();
+
     tabWidget_->addTab(settingsTab, "Settings");
 
-    // ================= Вкладка Manual Layers =================
-    manualTab_ = new QWidget();
-    QVBoxLayout *manualLayout = new QVBoxLayout(manualTab_);
-    manualLayout->setContentsMargins(10, 10, 10, 10);
-    manualTabIndex_ = tabWidget_->addTab(manualTab_, "Layers");
-    // Изначально вкладка отключена
-    tabWidget_->setTabEnabled(manualTabIndex_, false);
+    // --- Контейнер для ручного ввода слоёв (создаём, но не добавляем в лейаут) ---
+    manualContainer_ = new QWidget();
+    QVBoxLayout *manualLayout = new QVBoxLayout(manualContainer_);
+    manualLayout->setContentsMargins(0, 0, 0, 0);
 
-    // Переключение режима – исправленный порядок действий
+    // Указатель на settLayout для вставки/удаления контейнера
+    QVBoxLayout* settingsLayout = settLayout;  // захватим для лямбд
+
+    // Переключение режима: вставляем/удаляем контейнер
     connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, [this](int index) {
+            this, [this, settingsLayout](int index) {
         if (index == 1) {   // Manual
-            // Включаем вкладку и показываем её ДО создания полей
-            tabWidget_->setTabEnabled(manualTabIndex_, true);
-            tabWidget_->setCurrentIndex(manualTabIndex_);
-            rebuildManualFields();
+            rebuildManualFields();                  // создаём поля
+            // Вставляем контейнер сразу после archGroup (индекс 1 в settLayout)
+            if (settingsLayout->indexOf(manualContainer_) == -1) {
+                settingsLayout->insertWidget(1, manualContainer_);
+            }
+            manualContainer_->show();
         } else {            // Linear
-            tabWidget_->setTabEnabled(manualTabIndex_, false);
+            // Удаляем контейнер из лейаута
+            settingsLayout->removeWidget(manualContainer_);
+            manualContainer_->hide();
         }
-        // Принудительное обновление геометрии
-        manualTab_->adjustSize();
-        tabWidget_->adjustSize();
+        // Обновляем геометрию вкладки
+        settingsTab->adjustSize();
     });
 
-    // Обновление полей при изменении параметров (только если вкладка активна)
+    // Обновление полей при изменении параметров (только если контейнер видим)
     connect(hiddenLayersSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
             this, [this]() {
-        if (tabWidget_->isTabEnabled(manualTabIndex_)) rebuildManualFields();
+        if (manualContainer_->isVisible()) rebuildManualFields();
     });
     connect(inputSizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
             this, [this]() {
-        if (tabWidget_->isTabEnabled(manualTabIndex_)) fillLinearDistribution();
+        if (manualContainer_->isVisible()) fillLinearDistribution();
     });
     connect(outputSizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
             this, [this]() {
-        if (tabWidget_->isTabEnabled(manualTabIndex_)) fillLinearDistribution();
+        if (manualContainer_->isVisible()) fillLinearDistribution();
     });
 
-    // Обработчик Apply
+    // Инициализация – Linear (контейнер скрыт)
+    modeCombo_->setCurrentIndex(0);
+
+    // Обработчик Apply (без изменений)
     connect(applyBtn_, &QPushButton::clicked, this, [this]() {
         std::vector<size_t> layers;
         layers.push_back(inputSizeSpin_->value());
@@ -189,9 +197,9 @@ void MainWindow::setupUI() {
     });
 }
 
-// --------------- Вспомогательные методы ---------------
+// --------------- Вспомогательные методы (без изменений) ---------------
 void MainWindow::rebuildManualFields() {
-    QLayout *layout = manualTab_->layout();
+    QLayout *layout = manualContainer_->layout();
     if (layout) {
         QLayoutItem *child;
         while ((child = layout->takeAt(0)) != nullptr) {
@@ -208,7 +216,7 @@ void MainWindow::rebuildManualFields() {
         QSpinBox *spin = new QSpinBox();
         spin->setRange(1, 1024);
         row->addWidget(spin);
-        manualTab_->layout()->addItem(row);
+        manualContainer_->layout()->addItem(row);
         manualLayerSpins_.append(spin);
     }
     fillLinearDistribution();
@@ -227,7 +235,7 @@ void MainWindow::fillLinearDistribution() {
     }
 }
 
-// Публичные методы для контроллера
+// Публичные методы для контроллера (без изменений)
 void MainWindow::setStatus(const QString &status) { statusLabel_->setText(status); }
 void MainWindow::appendLog(const QString &text) { logEdit_->appendPlainText(text); }
 void MainWindow::setStartEnabled(bool enabled) { startBtn_->setEnabled(enabled); }
