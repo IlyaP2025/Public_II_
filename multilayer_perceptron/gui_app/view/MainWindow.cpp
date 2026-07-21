@@ -113,8 +113,16 @@ void MainWindow::setupUI() {
     percentageSpin_->setRange(10, 90);
     percentageSpin_->setValue(50);
     percentageSpin_->setEnabled(false);
-    formLayout->addRow("Compression %:", percentageSpin_);
 
+    formLayout->addRow("Min layer size:", new QLabel("(when using percentages)"));
+    minLayerSizeSpin_ = new QSpinBox();
+    minLayerSizeSpin_->setRange(2, 1024);
+    minLayerSizeSpin_->setValue(26);
+    minLayerSizeSpin_->setEnabled(false);   // активно только при включённых процентах
+    formLayout->addRow("Min layer size:", minLayerSizeSpin_);
+    connect(usePercentageCheck_, &QCheckBox::toggled, minLayerSizeSpin_, &QSpinBox::setEnabled);
+
+    formLayout->addRow("Compression %:", percentageSpin_);
     connect(usePercentageCheck_, &QCheckBox::toggled, percentageSpin_, &QSpinBox::setEnabled);
     connect(hiddenLayersCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this, neuronsLayout]() {
         // Очищаем старые поля
@@ -157,7 +165,8 @@ void MainWindow::setupUI() {
             int percent = percentageSpin_->value();
             int numHidden = hiddenLayersCombo_->currentData().toInt();
             for (int i = 0; i < numHidden; ++i) {
-                int neurons = std::max(10, prev * percent / 100);
+                int minSize = minLayerSizeSpin_->value();
+                int neurons = std::max(minSize, prev * percent / 100);
                 layers.push_back(neurons);
                 prev = neurons;
             }

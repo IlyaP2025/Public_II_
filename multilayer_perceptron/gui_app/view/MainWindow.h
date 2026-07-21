@@ -59,6 +59,7 @@ private:
     QVector<QSpinBox*> neuronSpinBoxes_;  // поля для числа нейронов
     QCheckBox *usePercentageCheck_;       // использовать проценты?
     QSpinBox *percentageSpin_;            // процент сжатия
+    QSpinBox *minLayerSizeSpin_;          // минимальный размер скрытого слоя
     QPushButton *applyBtn_;
 };
 
