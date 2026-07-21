@@ -10,13 +10,9 @@
 #include <QProgressBar>
 #include <QTabWidget>
 #include <QComboBox>
-#include <QCheckBox>
 
 namespace s21 {
 namespace mlp {
-
-// Режим расчёта размеров скрытых слоёв
-enum class LayerSizeMode { Percent, Linear };
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -61,13 +57,7 @@ private:
     QSpinBox *inputSizeSpin_;
     QSpinBox *outputSizeSpin_;
     QComboBox *hiddenLayersCombo_;
-    QVector<QSpinBox*> neuronSpinBoxes_;
-
-    // Режим расчёта и его параметры
-    QComboBox *sizeModeCombo_;
-    QSpinBox *percentageSpin_;
-    QSpinBox *minLayerSizeSpin_;
-
+    QVector<QSpinBox*> neuronSpinBoxes_;  // поля Layer 1..N
     QPushButton *applyBtn_;
 };
 

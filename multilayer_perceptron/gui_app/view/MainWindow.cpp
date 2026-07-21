@@ -24,7 +24,6 @@ void MainWindow::setupUI() {
     QWidget *trainingTab = new QWidget();
     QVBoxLayout *trainLayout = new QVBoxLayout(trainingTab);
 
-    // Параметры обучения
     QGroupBox *paramsGroup = new QGroupBox("Training Parameters");
     QHBoxLayout *paramsLayout = new QHBoxLayout(paramsGroup);
     paramsLayout->addWidget(new QLabel("Learning rate:"));
@@ -40,7 +39,6 @@ void MainWindow::setupUI() {
     paramsLayout->addWidget(epochsSpin_);
     trainLayout->addWidget(paramsGroup);
 
-    // Кнопки управления обучением
     QHBoxLayout *btnLayout = new QHBoxLayout;
     startBtn_ = new QPushButton("Start");
     pauseBtn_ = new QPushButton("Pause");
@@ -52,11 +50,9 @@ void MainWindow::setupUI() {
     btnLayout->addWidget(stopBtn_);
     trainLayout->addLayout(btnLayout);
 
-    // Статус
     statusLabel_ = new QLabel("Idle");
     trainLayout->addWidget(statusLabel_);
 
-    // Прогресс-бар и метка
     QHBoxLayout *progressLayout = new QHBoxLayout;
     progressBar_ = new QProgressBar();
     progressBar_->setRange(0, 100);
@@ -67,21 +63,19 @@ void MainWindow::setupUI() {
     progressLayout->addWidget(progressLabel_);
     trainLayout->addLayout(progressLayout);
 
-    // Лог
     logEdit_ = new QPlainTextEdit();
     logEdit_->setReadOnly(true);
     trainLayout->addWidget(logEdit_);
 
     tabWidget_->addTab(trainingTab, "Training");
 
-    // Сигналы кнопок обучения
     connect(startBtn_, &QPushButton::clicked, this, [this]() {
         emit startTraining(learningRateSpin_->value(), epochsSpin_->value());
     });
     connect(pauseBtn_, &QPushButton::clicked, this, &MainWindow::pauseTraining);
     connect(stopBtn_, &QPushButton::clicked, this, &MainWindow::stopTraining);
 
-    // ================= Вкладка Experiment (заглушка) =================
+    // ================= Вкладка Experiment =================
     QWidget *experimentTab = new QWidget();
     QVBoxLayout *expLayout = new QVBoxLayout(experimentTab);
     expLayout->addWidget(new QLabel("Experiment tab – coming soon."));
@@ -112,66 +106,37 @@ void MainWindow::setupUI() {
     }
     formLayout->addRow("Hidden layers:", hiddenLayersCombo_);
 
-    // Контейнер для полей нейронов (будет обновляться)
+    // Контейнер для полей Layer 1..N (изначально пустые)
     QWidget *neuronsWidget = new QWidget();
     QVBoxLayout *neuronsLayout = new QVBoxLayout(neuronsWidget);
     neuronsLayout->setContentsMargins(0, 0, 0, 0);
     formLayout->addRow(neuronsWidget);
 
-    // Режим расчёта слоёв
-    sizeModeCombo_ = new QComboBox();
-    sizeModeCombo_->addItem("Percent", static_cast<int>(LayerSizeMode::Percent));
-    sizeModeCombo_->addItem("Linear", static_cast<int>(LayerSizeMode::Linear));
-    formLayout->addRow("Size mode:", sizeModeCombo_);
+    auto rebuildNeuronFields = [this, neuronsLayout]() {
+        // Очищаем старые поля
+        QLayoutItem *child;
+        while ((child = neuronsLayout->takeAt(0)) != nullptr) {
+            delete child->widget();
+            delete child;
+        }
+        neuronSpinBoxes_.clear();
+        int layers = hiddenLayersCombo_->currentData().toInt();
+        for (int i = 1; i <= layers; ++i) {
+            QHBoxLayout *row = new QHBoxLayout;
+            row->addWidget(new QLabel(QString("Layer %1 neurons:").arg(i)));
+            QSpinBox *spin = new QSpinBox();
+            spin->setRange(1, 1024);
+            spin->setValue(0);          // 0 означает "не задано"
+            spin->setSpecialValueText(""); // пустой текст при 0
+            row->addWidget(spin);
+            neuronsLayout->addLayout(row);
+            neuronSpinBoxes_.append(spin);
+        }
+    };
 
-    // Параметры для процентного режима
-    percentageSpin_ = new QSpinBox();
-    percentageSpin_->setRange(10, 90);
-    percentageSpin_->setValue(50);
-    formLayout->addRow("Compression %:", percentageSpin_);
-
-    minLayerSizeSpin_ = new QSpinBox();
-    minLayerSizeSpin_->setRange(2, 1024);
-    minLayerSizeSpin_->setValue(26);
-    formLayout->addRow("Min layer size:", minLayerSizeSpin_);
-
-    // Обновление полей нейронов при смене числа скрытых слоёв
-    connect(hiddenLayersCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-        [this, neuronsLayout]() {
-            // Удаляем старые поля
-            QLayoutItem *child;
-            while ((child = neuronsLayout->takeAt(0)) != nullptr) {
-                delete child->widget();
-                delete child;
-            }
-            neuronSpinBoxes_.clear();
-            int layers = hiddenLayersCombo_->currentData().toInt();
-            for (int i = 1; i <= layers; ++i) {
-                QHBoxLayout *row = new QHBoxLayout;
-                row->addWidget(new QLabel(QString("Layer %1 neurons:").arg(i)));
-                QSpinBox *spin = new QSpinBox();
-                spin->setRange(10, 1024);
-                spin->setValue(128);
-                row->addWidget(spin);
-                neuronsLayout->addLayout(row);
-                neuronSpinBoxes_.append(spin);
-            }
-        });
-    hiddenLayersCombo_->currentIndexChanged(0); // инициализация
-
-    // Активация параметров в зависимости от режима
-    connect(sizeModeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-        [this]() {
-            bool isPercent = (sizeModeCombo_->currentData().toInt() ==
-                              static_cast<int>(LayerSizeMode::Percent));
-            percentageSpin_->setEnabled(isPercent);
-            minLayerSizeSpin_->setEnabled(isPercent);
-            // В ручном режиме поля нейронов активны всегда, но при Percent они не нужны – можно скрыть
-            for (auto* spin : neuronSpinBoxes_) {
-                spin->setEnabled(!isPercent);
-            }
-        });
-    sizeModeCombo_->currentIndexChanged(0);
+    connect(hiddenLayersCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, rebuildNeuronFields);
+    rebuildNeuronFields(); // начальное заполнение
 
     archGroup->setLayout(formLayout);
     settLayout->addWidget(archGroup);
@@ -181,44 +146,57 @@ void MainWindow::setupUI() {
     settLayout->addStretch();
     tabWidget_->addTab(settingsTab, "Settings");
 
-    // Сигнал Apply – формируем вектор архитектуры
+    // Обработчик кнопки Apply
     connect(applyBtn_, &QPushButton::clicked, this, [this]() {
         std::vector<size_t> layers;
-        int inputSize = inputSizeSpin_->value();
-        int outputSize = outputSizeSpin_->value();
-        layers.push_back(inputSize);
+        layers.push_back(inputSizeSpin_->value());
 
-        int hiddenLayers = hiddenLayersCombo_->currentData().toInt();
-        if (sizeModeCombo_->currentData().toInt() == static_cast<int>(LayerSizeMode::Percent)) {
-            int prev = inputSize;
-            int percent = percentageSpin_->value();
-            int minSize = minLayerSizeSpin_->value();
-            for (int i = 0; i < hiddenLayers; ++i) {
-                int neurons = std::max(minSize, prev * percent / 100);
-                layers.push_back(neurons);
-                prev = neurons;
-            }
-        } else { // Linear
-            int step = (inputSize - outputSize) / (hiddenLayers + 1);
-            for (int i = 1; i <= hiddenLayers; ++i) {
-                int neurons = inputSize - step * i;
-                layers.push_back(neurons);
+        bool allEmpty = true;
+        for (auto* spin : neuronSpinBoxes_) {
+            if (spin->value() > 0) {
+                allEmpty = false;
+                break;
             }
         }
-        layers.push_back(outputSize);
+
+        if (allEmpty) {
+            // Автоматический линейный расчёт
+            int input = inputSizeSpin_->value();
+            int output = outputSizeSpin_->value();
+            int num = neuronSpinBoxes_.size();
+            if (num > 0) {
+                double step = static_cast<double>(input - output) / (num + 1);
+                for (int i = 0; i < num; ++i) {
+                    int neurons = static_cast<int>(input - step * (i + 1) + 0.5);
+                    neurons = std::max(1, neurons);
+                    neuronSpinBoxes_[i]->setValue(neurons);
+                }
+            }
+            // Повторно собираем значения из полей
+            for (auto* spin : neuronSpinBoxes_) {
+                layers.push_back(spin->value());
+            }
+        } else {
+            // Используем значения, введённые пользователем
+            for (auto* spin : neuronSpinBoxes_) {
+                int val = spin->value();
+                if (val <= 0) {
+                    QMessageBox::warning(this, "Error",
+                        "All layer sizes must be set. Fill them manually or press Apply with empty fields for automatic linear distribution.");
+                    return;
+                }
+                layers.push_back(val);
+            }
+        }
+
+        layers.push_back(outputSizeSpin_->value());
         emit applySettings(layers);
     });
 }
 
-// ---------- Публичные методы для контроллера ----------
-void MainWindow::setStatus(const QString &status) {
-    statusLabel_->setText(status);
-}
-
-void MainWindow::appendLog(const QString &text) {
-    logEdit_->appendPlainText(text);
-}
-
+// Публичные методы
+void MainWindow::setStatus(const QString &status) { statusLabel_->setText(status); }
+void MainWindow::appendLog(const QString &text) { logEdit_->appendPlainText(text); }
 void MainWindow::setStartEnabled(bool enabled) { startBtn_->setEnabled(enabled); }
 void MainWindow::setPauseEnabled(bool enabled) { pauseBtn_->setEnabled(enabled); }
 void MainWindow::setStopEnabled(bool enabled) { stopBtn_->setEnabled(enabled); }
