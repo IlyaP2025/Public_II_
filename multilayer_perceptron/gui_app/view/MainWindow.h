@@ -51,9 +51,8 @@ private:
     QSpinBox *outputSizeSpin_;
     QSpinBox *hiddenLayersSpin_;
     QComboBox *modeCombo_;
-    QWidget *manualTab_;                 // отдельная вкладка для ручного ввода
-    int manualTabIndex_;                 // её индекс
-    QVector<QSpinBox*> manualLayerSpins_; // поля для слоёв
+    QWidget *manualContainer_;           
+    QVector<QSpinBox*> manualLayerSpins_;
     QPushButton *applyBtn_;
 
     void rebuildManualFields();

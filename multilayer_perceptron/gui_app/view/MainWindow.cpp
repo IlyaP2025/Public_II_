@@ -112,37 +112,31 @@ void MainWindow::setupUI() {
     archGroup->setLayout(formLayout);
     settLayout->addWidget(archGroup);          // группа архитектуры
 
-    // Кнопка Apply (пока добавлена, но будет сдвигаться)
+    // Кнопка Apply
     applyBtn_ = new QPushButton("Apply");
     settLayout->addWidget(applyBtn_);
     settLayout->addStretch();
-
     tabWidget_->addTab(settingsTab, "Settings");
 
-    // --- Контейнер для ручного ввода слоёв (создаём, но не добавляем в лейаут) ---
+    // --- Контейнер для ручного ввода слоёв (создаём, но НЕ добавляем в лейаут) ---
     manualContainer_ = new QWidget();
     QVBoxLayout *manualLayout = new QVBoxLayout(manualContainer_);
     manualLayout->setContentsMargins(0, 0, 0, 0);
 
-    // Указатель на settLayout для вставки/удаления контейнера
-    QVBoxLayout* settingsLayout = settLayout;  // захватим для лямбд
-
-    // Переключение режима: вставляем/удаляем контейнер
+    // Переключение режима: вставляем/удаляем контейнер в settLayout
     connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, [this, settingsLayout](int index) {
+            this, [this, settLayout, settingsTab](int index) {
         if (index == 1) {   // Manual
             rebuildManualFields();                  // создаём поля
             // Вставляем контейнер сразу после archGroup (индекс 1 в settLayout)
-            if (settingsLayout->indexOf(manualContainer_) == -1) {
-                settingsLayout->insertWidget(1, manualContainer_);
+            if (settLayout->indexOf(manualContainer_) == -1) {
+                settLayout->insertWidget(1, manualContainer_);
             }
             manualContainer_->show();
         } else {            // Linear
-            // Удаляем контейнер из лейаута
-            settingsLayout->removeWidget(manualContainer_);
+            settLayout->removeWidget(manualContainer_);
             manualContainer_->hide();
         }
-        // Обновляем геометрию вкладки
         settingsTab->adjustSize();
     });
 
@@ -163,7 +157,7 @@ void MainWindow::setupUI() {
     // Инициализация – Linear (контейнер скрыт)
     modeCombo_->setCurrentIndex(0);
 
-    // Обработчик Apply (без изменений)
+    // Обработчик Apply
     connect(applyBtn_, &QPushButton::clicked, this, [this]() {
         std::vector<size_t> layers;
         layers.push_back(inputSizeSpin_->value());
@@ -197,7 +191,7 @@ void MainWindow::setupUI() {
     });
 }
 
-// --------------- Вспомогательные методы (без изменений) ---------------
+// --------------- Вспомогательные методы ---------------
 void MainWindow::rebuildManualFields() {
     QLayout *layout = manualContainer_->layout();
     if (layout) {
@@ -235,7 +229,7 @@ void MainWindow::fillLinearDistribution() {
     }
 }
 
-// Публичные методы для контроллера (без изменений)
+// Публичные методы для контроллера
 void MainWindow::setStatus(const QString &status) { statusLabel_->setText(status); }
 void MainWindow::appendLog(const QString &text) { logEdit_->appendPlainText(text); }
 void MainWindow::setStartEnabled(bool enabled) { startBtn_->setEnabled(enabled); }
