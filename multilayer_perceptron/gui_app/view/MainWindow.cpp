@@ -109,23 +109,37 @@ void MainWindow::setupUI() {
     modeCombo_->addItem("Manual", 1);
     formLayout_->addRow("Mode:", modeCombo_);
 
-    // Контейнер для ручного ввода слоёв (пока не добавляем в лейаут)
+    // Контейнер для ручного ввода слоёв – добавляем в лейаут всегда, но скрываем
     manualContainer_ = new QWidget();
     QVBoxLayout *manualLayout = new QVBoxLayout(manualContainer_);
     manualLayout->setContentsMargins(0, 0, 0, 0);
+    formLayout_->addRow(manualContainer_);   // теперь он всегда в лейауте
+    manualContainer_->hide();                // изначально скрыт
 
     // Переключение режима
     connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, [this](int index) {
         if (index == 1) {
-            rebuildManualFields();
-            setManualFieldsVisible(true);
+            rebuildManualFields();          // создаём поля
+            manualContainer_->show();       // показываем контейнер
         } else {
-            setManualFieldsVisible(false);
+            manualContainer_->hide();       // прячем контейнер
         }
+        // Принудительно обновляем компоновку
+        formLayout_->invalidate();
+        formLayout_->activate();
+        manualContainer_->adjustSize();
+        // Обновляем всех родителей до вкладки
+        QWidget *parent = manualContainer_->parentWidget();
+        while (parent) {
+            parent->adjustSize();
+            parent = parent->parentWidget();
+        }
+        // Дополнительно обновляем вкладку настроек
+        settingsTab->adjustSize();
     });
 
-    // При изменении числа слоёв, входа или выхода – пересчитываем (только в Manual)
+    // При изменении числа слоёв, входа или выхода в ручном режиме пересчитываем
     connect(hiddenLayersSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
             this, [this]() {
         if (modeCombo_->currentIndex() == 1) rebuildManualFields();
@@ -219,25 +233,6 @@ void MainWindow::fillLinearDistribution() {
         int neurons = static_cast<int>(input - step * (i + 1) + 0.5);
         neurons = std::max(1, neurons);
         manualLayerSpins_[i]->setValue(neurons);
-    }
-}
-
-void MainWindow::setManualFieldsVisible(bool visible) {
-    if (visible) {
-        // Добавляем контейнер в formLayout_, если его там ещё нет
-        if (formLayout_->indexOf(manualContainer_) == -1) {
-            formLayout_->addRow(manualContainer_);
-        }
-        manualContainer_->show();
-    } else {
-        // Удаляем контейнер из formLayout_, но не удаляем сам виджет
-        formLayout_->removeWidget(manualContainer_);
-        manualContainer_->hide();
-    }
-    // Обновляем геометрию родительских виджетов
-    manualContainer_->parentWidget()->adjustSize();
-    if (auto* tab = qobject_cast<QWidget*>(manualContainer_->parentWidget()->parent())) {
-        tab->adjustSize();
     }
 }
 
