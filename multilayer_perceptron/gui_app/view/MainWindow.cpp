@@ -118,7 +118,7 @@ void MainWindow::setupUI() {
 
     // Переключение режима
     connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, [this](int index) {
+            this, [this, settingsTab](int index) {
         if (index == 1) {
             rebuildManualFields();          // создаём поля
             manualContainer_->show();       // показываем контейнер
