@@ -5,11 +5,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
- 
+
 namespace s21 {
 namespace mlp {
 
-// Структура заголовка BMP (упрощённая, для 24-бит)
 #pragma pack(push, 1)
 struct BmpHeader {
     uint16_t type;
@@ -51,37 +50,30 @@ std::vector<double> BmpLoader::LoadImage(const std::string& path) {
         throw std::runtime_error("Only 24-bit BMP is supported");
     }
 
-    // Перемещаемся к данным пикселей
     file.seekg(header.offset, std::ios::beg);
 
     int width = info.width;
     int height = info.height;
-    // Строки BMP выровнены до 4 байт
     int row_padded = (width * 3 + 3) & (~3);
     std::vector<uint8_t> row(row_padded);
 
-    // Читаем пиксели (BMP хранит строки снизу вверх)
     std::vector<uint8_t> pixels(width * height);
     for (int y = 0; y < height; ++y) {
         file.read(reinterpret_cast<char*>(row.data()), row_padded);
-        // Копируем в правильном порядке (верхняя строка = y=0)
         uint8_t* src = row.data();
         uint8_t* dst = pixels.data() + (height - 1 - y) * width;
         for (int x = 0; x < width; ++x) {
             uint8_t b = src[0];
             uint8_t g = src[1];
             uint8_t r = src[2];
-            // Перевод в серый по формуле Y = 0.299R + 0.587G + 0.114B
             *dst++ = static_cast<uint8_t>(0.299 * r + 0.587 * g + 0.114 * b);
             src += 3;
         }
     }
 
-    // Масштабирование до 28x28 билинейной интерполяцией
     std::vector<double> image(28 * 28);
     for (int y = 0; y < 28; ++y) {
         for (int x = 0; x < 28; ++x) {
-            // Координаты в исходном изображении
             double src_x = (x + 0.5) * width / 28.0 - 0.5;
             double src_y = (y + 0.5) * height / 28.0 - 0.5;
             if (src_x < 0) src_x = 0;
@@ -101,28 +93,21 @@ std::vector<double> BmpLoader::LoadImage(const std::string& path) {
                 pixels[y0 * width + x1] * dx * (1 - dy) +
                 pixels[y1 * width + x1] * dx * dy;
 
-            image[y * 28 + x] = val / 255.0;   // нормализация
+            image[y * 28 + x] = val / 255.0;
         }
     }
 
-    // EMNIST-преобразование: поворот на 90° против часовой и отражение по вертикали
-    // Это эквивалентно транспонированию и перевороту строк.
+    // Правильное EMNIST-преобразование: транспонирование + отражение по горизонтали
     std::vector<double> transformed(28 * 28);
-    for (int y = 0; y < 28; ++y) {
-        for (int x = 0; x < 28; ++x) {
-            // Поворот на 90° против часовой: (x, y) -> (y, 27 - x)
-            int new_x = y;
-            int new_y = 27 - x;
-            transformed[new_y * 28 + new_x] = image[y * 28 + x];
-        }
-    }
-    // Отражение по вертикали (переворот строк) – если нужно.
-    // EMNIST использует именно такое преобразование.
-    // Проверим по тестовым данным: картинка из интернета должна совпадать с CSV.
-    // Для простоты пока применим стандартное преобразование, которое я нашёл в документации EMNIST:
-    // Поворот на 90° по часовой стрелке и отражение по горизонтали? Уточним позже.
-    // Пока используем поворот против часовой и отражение по вертикали как в описании.
-
+    // Транспонирование
+    for (int y = 0; y < 28; ++y)
+        for (int x = 0; x < 28; ++x)
+            transformed[y * 28 + x] = image[x * 28 + y];
+    // Отражение по горизонтали
+    for (int y = 0; y < 28; ++y)
+        for (int x = 0; x < 14; ++x)
+            std::swap(transformed[y * 28 + x], transformed[y * 28 + (27 - x)]);
+            std::swap(transformed[y * 28 + x], transformed[(27 - y) * 28 + x]);
     return transformed;
 }
 

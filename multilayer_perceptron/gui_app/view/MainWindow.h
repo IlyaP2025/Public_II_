@@ -6,13 +6,11 @@
 #include <QDoubleSpinBox>
 #include <QSpinBox>
 #include <QPlainTextEdit>
+#include <QTextEdit>
 #include <QLabel>
 #include <QProgressBar>
 #include <QTabWidget>
 #include <QComboBox>
-#include <QFileDialog>
-#include <QImage>
-#include <QPixmap>
 
 namespace s21 {
 namespace mlp {
@@ -30,7 +28,6 @@ public:
     void setProgress(int current, int total);
     void resetProgress();
 
-    // Для отображения результата предсказания
     void displayPrediction(const std::vector<double>& pixels,
                            const std::vector<double>& probs, char letter);
 
@@ -39,7 +36,7 @@ signals:
     void pauseTraining();
     void stopTraining();
     void applySettings(const std::vector<size_t>& layerSizes);
-    void loadBmp();   // запрос на загрузку BMP
+    void loadBmp();
 
 private:
     void setupUI();
@@ -65,8 +62,8 @@ private:
 
     // Experiment
     QPushButton *loadBmpBtn_;
-    QLabel *imageLabel_;          // изображение 28x28
-    QLabel *predictionLabel_;     // результат
+    QLabel *imageLabel_;
+    QTextEdit *predictionText_;
 
     void rebuildManualFields();
     void fillLinearDistribution();

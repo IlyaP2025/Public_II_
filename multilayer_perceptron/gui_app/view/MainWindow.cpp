@@ -88,8 +88,10 @@ void MainWindow::setupUI() {
     imageLabel_->setStyleSheet("border: 1px solid black;");
     expLayout->addWidget(imageLabel_);
 
-    predictionLabel_ = new QLabel("Prediction: ");
-    expLayout->addWidget(predictionLabel_);
+    predictionText_ = new QTextEdit();
+    predictionText_->setReadOnly(true);
+    predictionText_->setMaximumHeight(150);
+    expLayout->addWidget(predictionText_);
 
     expLayout->addStretch();
     tabWidget_->addTab(experimentTab, "Experiment");
@@ -273,8 +275,9 @@ void MainWindow::displayPrediction(const std::vector<double>& pixels,
     QString probStr = QString("Predicted: %1\n").arg(letter);
     for (int i = 0; i < 26; ++i) {
         probStr += QString("%1: %2%  ").arg(QChar('A' + i)).arg(probs[i] * 100, 0, 'f', 1);
+        if ((i + 1) % 5 == 0) probStr += "\n";   // перенос каждые 5 букв
     }
-    predictionLabel_->setText(probStr);
+    predictionText_->setPlainText(probStr);
 }
 
 // Общие публичные методы
