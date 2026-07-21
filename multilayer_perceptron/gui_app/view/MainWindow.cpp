@@ -128,14 +128,19 @@ void MainWindow::setupUI() {
             this, [this, settLayout, settingsTab](int index) {
         if (index == 1) {   // Manual
             rebuildManualFields();                  // создаём поля
-            // Вставляем контейнер сразу после archGroup (индекс 1 в settLayout)
+            // Вставляем контейнер сразу после archGroup (индекс 1)
             if (settLayout->indexOf(manualContainer_) == -1) {
                 settLayout->insertWidget(1, manualContainer_);
             }
             manualContainer_->show();
+            // Принудительно обновляем родительский лейаут
+            settLayout->invalidate();
+            settLayout->activate();
         } else {            // Linear
             settLayout->removeWidget(manualContainer_);
             manualContainer_->hide();
+            settLayout->invalidate();
+            settLayout->activate();
         }
         settingsTab->adjustSize();
     });
@@ -197,7 +202,7 @@ void MainWindow::rebuildManualFields() {
     if (layout) {
         QLayoutItem *child;
         while ((child = layout->takeAt(0)) != nullptr) {
-            delete child->widget();
+            delete child->widget();   // удаляем виджеты-ряды
             delete child;
         }
     }
@@ -205,15 +210,33 @@ void MainWindow::rebuildManualFields() {
 
     int layers = hiddenLayersSpin_->value();
     for (int i = 1; i <= layers; ++i) {
-        QHBoxLayout *row = new QHBoxLayout;
-        row->addWidget(new QLabel(QString("Layer %1:").arg(i)));
+        // 1. Создаём виджет-контейнер для строки
+        QWidget *rowWidget = new QWidget(manualContainer_);
+        QHBoxLayout *rowLayout = new QHBoxLayout(rowWidget);
+        rowLayout->setContentsMargins(0, 0, 0, 0);
+
+        // 2. Добавляем лейбл
+        QLabel *label = new QLabel(QString("Layer %1:").arg(i));
+        rowLayout->addWidget(label);
+
+        // 3. Добавляем спинбокс
         QSpinBox *spin = new QSpinBox();
         spin->setRange(1, 1024);
-        row->addWidget(spin);
-        manualContainer_->layout()->addItem(row);
+        rowLayout->addWidget(spin);
+
+        // 4. Добавляем виджет-строку в основной вертикальный лэйаут
+        manualContainer_->layout()->addWidget(rowWidget);
+
+        // 5. Сохраняем указатель на спинбокс
         manualLayerSpins_.append(spin);
     }
+
     fillLinearDistribution();
+
+    // Обновление геометрии (желательно, но после addWidget уже не так критично)
+    layout->invalidate();
+    layout->activate();
+    manualContainer_->updateGeometry();
 }
 
 void MainWindow::fillLinearDistribution() {
