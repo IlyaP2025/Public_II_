@@ -15,21 +15,24 @@
 namespace s21 {
 namespace mlp {
 
+// Режим расчёта размеров скрытых слоёв
+enum class LayerSizeMode { Percent, Linear };
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
     explicit MainWindow(QWidget *parent = nullptr);
 
-    // Общие методы для обновления интерфейса
+    // Обновление интерфейса из контроллера
     void setStatus(const QString &status);
     void appendLog(const QString &text);
 
-    // Управление кнопками
+    // Управление кнопками обучения
     void setStartEnabled(bool enabled);
     void setPauseEnabled(bool enabled);
     void setStopEnabled(bool enabled);
 
-    // Прогресс обучения
+    // Индикация прогресса
     void setProgress(int current, int total);
     void resetProgress();
 
@@ -43,7 +46,7 @@ private:
     void setupUI();
     QTabWidget *tabWidget_;
 
-    // Вкладка Training
+    // --- Вкладка Training ---
     QDoubleSpinBox *learningRateSpin_;
     QSpinBox *epochsSpin_;
     QPushButton *startBtn_;
@@ -54,12 +57,17 @@ private:
     QProgressBar *progressBar_;
     QLabel *progressLabel_;
 
-    // Вкладка Settings
-    QComboBox *hiddenLayersCombo_;        // количество скрытых слоёв (2–5)
-    QVector<QSpinBox*> neuronSpinBoxes_;  // поля для числа нейронов
-    QCheckBox *usePercentageCheck_;       // использовать проценты?
-    QSpinBox *percentageSpin_;            // процент сжатия
-    QSpinBox *minLayerSizeSpin_;          // минимальный размер скрытого слоя
+    // --- Вкладка Settings ---
+    QSpinBox *inputSizeSpin_;
+    QSpinBox *outputSizeSpin_;
+    QComboBox *hiddenLayersCombo_;
+    QVector<QSpinBox*> neuronSpinBoxes_;
+
+    // Режим расчёта и его параметры
+    QComboBox *sizeModeCombo_;
+    QSpinBox *percentageSpin_;
+    QSpinBox *minLayerSizeSpin_;
+
     QPushButton *applyBtn_;
 };
 
