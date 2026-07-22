@@ -146,14 +146,6 @@ void MatrixPerceptron::UpdateWeights(double learning_rate) {
     }
 }
 
-void MatrixPerceptron::SetWeights(const std::vector<std::vector<double>>&) {
-    throw std::logic_error("SetWeights not implemented yet");
-}
-
-std::vector<std::vector<double>> MatrixPerceptron::GetWeights() const {
-    throw std::logic_error("GetWeights not implemented yet");
-}
-
 size_t MatrixPerceptron::InputSize() const {
     return layer_sizes_.front();
 }
