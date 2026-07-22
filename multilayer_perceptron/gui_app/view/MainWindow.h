@@ -61,6 +61,8 @@ private:
     QWidget *manualContainer_;
     QVector<QSpinBox*> manualLayerSpins_;
     QPushButton *applyBtn_;
+    QPushButton *saveBtn_;
+    QPushButton *loadBtn_;
 
     // Experiment
     QPushButton *loadBmpBtn_;
