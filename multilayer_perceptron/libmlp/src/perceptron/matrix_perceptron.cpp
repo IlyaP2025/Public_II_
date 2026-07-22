@@ -162,5 +162,33 @@ size_t MatrixPerceptron::OutputSize() const {
     return layer_sizes_.back();
 }
 
+std::vector<std::vector<double>> MatrixPerceptron::GetWeights() const {
+    std::vector<std::vector<double>> all_weights;
+    for (const auto& w : weights_) {
+        std::vector<double> layer(w.get_rows() * w.get_cols());
+        int idx = 0;
+        for (int r = 0; r < w.get_rows(); ++r)
+            for (int c = 0; c < w.get_cols(); ++c)
+                layer[idx++] = w(r, c);
+        all_weights.push_back(std::move(layer));
+    }
+    return all_weights;
+}
+
+void MatrixPerceptron::SetWeights(const std::vector<std::vector<double>>& weights) {
+    if (weights.size() != weights_.size())
+        throw std::invalid_argument("Weight count mismatch");
+    for (size_t l = 0; l < weights_.size(); ++l) {
+        int rows = weights_[l].get_rows();
+        int cols = weights_[l].get_cols();
+        if (static_cast<int>(weights[l].size()) != rows * cols)
+            throw std::invalid_argument("Weight size mismatch in layer " + std::to_string(l));
+        int idx = 0;
+        for (int r = 0; r < rows; ++r)
+            for (int c = 0; c < cols; ++c)
+                weights_[l](r, c) = weights[l][idx++];
+    }
+}
+
 }  // namespace mlp
 }  // namespace s21

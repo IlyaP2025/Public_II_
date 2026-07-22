@@ -17,7 +17,9 @@ AppController::AppController(QObject *parent) : QObject(parent) {
     connect(window_, &MainWindow::pauseTraining, this, &AppController::onPauseTraining);
     connect(window_, &MainWindow::stopTraining, this, &AppController::onStopTraining);
     connect(window_, &MainWindow::applySettings, this, &AppController::onApplySettings);
-    connect(window_, &MainWindow::loadBmp, this, &AppController::onLoadBmp);   // новое соединение
+    connect(window_, &MainWindow::loadBmp, this, &AppController::onLoadBmp);
+    connect(window_, &MainWindow::saveWeights, this, &AppController::onSaveWeights);
+    connect(window_, &MainWindow::loadWeights, this, &AppController::onLoadWeights);
 
     perceptron_ = std::make_unique<MatrixPerceptron>(std::vector<size_t>{784, 128, 26});
 }
@@ -216,6 +218,34 @@ void AppController::runTraining(double learningRate, int epochs) {
             }, Qt::QueuedConnection);
         }
     });
+}
+
+void AppController::onSaveWeights() {
+    if (state_ != TrainingState::Idle) {
+        window_->appendLog("Cannot save while training.");
+        return;
+    }
+    try {
+        auto weights = perceptron_->GetWeights();
+        serializer_.Save("weights.txt", weights);
+        window_->appendLog("Weights saved to weights.txt");
+    } catch (const std::exception& e) {
+        window_->appendLog(QString("Save error: %1").arg(e.what()));
+    }
+}
+
+void AppController::onLoadWeights() {
+    if (state_ != TrainingState::Idle) {
+        window_->appendLog("Cannot load while training.");
+        return;
+    }
+    try {
+        auto weights = serializer_.Load("weights.txt");
+        perceptron_->SetWeights(weights);
+        window_->appendLog("Weights loaded from weights.txt");
+    } catch (const std::exception& e) {
+        window_->appendLog(QString("Load error: %1").arg(e.what()));
+    }
 }
 
 } // namespace mlp

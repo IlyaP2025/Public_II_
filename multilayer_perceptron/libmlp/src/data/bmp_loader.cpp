@@ -40,7 +40,7 @@ std::vector<double> BmpLoader::LoadImage(const std::string& path) {
 
     BmpHeader header;
     file.read(reinterpret_cast<char*>(&header), sizeof(header));
-    if (header.type != 0x4D42) {   // "BM"
+    if (header.type != 0x4D42) {
         throw std::runtime_error("Not a valid BMP file");
     }
 
@@ -71,6 +71,7 @@ std::vector<double> BmpLoader::LoadImage(const std::string& path) {
         }
     }
 
+    // Масштабирование до 28x28
     std::vector<double> image(28 * 28);
     for (int y = 0; y < 28; ++y) {
         for (int x = 0; x < 28; ++x) {
@@ -93,22 +94,23 @@ std::vector<double> BmpLoader::LoadImage(const std::string& path) {
                 pixels[y0 * width + x1] * dx * (1 - dy) +
                 pixels[y1 * width + x1] * dx * dy;
 
+            // Нормализация без инверсии (фон=0, буква>0)
             image[y * 28 + x] = val / 255.0;
         }
     }
 
-    // Правильное EMNIST-преобразование: транспонирование + отражение по горизонтали
-    std::vector<double> transformed(28 * 28);
     // Транспонирование
+    std::vector<double> transposed(28 * 28);
     for (int y = 0; y < 28; ++y)
         for (int x = 0; x < 28; ++x)
-            transformed[y * 28 + x] = image[x * 28 + y];
+            transposed[y * 28 + x] = image[x * 28 + y];
+
     // Отражение по горизонтали
     for (int y = 0; y < 28; ++y)
         for (int x = 0; x < 14; ++x)
-            std::swap(transformed[y * 28 + x], transformed[y * 28 + (27 - x)]);
-            std::swap(transformed[y * 28 + x], transformed[(27 - y) * 28 + x]);
-    return transformed;
+            std::swap(transposed[y * 28 + x], transposed[y * 28 + (27 - x)]);
+
+    return transposed;
 }
 
 }  // namespace mlp

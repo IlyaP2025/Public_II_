@@ -14,6 +14,7 @@
 #include "perceptron/matrix_perceptron.h"
 #include "data/emnist_loader.h"
 #include "data/bmp_loader.h"
+#include "serialization/simple_weights_serializer.h"
 
 namespace s21 {
 namespace mlp {
@@ -33,7 +34,9 @@ private slots:
     void onStopTraining();
     void onTrainingFinished();
     void onApplySettings(const std::vector<size_t>& layers);
-    void onLoadBmp();   // обработка запроса загрузки BMP
+    void onLoadBmp();
+    void onSaveWeights();
+    void onLoadWeights();
 
 private:
     void setState(TrainingState state);
@@ -44,6 +47,7 @@ private:
 
     std::unique_ptr<MatrixPerceptron> perceptron_;
     EmnistLoader loader_;
+    SimpleWeightsSerializer serializer_;
 
     std::thread trainingThread_;
     std::atomic<bool> stopRequested_{false};

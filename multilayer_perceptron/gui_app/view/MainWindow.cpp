@@ -130,6 +130,16 @@ void MainWindow::setupUI() {
 
     applyBtn_ = new QPushButton("Apply");
     settLayout->addWidget(applyBtn_);
+
+    // Кнопки сохранения / загрузки
+    saveBtn_ = new QPushButton("Save Weights");
+    loadBtn_ = new QPushButton("Load Weights");
+    settLayout->addWidget(saveBtn_);
+    settLayout->addWidget(loadBtn_);
+
+    connect(saveBtn_, &QPushButton::clicked, this, &MainWindow::saveWeights);
+    connect(loadBtn_, &QPushButton::clicked, this, &MainWindow::loadWeights);
+
     settLayout->addStretch();
     tabWidget_->addTab(settingsTab, "Settings");
 

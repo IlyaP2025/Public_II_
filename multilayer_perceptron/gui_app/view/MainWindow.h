@@ -37,6 +37,8 @@ signals:
     void stopTraining();
     void applySettings(const std::vector<size_t>& layerSizes);
     void loadBmp();
+    void saveWeights();
+    void loadWeights();
 
 private:
     void setupUI();
