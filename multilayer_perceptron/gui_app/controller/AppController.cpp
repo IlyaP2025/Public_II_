@@ -257,14 +257,15 @@ void AppController::onRunExperiment(double fraction) {
         window_->appendLog("Cannot run experiment while training.");
         return;
     }
-    // Отключаем кнопку, чтобы не запустить дважды
-    window_->setStartEnabled(false);   // используем общий запрет старта (можно добавить отдельный метод)
+
+    window_->appendLog("Running experiment...");
+    window_->setStatus("Experiment...");
+    window_->setStartEnabled(false);   // блокируем кнопку Start и, возможно, саму кнопку Run Experiment
 
     std::thread([this, fraction]() {
         try {
             auto start = std::chrono::steady_clock::now();
 
-            // Загружаем датасет (это долго)
             auto [train, test] = loader_.Load("datasets/emnist-letters-train.csv", 0.2);
             std::vector<DataSample> test_set = test;
 
@@ -277,7 +278,6 @@ void AppController::onRunExperiment(double fraction) {
                 test_set.resize(newSize);
             }
 
-            // Предсказания
             std::vector<int> predicted, actual;
             for (const auto& sample : test_set) {
                 auto out = perceptron_->Predict(sample.first);
@@ -291,20 +291,20 @@ void AppController::onRunExperiment(double fraction) {
             auto end = std::chrono::steady_clock::now();
             double elapsed = std::chrono::duration<double>(end - start).count();
 
-            // Передаём результат в GUI
             QMetaObject::invokeMethod(window_, [this, m, elapsed]() {
                 window_->displayMetrics(m.accuracy, m.precision, m.recall, m.f1, elapsed);
                 window_->appendLog(QString("Experiment finished in %1 sec").arg(elapsed, 0, 'f', 2));
-                window_->setStartEnabled(true);   // восстанавливаем кнопку
+                window_->setStatus("Idle");
+                window_->setStartEnabled(true);
             }, Qt::QueuedConnection);
-
         } catch (const std::exception& e) {
             QMetaObject::invokeMethod(window_, [this, msg = std::string(e.what())]() {
                 window_->appendLog(QString("Experiment error: %1").arg(QString::fromStdString(msg)));
+                window_->setStatus("Idle");
                 window_->setStartEnabled(true);
             }, Qt::QueuedConnection);
         }
-    }).detach();   // отсоединяем поток, чтобы он работал самостоятельно
+    }).detach();
 }
 
 } // namespace mlp
