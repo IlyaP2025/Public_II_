@@ -71,7 +71,7 @@ std::vector<double> BmpLoader::LoadImage(const std::string& path) {
         }
     }
 
-    // Масштабирование до 28x28
+    // Масштабирование до 28x28 (без инверсии)
     std::vector<double> image(28 * 28);
     for (int y = 0; y < 28; ++y) {
         for (int x = 0; x < 28; ++x) {
@@ -94,25 +94,11 @@ std::vector<double> BmpLoader::LoadImage(const std::string& path) {
                 pixels[y0 * width + x1] * dx * (1 - dy) +
                 pixels[y1 * width + x1] * dx * dy;
 
-            // Нормализация БЕЗ инверсии (фон=0, буква>0)
-            image[y * 28 + x] = val / 255.0;
+            image[y * 28 + x] = val / 255.0;   // простая нормализация
         }
     }
 
-    // Транспонирование (поворот на 90° против часовой)
-    std::vector<double> transposed(28 * 28);
-    for (int y = 0; y < 28; ++y)
-        for (int x = 0; x < 28; ++x)
-            transposed[y * 28 + x] = image[x * 28 + y];
-
-    // Вертикальное отражение (правильное для EMNIST)
-    for (int y = 0; y < 14; ++y) {
-        for (int x = 0; x < 28; ++x) {
-            std::swap(transposed[y * 28 + x], transposed[(27 - y) * 28 + x]);
-        }
-    }
-
-    return transposed;
+    return image;
 }
 
 }  // namespace mlp
