@@ -77,7 +77,7 @@ void MainWindow::setupUI() {
     connect(stopBtn_, &QPushButton::clicked, this, &MainWindow::stopTraining);
 
     // ================= Вкладка Experiment =================
-    QWidget *experimentTab = new QWidget();
+    Widget *experimentTab = new QWidget();
     QVBoxLayout *expLayout = new QVBoxLayout(experimentTab);
 
     loadBmpBtn_ = new QPushButton("Load BMP");
@@ -93,10 +93,30 @@ void MainWindow::setupUI() {
     predictionText_->setMaximumHeight(150);
     expLayout->addWidget(predictionText_);
 
+    // --- Experiment controls ---
+    QHBoxLayout *expCtrlLayout = new QHBoxLayout;
+    expCtrlLayout->addWidget(new QLabel("Test fraction:"));
+    testFractionSpin_ = new QDoubleSpinBox();
+    testFractionSpin_->setRange(0.0, 1.0);
+    testFractionSpin_->setSingleStep(0.1);
+    testFractionSpin_->setValue(0.2);
+    expCtrlLayout->addWidget(testFractionSpin_);
+    experimentBtn_ = new QPushButton("Run Experiment");
+    expCtrlLayout->addWidget(experimentBtn_);
+    expLayout->addLayout(expCtrlLayout);
+
+    metricsText_ = new QTextEdit();
+    metricsText_->setReadOnly(true);
+    metricsText_->setMaximumHeight(100);
+    expLayout->addWidget(metricsText_);
+
     expLayout->addStretch();
     tabWidget_->addTab(experimentTab, "Experiment");
 
     connect(loadBmpBtn_, &QPushButton::clicked, this, &MainWindow::loadBmp);
+    connect(experimentBtn_, &QPushButton::clicked, this, [this]() {
+        emit runExperiment(testFractionSpin_->value());
+    });
 
     // ================= Вкладка Settings =================
     QWidget *settingsTab = new QWidget();
@@ -358,6 +378,16 @@ void MainWindow::resetProgress() {
     progressLabel_->setVisible(false);
     progressBar_->setValue(0);
     progressLabel_->clear();
+}
+
+void MainWindow::displayMetrics(double accuracy, double precision, double recall, double f1, double timeSec) {
+    QString text = QString("Accuracy: %1%\nPrecision: %2%\nRecall: %3%\nF1: %4%\nTime: %5 sec")
+        .arg(accuracy * 100, 0, 'f', 2)
+        .arg(precision * 100, 0, 'f', 2)
+        .arg(recall * 100, 0, 'f', 2)
+        .arg(f1 * 100, 0, 'f', 2)
+        .arg(timeSec, 0, 'f', 2);
+    metricsText_->setPlainText(text);
 }
 
 } // namespace mlp

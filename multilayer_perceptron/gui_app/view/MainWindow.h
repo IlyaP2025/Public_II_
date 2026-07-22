@@ -30,6 +30,7 @@ public:
 
     void displayPrediction(const std::vector<double>& pixels,
                            const std::vector<double>& probs, char letter);
+    void displayMetrics(double accuracy, double precision, double recall, double f1, double timeSec);
 
 signals:
     void startTraining(double learningRate, int epochs);
@@ -39,6 +40,7 @@ signals:
     void loadBmp();
     void saveWeights();
     void loadWeights();
+    void runExperiment(double fraction);
 
 private:
     void setupUI();
@@ -60,8 +62,8 @@ private:
     QComboBox *modeCombo_;
     QWidget *manualContainer_;
     QWidget *geometricContainer_;
-    QSpinBox *percentageSpin_;  
-    QSpinBox *minLayerSizeSpin_;   
+    QSpinBox *percentageSpin_;
+    QSpinBox *minLayerSizeSpin_;
     QVector<QSpinBox*> manualLayerSpins_;
     QPushButton *applyBtn_;
     QPushButton *saveBtn_;
@@ -71,6 +73,9 @@ private:
     QPushButton *loadBmpBtn_;
     QLabel *imageLabel_;
     QTextEdit *predictionText_;
+    QDoubleSpinBox *testFractionSpin_;
+    QPushButton *experimentBtn_;
+    QTextEdit *metricsText_;
 
     void rebuildManualFields();
     void fillLinearDistribution();

@@ -9,12 +9,14 @@
 #include <atomic>
 #include <vector>
 #include <cstddef>
+#include <chrono>
 
 #include "view/MainWindow.h"
 #include "perceptron/matrix_perceptron.h"
 #include "data/emnist_loader.h"
 #include "data/bmp_loader.h"
 #include "serialization/simple_weights_serializer.h"
+#include "metrics/metrics_calculator.h"
 
 namespace s21 {
 namespace mlp {
@@ -37,6 +39,7 @@ private slots:
     void onLoadBmp();
     void onSaveWeights();
     void onLoadWeights();
+    void onRunExperiment(double fraction);
 
 private:
     void setState(TrainingState state);

@@ -225,10 +225,12 @@ void AppController::onSaveWeights() {
         window_->appendLog("Cannot save while training.");
         return;
     }
+    QString filename = QFileDialog::getSaveFileName(window_, "Save Weights", "weights.txt", "Text Files (*.txt)");
+    if (filename.isEmpty()) return;
     try {
         auto weights = perceptron_->GetWeights();
-        serializer_.Save("weights.txt", weights);
-        window_->appendLog("Weights saved to weights.txt");
+        serializer_.Save(filename.toStdString(), weights);
+        window_->appendLog("Weights saved to " + filename);
     } catch (const std::exception& e) {
         window_->appendLog(QString("Save error: %1").arg(e.what()));
     }
@@ -239,12 +241,56 @@ void AppController::onLoadWeights() {
         window_->appendLog("Cannot load while training.");
         return;
     }
+    QString filename = QFileDialog::getOpenFileName(window_, "Load Weights", "weights.txt", "Text Files (*.txt)");
+    if (filename.isEmpty()) return;
     try {
-        auto weights = serializer_.Load("weights.txt");
+        auto weights = serializer_.Load(filename.toStdString());
         perceptron_->SetWeights(weights);
-        window_->appendLog("Weights loaded from weights.txt");
+        window_->appendLog("Weights loaded from " + filename);
     } catch (const std::exception& e) {
         window_->appendLog(QString("Load error: %1").arg(e.what()));
+    }
+}
+
+void AppController::onRunExperiment(double fraction) {
+    if (state_ != TrainingState::Idle) {
+        window_->appendLog("Cannot run experiment while training.");
+        return;
+    }
+    auto start = std::chrono::steady_clock::now();
+    try {
+        auto [train, test] = loader_.Load("datasets/emnist-letters-train.csv", 0.2);
+        std::vector<DataSample> test_set = test;
+        if (fraction < 1.0) {
+            std::random_device rd;
+            std::mt19937 g(rd());
+            std::shuffle(test_set.begin(), test_set.end(), g);
+            size_t newSize = static_cast<size_t>(test_set.size() * fraction);
+            if (newSize == 0) newSize = 1; // минимум 1 пример
+            test_set.resize(newSize);
+        }
+
+        std::vector<int> predicted_labels, true_labels;
+        for (const auto& sample : test_set) {
+            auto out = perceptron_->Predict(sample.first);
+            int pred = std::max_element(out.begin(), out.end()) - out.begin();
+            int true_label = std::max_element(sample.second.begin(), sample.second.end()) - sample.second.begin();
+            predicted_labels.push_back(pred);
+            true_labels.push_back(true_label);
+        }
+
+        Metrics m = MetricsCalculator::Calculate(predicted_labels, true_labels);
+        auto end = std::chrono::steady_clock::now();
+        double elapsed = std::chrono::duration<double>(end - start).count();
+
+        QMetaObject::invokeMethod(window_, [this, m, elapsed]() {
+            window_->displayMetrics(m.accuracy, m.precision, m.recall, m.f1, elapsed);
+            window_->appendLog(QString("Experiment finished in %1 sec").arg(elapsed, 0, 'f', 2));
+        }, Qt::QueuedConnection);
+    } catch (const std::exception& e) {
+        QMetaObject::invokeMethod(window_, [this, msg = std::string(e.what())]() {
+            window_->appendLog(QString("Experiment error: %1").arg(QString::fromStdString(msg)));
+        }, Qt::QueuedConnection);
     }
 }
 
