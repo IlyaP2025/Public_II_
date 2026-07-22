@@ -257,41 +257,54 @@ void AppController::onRunExperiment(double fraction) {
         window_->appendLog("Cannot run experiment while training.");
         return;
     }
-    auto start = std::chrono::steady_clock::now();
-    try {
-        auto [train, test] = loader_.Load("datasets/emnist-letters-train.csv", 0.2);
-        std::vector<DataSample> test_set = test;
-        if (fraction < 1.0) {
-            std::random_device rd;
-            std::mt19937 g(rd());
-            std::shuffle(test_set.begin(), test_set.end(), g);
-            size_t newSize = static_cast<size_t>(test_set.size() * fraction);
-            if (newSize == 0) newSize = 1; // минимум 1 пример
-            test_set.resize(newSize);
+    // Отключаем кнопку, чтобы не запустить дважды
+    window_->setStartEnabled(false);   // используем общий запрет старта (можно добавить отдельный метод)
+
+    std::thread([this, fraction]() {
+        try {
+            auto start = std::chrono::steady_clock::now();
+
+            // Загружаем датасет (это долго)
+            auto [train, test] = loader_.Load("datasets/emnist-letters-train.csv", 0.2);
+            std::vector<DataSample> test_set = test;
+
+            if (fraction < 1.0) {
+                std::random_device rd;
+                std::mt19937 g(rd());
+                std::shuffle(test_set.begin(), test_set.end(), g);
+                size_t newSize = static_cast<size_t>(test_set.size() * fraction);
+                if (newSize == 0) newSize = 1;
+                test_set.resize(newSize);
+            }
+
+            // Предсказания
+            std::vector<int> predicted, actual;
+            for (const auto& sample : test_set) {
+                auto out = perceptron_->Predict(sample.first);
+                int pred = std::max_element(out.begin(), out.end()) - out.begin();
+                int act = std::max_element(sample.second.begin(), sample.second.end()) - sample.second.begin();
+                predicted.push_back(pred);
+                actual.push_back(act);
+            }
+
+            Metrics m = MetricsCalculator::Calculate(predicted, actual);
+            auto end = std::chrono::steady_clock::now();
+            double elapsed = std::chrono::duration<double>(end - start).count();
+
+            // Передаём результат в GUI
+            QMetaObject::invokeMethod(window_, [this, m, elapsed]() {
+                window_->displayMetrics(m.accuracy, m.precision, m.recall, m.f1, elapsed);
+                window_->appendLog(QString("Experiment finished in %1 sec").arg(elapsed, 0, 'f', 2));
+                window_->setStartEnabled(true);   // восстанавливаем кнопку
+            }, Qt::QueuedConnection);
+
+        } catch (const std::exception& e) {
+            QMetaObject::invokeMethod(window_, [this, msg = std::string(e.what())]() {
+                window_->appendLog(QString("Experiment error: %1").arg(QString::fromStdString(msg)));
+                window_->setStartEnabled(true);
+            }, Qt::QueuedConnection);
         }
-
-        std::vector<int> predicted_labels, true_labels;
-        for (const auto& sample : test_set) {
-            auto out = perceptron_->Predict(sample.first);
-            int pred = std::max_element(out.begin(), out.end()) - out.begin();
-            int true_label = std::max_element(sample.second.begin(), sample.second.end()) - sample.second.begin();
-            predicted_labels.push_back(pred);
-            true_labels.push_back(true_label);
-        }
-
-        Metrics m = MetricsCalculator::Calculate(predicted_labels, true_labels);
-        auto end = std::chrono::steady_clock::now();
-        double elapsed = std::chrono::duration<double>(end - start).count();
-
-        QMetaObject::invokeMethod(window_, [this, m, elapsed]() {
-            window_->displayMetrics(m.accuracy, m.precision, m.recall, m.f1, elapsed);
-            window_->appendLog(QString("Experiment finished in %1 sec").arg(elapsed, 0, 'f', 2));
-        }, Qt::QueuedConnection);
-    } catch (const std::exception& e) {
-        QMetaObject::invokeMethod(window_, [this, msg = std::string(e.what())]() {
-            window_->appendLog(QString("Experiment error: %1").arg(QString::fromStdString(msg)));
-        }, Qt::QueuedConnection);
-    }
+    }).detach();   // отсоединяем поток, чтобы он работал самостоятельно
 }
 
 } // namespace mlp
