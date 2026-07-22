@@ -20,6 +20,7 @@ AppController::AppController(QObject *parent) : QObject(parent) {
     connect(window_, &MainWindow::loadBmp, this, &AppController::onLoadBmp);
     connect(window_, &MainWindow::saveWeights, this, &AppController::onSaveWeights);
     connect(window_, &MainWindow::loadWeights, this, &AppController::onLoadWeights);
+    connect(window_, &MainWindow::runExperiment, this, &AppController::onRunExperiment);
 
     perceptron_ = std::make_unique<MatrixPerceptron>(std::vector<size_t>{784, 128, 26});
 }
