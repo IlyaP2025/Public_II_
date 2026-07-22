@@ -123,6 +123,7 @@ void MainWindow::setupUI() {
     modeCombo_ = new QComboBox();
     modeCombo_->addItem("Linear", 0);
     modeCombo_->addItem("Manual", 1);
+    modeCombo_->addItem("Geometric", 2);
     formLayout->addRow("Mode:", modeCombo_);
 
     archGroup->setLayout(formLayout);
@@ -140,46 +141,72 @@ void MainWindow::setupUI() {
     connect(saveBtn_, &QPushButton::clicked, this, &MainWindow::saveWeights);
     connect(loadBtn_, &QPushButton::clicked, this, &MainWindow::loadWeights);
 
-    settLayout->addStretch();
-    tabWidget_->addTab(settingsTab, "Settings");
-
-    // Контейнер для ручного ввода слоёв (создаём, но не добавляем сразу)
+    // --- Контейнер для ручного ввода слоёв (Manual) ---
     manualContainer_ = new QWidget();
     QVBoxLayout *manualLayout = new QVBoxLayout(manualContainer_);
     manualLayout->setContentsMargins(0, 0, 0, 0);
 
-    // Переключение режима: вставляем/удаляем контейнер
+    // --- Контейнер для Geometric ---
+    geometricContainer_ = new QWidget();
+    QHBoxLayout *geoLayout = new QHBoxLayout(geometricContainer_);
+    geoLayout->setContentsMargins(0, 0, 0, 0);
+    percentageSpin_ = new QSpinBox();
+    percentageSpin_->setRange(10, 90);
+    percentageSpin_->setValue(50);
+    minLayerSizeSpin_ = new QSpinBox();
+    minLayerSizeSpin_->setRange(2, 1000);
+    minLayerSizeSpin_->setValue(26);
+    geoLayout->addWidget(new QLabel("Compress %:"));
+    geoLayout->addWidget(percentageSpin_);
+    geoLayout->addWidget(new QLabel("Min size:"));
+    geoLayout->addWidget(minLayerSizeSpin_);
+    settLayout->addWidget(geometricContainer_);
+    geometricContainer_->hide();
+
+    settLayout->addStretch();
+    tabWidget_->addTab(settingsTab, "Settings");
+
+    // Переключение режимов
     connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, [this, settLayout, settingsTab](int index) {
-        if (index == 1) {   // Manual
+        // Скрываем все динамические контейнеры
+        if (manualContainer_->isVisible()) {
+            settLayout->removeWidget(manualContainer_);
+            manualContainer_->hide();
+        }
+        geometricContainer_->hide();
+
+        if (index == 1) { // Manual
             rebuildManualFields();
             if (settLayout->indexOf(manualContainer_) == -1) {
                 settLayout->insertWidget(1, manualContainer_);
             }
             manualContainer_->show();
-            settLayout->invalidate();
-            settLayout->activate();
-        } else {            // Linear
-            settLayout->removeWidget(manualContainer_);
-            manualContainer_->hide();
-            settLayout->invalidate();
-            settLayout->activate();
+        } else if (index == 2) { // Geometric
+            geometricContainer_->show();
         }
+        // Linear (0) – ничего не показываем
+
+        settLayout->invalidate();
+        settLayout->activate();
         settingsTab->adjustSize();
     });
 
-    // Обновление полей при изменении параметров (только если контейнер видим)
+    // Обновление полей при изменении параметров (только для Manual)
     connect(hiddenLayersSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
             this, [this]() {
-        if (manualContainer_->isVisible()) rebuildManualFields();
+        if (modeCombo_->currentIndex() == 1 && manualContainer_->isVisible())
+            rebuildManualFields();
     });
     connect(inputSizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
             this, [this]() {
-        if (manualContainer_->isVisible()) fillLinearDistribution();
+        if (modeCombo_->currentIndex() == 1 && manualContainer_->isVisible())
+            fillLinearDistribution();
     });
     connect(outputSizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
             this, [this]() {
-        if (manualContainer_->isVisible()) fillLinearDistribution();
+        if (modeCombo_->currentIndex() == 1 && manualContainer_->isVisible())
+            fillLinearDistribution();
     });
 
     modeCombo_->setCurrentIndex(0);
@@ -199,9 +226,9 @@ void MainWindow::setupUI() {
                 neurons = std::max(1, neurons);
                 layers.push_back(neurons);
             }
-        } else { // Manual
+        } else if (modeCombo_->currentIndex() == 1) { // Manual
             if (static_cast<int>(manualLayerSpins_.size()) != hiddenLayersSpin_->value()) {
-                QMessageBox::warning(this, "Error", "Layer count mismatch. Please re-apply.");
+                QMessageBox::warning(this, "Error", "Layer count mismatch.");
                 return;
             }
             for (auto* spin : manualLayerSpins_) {
@@ -210,6 +237,28 @@ void MainWindow::setupUI() {
                     return;
                 }
                 layers.push_back(spin->value());
+            }
+        } else if (modeCombo_->currentIndex() == 2) { // Geometric
+            int input = inputSizeSpin_->value();
+            int output = outputSizeSpin_->value();
+            int percent = percentageSpin_->value();
+            int minSize = minLayerSizeSpin_->value();
+            int hidden = hiddenLayersSpin_->value();
+            int prev = input;
+            for (int i = 0; i < hidden; ++i) {
+                int neurons = std::max(minSize, prev * percent / 100);
+                // Защита: если слой меньше выходного, приравниваем к выходному
+                if (neurons < output) {
+                    neurons = output;
+                    // Заполняем оставшиеся скрытые слои значением output
+                    while (i < hidden) {
+                        layers.push_back(output);
+                        ++i;
+                    }
+                    break;
+                }
+                layers.push_back(neurons);
+                prev = neurons;
             }
         }
 
@@ -266,7 +315,6 @@ void MainWindow::fillLinearDistribution() {
     }
 }
 
-// --------------- Метод для Experiment ---------------
 void MainWindow::displayPrediction(const std::vector<double>& pixels,
                                    const std::vector<double>& probs, char letter) {
     QImage img(28, 28, QImage::Format_Grayscale8);
@@ -285,7 +333,7 @@ void MainWindow::displayPrediction(const std::vector<double>& pixels,
     QString probStr = QString("Predicted: %1\n").arg(letter);
     for (int i = 0; i < 26; ++i) {
         probStr += QString("%1: %2%  ").arg(QChar('A' + i)).arg(probs[i] * 100, 0, 'f', 1);
-        if ((i + 1) % 5 == 0) probStr += "\n";   // перенос каждые 5 букв
+        if ((i + 1) % 5 == 0) probStr += "\n";
     }
     predictionText_->setPlainText(probStr);
 }

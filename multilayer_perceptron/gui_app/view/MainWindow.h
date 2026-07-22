@@ -59,6 +59,9 @@ private:
     QSpinBox *hiddenLayersSpin_;
     QComboBox *modeCombo_;
     QWidget *manualContainer_;
+    QWidget *geometricContainer_;
+    QSpinBox *percentageSpin_;  
+    QSpinBox *minLayerSizeSpin_;   
     QVector<QSpinBox*> manualLayerSpins_;
     QPushButton *applyBtn_;
     QPushButton *saveBtn_;
