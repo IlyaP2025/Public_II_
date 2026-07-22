@@ -77,7 +77,7 @@ void MainWindow::setupUI() {
     connect(stopBtn_, &QPushButton::clicked, this, &MainWindow::stopTraining);
 
     // ================= Вкладка Experiment =================
-    Widget *experimentTab = new QWidget();
+    QWidget *experimentTab = new QWidget();
     QVBoxLayout *expLayout = new QVBoxLayout(experimentTab);
 
     loadBmpBtn_ = new QPushButton("Load BMP");
