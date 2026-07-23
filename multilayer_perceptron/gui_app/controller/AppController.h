@@ -40,6 +40,7 @@ private slots:
     void onSaveWeights();
     void onLoadWeights();
     void onRunExperiment(double fraction);
+    void onClassifyDrawn(const std::vector<double>& pixels);
 
 private:
     void setState(TrainingState state);

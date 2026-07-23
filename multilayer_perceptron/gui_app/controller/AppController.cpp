@@ -21,6 +21,7 @@ AppController::AppController(QObject *parent) : QObject(parent) {
     connect(window_, &MainWindow::saveWeights, this, &AppController::onSaveWeights);
     connect(window_, &MainWindow::loadWeights, this, &AppController::onLoadWeights);
     connect(window_, &MainWindow::runExperiment, this, &AppController::onRunExperiment);
+    connect(window_, &MainWindow::classifyDrawn, this, &AppController::onClassifyDrawn);
 
     perceptron_ = std::make_unique<MatrixPerceptron>(std::vector<size_t>{784, 128, 26});
 }
@@ -226,7 +227,14 @@ void AppController::onSaveWeights() {
         window_->appendLog("Cannot save while training.");
         return;
     }
-    QString filename = QFileDialog::getSaveFileName(window_, "Save Weights", "weights.txt", "Text Files (*.txt)");
+    const auto& layers = perceptron_->LayerSizes();
+    QString defaultName = "weights";
+    for (size_t i = 0; i < layers.size(); ++i) {
+        defaultName += "_" + QString::number(layers[i]);
+    }
+    defaultName += ".txt";
+
+    QString filename = QFileDialog::getSaveFileName(window_, "Save Weights", defaultName, "Text Files (*.txt)");
     if (filename.isEmpty()) return;
     try {
         auto weights = perceptron_->GetWeights();
@@ -306,6 +314,25 @@ void AppController::onRunExperiment(double fraction) {
             }, Qt::QueuedConnection);
         }
     }).detach();
+}
+
+void AppController::onClassifyDrawn(const std::vector<double>& pixels) {
+    if (state_ != TrainingState::Idle) {
+        window_->appendLog("Cannot classify while training.");
+        return;
+    }
+    try {
+        std::vector<double> output = perceptron_->Predict(pixels);
+        int classIdx = std::max_element(output.begin(), output.end()) - output.begin();
+        char letter = 'A' + classIdx;
+        QMetaObject::invokeMethod(window_, [this, pixels, output, letter]() {
+            window_->displayPrediction(pixels, output, letter);
+        }, Qt::QueuedConnection);
+    } catch (const std::exception& e) {
+        QMetaObject::invokeMethod(window_, [this, msg = std::string(e.what())]() {
+            window_->appendLog(QString("Draw error: %1").arg(QString::fromStdString(msg)));
+        }, Qt::QueuedConnection);
+    }
 }
 
 } // namespace mlp

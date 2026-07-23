@@ -41,6 +41,7 @@ signals:
     void saveWeights();
     void loadWeights();
     void runExperiment(double fraction);
+    void classifyDrawn(const std::vector<double>& pixels);
 
 private:
     void setupUI();

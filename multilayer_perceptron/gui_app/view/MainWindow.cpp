@@ -1,9 +1,11 @@
 #include "MainWindow.h"
+#include "DrawWidget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>
 #include <QFormLayout>
 #include <QMessageBox>
+#include <QDialog>
 #include <cmath>
 
 namespace s21 {
@@ -81,6 +83,26 @@ void MainWindow::setupUI() {
     QVBoxLayout *expLayout = new QVBoxLayout(experimentTab);
 
     loadBmpBtn_ = new QPushButton("Load BMP");
+
+    QPushButton *drawBtn = new QPushButton("Draw Letter");
+    expLayout->addWidget(drawBtn);
+    connect(drawBtn, &QPushButton::clicked, this, [this]() {
+        QDialog *dlg = new QDialog(this);
+        dlg->setWindowTitle("Draw a letter");
+        QVBoxLayout *dlgLayout = new QVBoxLayout(dlg);
+        DrawWidget *draw = new DrawWidget(dlg);
+        dlgLayout->addWidget(draw);
+        QPushButton *classifyBtn = new QPushButton("Classify");
+        dlgLayout->addWidget(classifyBtn);
+        connect(classifyBtn, &QPushButton::clicked, this, [this, draw, dlg]() {
+            std::vector<double> pixels = draw->getProcessedImage();
+            emit classifyDrawn(pixels);
+            dlg->accept();
+        });
+        dlg->exec();
+        delete dlg;
+    });
+
     expLayout->addWidget(loadBmpBtn_);
 
     imageLabel_ = new QLabel();
