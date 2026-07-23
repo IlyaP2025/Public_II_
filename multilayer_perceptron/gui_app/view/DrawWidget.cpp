@@ -1,6 +1,7 @@
 #include "DrawWidget.h"
 #include <QPainter>
 #include <QPen>
+#include <QMouseEvent>
 
 namespace s21 {
 namespace mlp {
