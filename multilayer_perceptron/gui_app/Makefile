@@ -38,4 +38,4 @@ view/moc_DrawWidget.cpp: view/DrawWidget.h
 
 # Удаление сгенерированных moc-файлов при очистке
 clean:
-	rm -rf build $(TARGET) view/moc_MainWindow.cpp controller/moc_AppController.cpp
+	rm -rf build $(TARGET) view/moc_MainWindow.cpp controller/moc_AppController.cpp view/moc_DrawWidget.cpp
