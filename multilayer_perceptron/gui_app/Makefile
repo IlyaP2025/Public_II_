@@ -7,8 +7,8 @@ INCLUDES = -I. -I../libmlp/include/mlp
 # Утилита moc
 MOC = /usr/lib/qt5/bin/moc
 
-SOURCES = main.cpp view/MainWindow.cpp controller/AppController.cpp
-MOC_SRCS = view/moc_MainWindow.cpp controller/moc_AppController.cpp
+SOURCES = main.cpp view/MainWindow.cpp controller/AppController.cpp view/DrawWidget.cpp
+MOC_SRCS = view/moc_MainWindow.cpp controller/moc_AppController.cpp view/moc_DrawWidget.cpp
 OBJECTS = $(patsubst %.cpp,build/%.o,$(SOURCES) $(MOC_SRCS))
 TARGET = mlp_gui
 
@@ -30,6 +30,10 @@ view/moc_MainWindow.cpp: view/MainWindow.h
 
 controller/moc_AppController.cpp: controller/AppController.h
 	@mkdir -p build/controller
+	$(MOC) $< -o $@
+
+view/moc_DrawWidget.cpp: view/DrawWidget.h
+	@mkdir -p $(dir $@)
 	$(MOC) $< -o $@
 
 # Удаление сгенерированных moc-файлов при очистке
