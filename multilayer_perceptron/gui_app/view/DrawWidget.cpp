@@ -47,6 +47,7 @@ void DrawWidget::drawLineTo(const QPoint &end) {
     update();
 }
 
+/*
 std::vector<double> DrawWidget::getProcessedImage() const {
     QImage scaled = canvas_.scaled(28, 28, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
     std::vector<double> pixels(28 * 28);
@@ -59,6 +60,7 @@ std::vector<double> DrawWidget::getProcessedImage() const {
     }
     return pixels;
 }
+*/
 
 std::vector<double> DrawWidget::getProcessedImage() const {
     QImage scaled = canvas_.scaled(28, 28, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
