@@ -43,7 +43,8 @@ void DrawWidget::mouseReleaseEvent(QMouseEvent *) {
 
 void DrawWidget::drawLineTo(const QPoint &end) {
     QPainter painter(&canvas_);
-    painter.setPen(QPen(Qt::black, 20, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    // Уменьшили толщину до 15, чтобы линии были аккуратнее
+    painter.setPen(QPen(Qt::black, 15, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     painter.drawLine(lastPoint_, end);
     lastPoint_ = end;
     update();
@@ -63,7 +64,7 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         }
     }
 
-    // 2. Инверсия, если фон светлый (средняя яркость > 128)
+    // 2. Инверсия, если фон светлый
     double avg = 0.0;
     for (int v : src) avg += v;
     avg /= src.size();
@@ -73,7 +74,7 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         }
     }
 
-    // 3. Находим bounding box белых пикселей (теперь буква белая на чёрном)
+    // 3. Находим bounding box белых пикселей (>128)
     int x_min = srcSize, y_min = srcSize, x_max = -1, y_max = -1;
     for (int y = 0; y < srcSize; ++y) {
         for (int x = 0; x < srcSize; ++x) {
@@ -86,12 +87,12 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         }
     }
 
-    // Если буква не найдена – возвращаем чёрный холст
+    // Если буква не найдена – чёрный холст
     if (x_max < 0) {
         return std::vector<double>(dstSize * dstSize, 0.0);
     }
 
-    // 4. Вырезаем прямоугольник с учётом отступов (не выходим за границы)
+    // 4. Вырезаем прямоугольник с отступами
     x_min = std::max(0, x_min - padding);
     y_min = std::max(0, y_min - padding);
     x_max = std::min(srcSize - 1, x_max + padding);
@@ -100,7 +101,6 @@ std::vector<double> DrawWidget::getProcessedImage() const {
     int crop_w = x_max - x_min + 1;
     int crop_h = y_max - y_min + 1;
 
-    // 5. Копируем вырезанный прямоугольник в отдельную матрицу
     std::vector<uint8_t> crop(crop_w * crop_h);
     for (int y = 0; y < crop_h; ++y) {
         for (int x = 0; x < crop_w; ++x) {
@@ -108,9 +108,9 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         }
     }
 
-    // 6. Добавляем поля до квадрата (чёрные пиксели)
+    // 5. Добавляем поля до квадрата
     int max_dim = std::max(crop_w, crop_h);
-    std::vector<uint8_t> square(max_dim * max_dim, 0);   // чёрный фон
+    std::vector<uint8_t> square(max_dim * max_dim, 0);
     int paste_x = (max_dim - crop_w) / 2;
     int paste_y = (max_dim - crop_h) / 2;
     for (int y = 0; y < crop_h; ++y) {
@@ -119,8 +119,8 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         }
     }
 
-    // 7. Масштабируем квадрат до 28x28 (билинейная интерполяция)
-    std::vector<double> result(dstSize * dstSize, 0.0);
+    // 6. Масштабируем квадрат до 28×28 (билинейная интерполяция)
+    std::vector<double> scaled(dstSize * dstSize, 0.0);
     double scale = static_cast<double>(dstSize) / max_dim;
     for (int y = 0; y < dstSize; ++y) {
         for (int x = 0; x < dstSize; ++x) {
@@ -139,11 +139,25 @@ std::vector<double> DrawWidget::getProcessedImage() const {
                 square[y1 * max_dim + x0] * fy * (1 - fx) +
                 square[y0 * max_dim + x1] * fx * (1 - fy) +
                 square[y1 * max_dim + x1] * fx * fy;
-            result[y * dstSize + x] = val / 255.0;
+            scaled[y * dstSize + x] = val / 255.0;
         }
     }
 
-    return result;
+    // 7. Лёгкое размытие (box blur 3×3) для смягчения краёв
+    std::vector<double> blurred = scaled;
+    for (int y = 1; y < dstSize - 1; ++y) {
+        for (int x = 1; x < dstSize - 1; ++x) {
+            double sum = 0.0;
+            for (int dy = -1; dy <= 1; ++dy) {
+                for (int dx = -1; dx <= 1; ++dx) {
+                    sum += scaled[(y + dy) * dstSize + (x + dx)];
+                }
+            }
+            blurred[y * dstSize + x] = sum / 9.0;
+        }
+    }
+
+    return blurred;
 }
 
 } // namespace mlp
