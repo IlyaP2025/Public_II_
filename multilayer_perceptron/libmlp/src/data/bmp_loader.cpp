@@ -32,6 +32,17 @@ struct BmpInfoHeader {
 };
 #pragma pack(pop)
 
+// Вспомогательная функция: автоматически определяет фон и при необходимости инвертирует
+static void NormalizeToEmnistFormat(std::vector<double>& image) {
+    double sum = 0.0;
+    for (double v : image) sum += v;
+    double avg = sum / image.size();
+    // Если средняя яркость > 0.5, значит фон светлый → нужна инверсия
+    if (avg > 0.5) {
+        for (double& v : image) v = 1.0 - v;
+    }
+}
+
 std::vector<double> BmpLoader::LoadImage(const std::string& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
@@ -40,7 +51,7 @@ std::vector<double> BmpLoader::LoadImage(const std::string& path) {
 
     BmpHeader header;
     file.read(reinterpret_cast<char*>(&header), sizeof(header));
-    if (header.type != 0x4D42) {   // "BM"
+    if (header.type != 0x4D42) {
         throw std::runtime_error("Not a valid BMP file");
     }
 
@@ -71,7 +82,7 @@ std::vector<double> BmpLoader::LoadImage(const std::string& path) {
         }
     }
 
-    // Масштабирование до 28x28 с инверсией (фон=0, буква=1)
+    // Масштабирование до 28x28 (пока без инверсии)
     std::vector<double> image(28 * 28);
     for (int y = 0; y < 28; ++y) {
         for (int x = 0; x < 28; ++x) {
@@ -94,10 +105,12 @@ std::vector<double> BmpLoader::LoadImage(const std::string& path) {
                 pixels[y0 * width + x1] * dx * (1 - dy) +
                 pixels[y1 * width + x1] * dx * dy;
 
-            // Инверсия для внешних BMP (чёрный на белом -> белый на чёрном)
-            image[y * 28 + x] = 1.0 - val / 255.0;
+            image[y * 28 + x] = val / 255.0;
         }
     }
+
+    // Автоматически привести к формату EMNIST (фон=0, буква=1)
+    NormalizeToEmnistFormat(image);
 
     return image;
 }
