@@ -52,24 +52,32 @@ void DrawWidget::drawLineTo(const QPoint &end) {
 std::vector<double> DrawWidget::getProcessedImage() const {
     const int srcSize = 280;
     const int dstSize = 28;
-    const int targetSize = 20;          // размер квадрата для масштабированной буквы
-    const int margin = 2;               // поля внутри квадрата 20x20
-    const int padding = 30;             // отступ вокруг буквы на исходном холсте
+    const int padding = 30;   // отступ вокруг буквы
 
-    // 1. Переводим холст в одномерный массив 0..255 (белый=255, чёрный=0)
-    std::vector<uint8_t> srcPixels(srcSize * srcSize);
+    // 1. Копируем холст в матрицу 0..255
+    std::vector<uint8_t> src(srcSize * srcSize);
     for (int y = 0; y < srcSize; ++y) {
         const uchar* line = canvas_.scanLine(y);
         for (int x = 0; x < srcSize; ++x) {
-            srcPixels[y * srcSize + x] = line[x];
+            src[y * srcSize + x] = line[x];
         }
     }
 
-    // 2. Ищем bounding box буквы (пиксели темнее 250 → не фон)
+    // 2. Инверсия, если фон светлый (средняя яркость > 128)
+    double avg = 0.0;
+    for (int v : src) avg += v;
+    avg /= src.size();
+    if (avg > 128.0) {
+        for (uint8_t& v : src) {
+            v = 255 - v;
+        }
+    }
+
+    // 3. Находим bounding box белых пикселей (теперь буква белая на чёрном)
     int x_min = srcSize, y_min = srcSize, x_max = -1, y_max = -1;
     for (int y = 0; y < srcSize; ++y) {
         for (int x = 0; x < srcSize; ++x) {
-            if (srcPixels[y * srcSize + x] < 250) {
+            if (src[y * srcSize + x] > 128) {
                 x_min = std::min(x_min, x);
                 y_min = std::min(y_min, y);
                 x_max = std::max(x_max, x);
@@ -78,61 +86,60 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         }
     }
 
-    // Если ничего не нарисовано, возвращаем чёрный холст
+    // Если буква не найдена – возвращаем чёрный холст
     if (x_max < 0) {
         return std::vector<double>(dstSize * dstSize, 0.0);
     }
 
-    // Добавляем отступы (могут выйти за границы, потом обрежем)
+    // 4. Вырезаем прямоугольник с учётом отступов (не выходим за границы)
     x_min = std::max(0, x_min - padding);
     y_min = std::max(0, y_min - padding);
     x_max = std::min(srcSize - 1, x_max + padding);
     y_max = std::min(srcSize - 1, y_max + padding);
 
-    int box_w = x_max - x_min + 1;
-    int box_h = y_max - y_min + 1;
+    int crop_w = x_max - x_min + 1;
+    int crop_h = y_max - y_min + 1;
 
-    // 3. Масштабируем содержимое box в квадрат 20x20, сохраняя пропорции
-    std::vector<double> scaled(targetSize * targetSize, 0.0);
-    double scale = std::min(static_cast<double>(targetSize - 2*margin) / box_w,
-                            static_cast<double>(targetSize - 2*margin) / box_h);
-    int new_w = static_cast<int>(box_w * scale);
-    int new_h = static_cast<int>(box_h * scale);
-    int offset_x = (targetSize - new_w) / 2;
-    int offset_y = (targetSize - new_h) / 2;
-
-    for (int y = 0; y < new_h; ++y) {
-        for (int x = 0; x < new_w; ++x) {
-            double src_x = x_min + x / scale;
-            double src_y = y_min + y / scale;
-            // Билинейная интерполяция по исходному холсту
-            int x0 = static_cast<int>(src_x);
-            int y0 = static_cast<int>(src_y);
-            int x1 = std::min(x0 + 1, srcSize - 1);
-            int y1 = std::min(y0 + 1, srcSize - 1);
-            double fx = src_x - x0;
-            double fy = src_y - y0;
-            double val =
-                srcPixels[y0 * srcSize + x0] * (1 - fx) * (1 - fy) +
-                srcPixels[y1 * srcSize + x0] * fy * (1 - fx) +
-                srcPixels[y0 * srcSize + x1] * fx * (1 - fy) +
-                srcPixels[y1 * srcSize + x1] * fx * fy;
-            scaled[(offset_y + y) * targetSize + (offset_x + x)] = val / 255.0;
+    // 5. Копируем вырезанный прямоугольник в отдельную матрицу
+    std::vector<uint8_t> crop(crop_w * crop_h);
+    for (int y = 0; y < crop_h; ++y) {
+        for (int x = 0; x < crop_w; ++x) {
+            crop[y * crop_w + x] = src[(y_min + y) * srcSize + (x_min + x)];
         }
     }
 
-    // 4. ПРИНУДИТЕЛЬНАЯ инверсия (холст всегда белый)
-    for (double& v : scaled) {
-        v = 1.0 - v;
+    // 6. Добавляем поля до квадрата (чёрные пиксели)
+    int max_dim = std::max(crop_w, crop_h);
+    std::vector<uint8_t> square(max_dim * max_dim, 0);   // чёрный фон
+    int paste_x = (max_dim - crop_w) / 2;
+    int paste_y = (max_dim - crop_h) / 2;
+    for (int y = 0; y < crop_h; ++y) {
+        for (int x = 0; x < crop_w; ++x) {
+            square[(paste_y + y) * max_dim + (paste_x + x)] = crop[y * crop_w + x];
+        }
     }
 
-    // 5. Вставляем квадрат 20x20 в центр чёрного холста 28x28
+    // 7. Масштабируем квадрат до 28x28 (билинейная интерполяция)
     std::vector<double> result(dstSize * dstSize, 0.0);
-    int paste_x = (dstSize - targetSize) / 2;
-    int paste_y = (dstSize - targetSize) / 2;
-    for (int y = 0; y < targetSize; ++y) {
-        for (int x = 0; x < targetSize; ++x) {
-            result[(paste_y + y) * dstSize + (paste_x + x)] = scaled[y * targetSize + x];
+    double scale = static_cast<double>(dstSize) / max_dim;
+    for (int y = 0; y < dstSize; ++y) {
+        for (int x = 0; x < dstSize; ++x) {
+            double src_x = x / scale;
+            double src_y = y / scale;
+            if (src_x < 0 || src_y < 0 || src_x >= max_dim - 1 || src_y >= max_dim - 1)
+                continue;
+            int x0 = static_cast<int>(src_x);
+            int y0 = static_cast<int>(src_y);
+            int x1 = std::min(x0 + 1, max_dim - 1);
+            int y1 = std::min(y0 + 1, max_dim - 1);
+            double fx = src_x - x0;
+            double fy = src_y - y0;
+            double val =
+                square[y0 * max_dim + x0] * (1 - fx) * (1 - fy) +
+                square[y1 * max_dim + x0] * fy * (1 - fx) +
+                square[y0 * max_dim + x1] * fx * (1 - fy) +
+                square[y1 * max_dim + x1] * fx * fy;
+            result[y * dstSize + x] = val / 255.0;
         }
     }
 
