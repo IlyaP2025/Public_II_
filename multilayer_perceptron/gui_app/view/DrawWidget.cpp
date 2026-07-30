@@ -53,9 +53,10 @@ std::vector<double> DrawWidget::getProcessedImage() const {
     const int srcSize = 280;
     const int dstSize = 28;
     const int targetSize = 20;          // размер квадрата для масштабированной буквы
-    const int margin = 2;               // отступ внутри квадрата 20x20
+    const int margin = 2;               // поля внутри квадрата 20x20
+    const int padding = 30;             // отступ вокруг буквы на исходном холсте (≈3 пикселя на 28x28)
 
-    // 1. Переводим холст в одномерный массив 0..255 (белый=255, чёрный=0)
+    // 1. Переводим холст в одномерный массив 0..255
     std::vector<uint8_t> srcPixels(srcSize * srcSize);
     for (int y = 0; y < srcSize; ++y) {
         const uchar* line = canvas_.scanLine(y);
@@ -64,11 +65,11 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         }
     }
 
-    // 2. Ищем bounding box буквы (пиксели темнее 250 → не фон)
+    // 2. Ищем bounding box (пиксели темнее 250)
     int x_min = srcSize, y_min = srcSize, x_max = -1, y_max = -1;
     for (int y = 0; y < srcSize; ++y) {
         for (int x = 0; x < srcSize; ++x) {
-            if (srcPixels[y * srcSize + x] < 250) {   // не белый
+            if (srcPixels[y * srcSize + x] < 250) {
                 x_min = std::min(x_min, x);
                 y_min = std::min(y_min, y);
                 x_max = std::max(x_max, x);
@@ -82,8 +83,7 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         return std::vector<double>(dstSize * dstSize, 0.0);
     }
 
-    // Добавляем небольшой отступ (4 пикселя), но не выходим за границы
-    const int padding = 4;
+    // Добавляем отступ (не выходим за границы)
     x_min = std::max(0, x_min - padding);
     y_min = std::max(0, y_min - padding);
     x_max = std::min(srcSize - 1, x_max + padding);
@@ -105,7 +105,6 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         for (int x = 0; x < new_w; ++x) {
             double src_x = x_min + x / scale;
             double src_y = y_min + y / scale;
-            // Билинейная интерполяция по исходному холсту 280x280
             int x0 = static_cast<int>(src_x);
             int y0 = static_cast<int>(src_y);
             int x1 = std::min(x0 + 1, srcSize - 1);
@@ -121,7 +120,14 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         }
     }
 
-    // 4. Вставляем квадрат 20x20 в центр холста 28x28 (чёрный фон)
+    // 4. Автоинверсия по содержимому квадрата 20x20
+    double sum = 0;
+    for (double v : scaled) sum += v;
+    if (sum / scaled.size() > 0.5) {   // фон светлый → инвертируем
+        for (double& v : scaled) v = 1.0 - v;
+    }
+
+    // 5. Вставляем квадрат 20x20 в центр холста 28x28 (чёрный фон)
     std::vector<double> result(dstSize * dstSize, 0.0);
     int paste_x = (dstSize - targetSize) / 2;
     int paste_y = (dstSize - targetSize) / 2;
@@ -129,13 +135,6 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         for (int x = 0; x < targetSize; ++x) {
             result[(paste_y + y) * dstSize + (paste_x + x)] = scaled[y * targetSize + x];
         }
-    }
-
-    // 5. Авто‑инверсия: если фон светлый, делаем инверсию (чтобы фон стал 0)
-    double sum = 0;
-    for (double v : result) sum += v;
-    if (sum / result.size() > 0.5) {
-        for (double& v : result) v = 1.0 - v;
     }
 
     return result;
