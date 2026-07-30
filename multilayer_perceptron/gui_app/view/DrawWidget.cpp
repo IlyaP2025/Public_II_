@@ -1,3 +1,4 @@
+#include "data/image_normalizer.h"
 #include "DrawWidget.h"
 #include <QPainter>
 #include <QPen>
@@ -57,6 +58,19 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         }
     }
     return pixels;
+}
+
+std::vector<double> DrawWidget::getProcessedImage() const {
+    QImage scaled = canvas_.scaled(28, 28, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    std::vector<double> pixels(28 * 28);
+    for (int y = 0; y < 28; ++y) {
+        for (int x = 0; x < 28; ++x) {
+            int gray = qGray(scaled.pixel(x, y));
+            pixels[y * 28 + x] = gray / 255.0;   // чёрный фон = 0, белая буква = 1
+        }
+    }
+    // Нормализация: центрирование, масштабирование, контраст
+    return ImageNormalizer::Normalize(pixels);
 }
 
 } // namespace mlp
