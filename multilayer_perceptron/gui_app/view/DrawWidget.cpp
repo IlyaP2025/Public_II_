@@ -43,8 +43,8 @@ void DrawWidget::mouseReleaseEvent(QMouseEvent *) {
 
 void DrawWidget::drawLineTo(const QPoint &end) {
     QPainter painter(&canvas_);
-    // Уменьшили толщину до 15, чтобы линии были аккуратнее
-    painter.setPen(QPen(Qt::black, 15, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    // Уменьшили толщину до 12 для более тонких линий
+    painter.setPen(QPen(Qt::black, 12, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     painter.drawLine(lastPoint_, end);
     lastPoint_ = end;
     update();
@@ -64,7 +64,7 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         }
     }
 
-    // 2. Инверсия, если фон светлый
+    // 2. Инверсия, если фон светлый (средняя > 128)
     double avg = 0.0;
     for (int v : src) avg += v;
     avg /= src.size();
@@ -143,17 +143,13 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         }
     }
 
-    // 7. Лёгкое размытие (box blur 3×3) для смягчения краёв
+    // 7. Лёгкое размытие (2×2) для смягчения краёв
     std::vector<double> blurred = scaled;
-    for (int y = 1; y < dstSize - 1; ++y) {
-        for (int x = 1; x < dstSize - 1; ++x) {
-            double sum = 0.0;
-            for (int dy = -1; dy <= 1; ++dy) {
-                for (int dx = -1; dx <= 1; ++dx) {
-                    sum += scaled[(y + dy) * dstSize + (x + dx)];
-                }
-            }
-            blurred[y * dstSize + x] = sum / 9.0;
+    for (int y = 0; y < dstSize - 1; ++y) {
+        for (int x = 0; x < dstSize - 1; ++x) {
+            double sum = scaled[y * dstSize + x] + scaled[(y+1) * dstSize + x] +
+                         scaled[y * dstSize + (x+1)] + scaled[(y+1) * dstSize + (x+1)];
+            blurred[y * dstSize + x] = sum / 4.0;
         }
     }
 
