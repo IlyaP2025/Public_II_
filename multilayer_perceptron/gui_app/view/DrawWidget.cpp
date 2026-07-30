@@ -44,7 +44,7 @@ void DrawWidget::mouseReleaseEvent(QMouseEvent *) {
 void DrawWidget::drawLineTo(const QPoint &end) {
     QPainter painter(&canvas_);
     // Уменьшили толщину до 12 для более тонких линий
-    painter.setPen(QPen(Qt::black, 12, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter.setPen(QPen(Qt::black, 17, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     painter.drawLine(lastPoint_, end);
     lastPoint_ = end;
     update();
