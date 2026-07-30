@@ -54,9 +54,9 @@ std::vector<double> DrawWidget::getProcessedImage() const {
     const int dstSize = 28;
     const int targetSize = 20;          // размер квадрата для масштабированной буквы
     const int margin = 2;               // поля внутри квадрата 20x20
-    const int padding = 30;             // отступ вокруг буквы на исходном холсте (≈3 пикселя на 28x28)
+    const int padding = 30;             // отступ вокруг буквы на исходном холсте
 
-    // 1. Переводим холст в одномерный массив 0..255
+    // 1. Переводим холст в одномерный массив 0..255 (белый=255, чёрный=0)
     std::vector<uint8_t> srcPixels(srcSize * srcSize);
     for (int y = 0; y < srcSize; ++y) {
         const uchar* line = canvas_.scanLine(y);
@@ -65,7 +65,7 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         }
     }
 
-    // 2. Ищем bounding box (пиксели темнее 250)
+    // 2. Ищем bounding box буквы (пиксели темнее 250 → не фон)
     int x_min = srcSize, y_min = srcSize, x_max = -1, y_max = -1;
     for (int y = 0; y < srcSize; ++y) {
         for (int x = 0; x < srcSize; ++x) {
@@ -83,7 +83,7 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         return std::vector<double>(dstSize * dstSize, 0.0);
     }
 
-    // Добавляем отступ (не выходим за границы)
+    // Добавляем отступы (могут выйти за границы, потом обрежем)
     x_min = std::max(0, x_min - padding);
     y_min = std::max(0, y_min - padding);
     x_max = std::min(srcSize - 1, x_max + padding);
@@ -105,6 +105,7 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         for (int x = 0; x < new_w; ++x) {
             double src_x = x_min + x / scale;
             double src_y = y_min + y / scale;
+            // Билинейная интерполяция по исходному холсту
             int x0 = static_cast<int>(src_x);
             int y0 = static_cast<int>(src_y);
             int x1 = std::min(x0 + 1, srcSize - 1);
@@ -120,14 +121,12 @@ std::vector<double> DrawWidget::getProcessedImage() const {
         }
     }
 
-    // 4. Автоинверсия по содержимому квадрата 20x20
-    double sum = 0;
-    for (double v : scaled) sum += v;
-    if (sum / scaled.size() > 0.5) {   // фон светлый → инвертируем
-        for (double& v : scaled) v = 1.0 - v;
+    // 4. ПРИНУДИТЕЛЬНАЯ инверсия (холст всегда белый)
+    for (double& v : scaled) {
+        v = 1.0 - v;
     }
 
-    // 5. Вставляем квадрат 20x20 в центр холста 28x28 (чёрный фон)
+    // 5. Вставляем квадрат 20x20 в центр чёрного холста 28x28
     std::vector<double> result(dstSize * dstSize, 0.0);
     int paste_x = (dstSize - targetSize) / 2;
     int paste_y = (dstSize - targetSize) / 2;
