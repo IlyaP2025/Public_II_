@@ -71,7 +71,7 @@ std::vector<double> BmpLoader::LoadImage(const std::string& path) {
         }
     }
 
-    // Масштабирование до 28x28 (без инверсии)
+    // Масштабирование до 28x28 с инверсией (фон=0, буква=1)
     std::vector<double> image(28 * 28);
     for (int y = 0; y < 28; ++y) {
         for (int x = 0; x < 28; ++x) {
@@ -94,7 +94,8 @@ std::vector<double> BmpLoader::LoadImage(const std::string& path) {
                 pixels[y0 * width + x1] * dx * (1 - dy) +
                 pixels[y1 * width + x1] * dx * dy;
 
-            image[y * 28 + x] = val / 255.0;   // простая нормализация
+            // Инверсия для внешних BMP (чёрный на белом -> белый на чёрном)
+            image[y * 28 + x] = 1.0 - val / 255.0;
         }
     }
 
