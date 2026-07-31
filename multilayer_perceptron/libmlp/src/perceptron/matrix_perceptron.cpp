@@ -43,7 +43,8 @@ void MatrixPerceptron::InitializeWeights() {
 }
 
 std::vector<double> MatrixPerceptron::Predict(const std::vector<double>& input) {
-    return Forward(input);
+    Forward(input);
+    return last_output_;
 }
 
 std::vector<double> MatrixPerceptron::Forward(const std::vector<double>& input) {
@@ -74,11 +75,10 @@ std::vector<double> MatrixPerceptron::Forward(const std::vector<double>& input) 
     }
 
     const S21Matrix& output = activations_.back();
-    std::vector<double> result(output.get_rows());
+    last_output_.resize(output.get_rows());
     for (int i = 0; i < output.get_rows(); ++i) {
-        result[i] = output(i, 0);
+        last_output_[i] = output(i, 0);
     }
-    return result;
 }
 
 void MatrixPerceptron::Backward(const std::vector<double>& target) {
