@@ -23,6 +23,7 @@ AppController::AppController(QObject *parent) : QObject(parent) {
     connect(window_, &MainWindow::runExperiment, this, &AppController::onRunExperiment);
     connect(window_, &MainWindow::classifyDrawn, this, &AppController::onClassifyDrawn);
     connect(window_, &MainWindow::implementationChanged, this, &AppController::onImplementationChanged);
+    connect(window_, &MainWindow::crossValidate, this, &AppController::onCrossValidate);
 
     perceptron_ = std::make_unique<MatrixPerceptron>(std::vector<size_t>{784, 128, 26});
 }
@@ -350,6 +351,35 @@ void AppController::onImplementationChanged(int index) {
         perceptron_ = std::make_unique<GraphPerceptron>(layers);
         window_->appendLog("Switched to Graph implementation.");
     }
+}
+
+void AppController::onCrossValidate(int k) {
+    if (state_ != TrainingState::Idle) {
+        window_->appendLog("Cannot run cross-validation while training.");
+        return;
+    }
+    window_->appendLog(QString("Starting %1-fold cross-validation...").arg(k));
+    window_->setStartEnabled(false);   // блокируем кнопки
+
+    // Загружаем полный датасет (без разделения)
+    std::thread([this, k]() {
+        try {
+            auto full = loader_.LoadFile("datasets/emnist-letters-train.csv");
+            SimpleTrainer trainer(0.1, 2, true);   // можно взять текущие параметры из GUI, но упростим
+            double avgAcc = trainer.CrossValidate(*perceptron_, full, k);
+
+            QMetaObject::invokeMethod(window_, [this, avgAcc]() {
+                window_->appendLog(QString("Cross-validation complete. Average accuracy: %1%")
+                    .arg(avgAcc * 100, 0, 'f', 2));
+                window_->setStartEnabled(true);
+            }, Qt::QueuedConnection);
+        } catch (const std::exception& e) {
+            QMetaObject::invokeMethod(window_, [this, msg = std::string(e.what())]() {
+                window_->appendLog(QString("Cross-validation error: %1").arg(QString::fromStdString(msg)));
+                window_->setStartEnabled(true);
+            }, Qt::QueuedConnection);
+        }
+    }).detach();
 }
 
 } // namespace mlp

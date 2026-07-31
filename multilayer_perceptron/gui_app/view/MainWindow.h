@@ -43,6 +43,8 @@ signals:
     void runExperiment(double fraction);
     void classifyDrawn(const std::vector<double>& pixels);
     void implementationChanged(int index);
+    void crossValidate(int k);
+
 private:
     void setupUI();
     QTabWidget *tabWidget_;
@@ -70,6 +72,8 @@ private:
     QPushButton *saveBtn_;
     QPushButton *loadBtn_;
     QComboBox *implCombo_;
+    QPushButton *crossValBtn_;
+    QSpinBox *kSpin_;
 
     // Experiment
     QPushButton *loadBmpBtn_;

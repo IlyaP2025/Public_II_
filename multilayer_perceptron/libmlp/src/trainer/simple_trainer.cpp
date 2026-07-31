@@ -57,9 +57,63 @@ void SimpleTrainer::Train(IPerceptron& perceptron,
     }
 }
 
-double SimpleTrainer::CrossValidate(IPerceptron&, const Dataset&, int) {
-    // Пока не реализовано, вернём 0.0 (будет реализовано позже)
-    return 0.0;
+double SimpleTrainer::CrossValidate(IPerceptron& prototype, const Dataset& data, int k_folds) {
+    if (k_folds < 2) throw std::invalid_argument("k_folds must be >= 2");
+    if (data.empty()) throw std::invalid_argument("Dataset is empty");
+
+    // Копируем и перемешиваем данные
+    Dataset shuffled = data;
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(shuffled.begin(), shuffled.end(), g);
+
+    size_t total = shuffled.size();
+    size_t fold_size = total / k_folds;
+    double total_accuracy = 0.0;
+
+    for (int fold = 0; fold < k_folds; ++fold) {
+        size_t start = fold * fold_size;
+        size_t end = (fold == k_folds - 1) ? total : start + fold_size;
+
+        // Разделяем на обучающую и тестовую части
+        Dataset train, test;
+        for (size_t i = 0; i < total; ++i) {
+            if (i >= start && i < end) {
+                test.push_back(shuffled[i]);
+            } else {
+                train.push_back(shuffled[i]);
+            }
+        }
+
+        // Создаём свежую копию перцептрона той же архитектуры
+        auto layers = prototype.LayerSizes();
+        std::unique_ptr<IPerceptron> perceptron;
+        // Определяем тип по имени класса (можно было бы использовать фабрику, но так проще)
+        if (dynamic_cast<MatrixPerceptron*>(&prototype)) {
+            perceptron = std::make_unique<MatrixPerceptron>(layers);
+        } else {
+            perceptron = std::make_unique<GraphPerceptron>(layers);
+        }
+
+        // Обучаем на этом фолде
+        SimpleTrainer trainer(learning_rate_, epochs_, shuffle_);
+        // Колбэк пустой, чтобы не спамить в лог
+        auto empty_callback = [](int, double, double) {};
+        trainer.Train(*perceptron, train, test, empty_callback);
+
+        // Подсчитываем Accuracy на тестовой части
+        int correct = 0;
+        for (const auto& sample : test) {
+            auto out = perceptron->Predict(sample.first);
+            int pred = std::max_element(out.begin(), out.end()) - out.begin();
+            int act = std::max_element(sample.second.begin(), sample.second.end()) - sample.second.begin();
+            if (pred == act) ++correct;
+        }
+        double acc = static_cast<double>(correct) / test.size();
+        total_accuracy += acc;
+    }
+
+    return total_accuracy / k_folds;
 }
 
 }  // namespace mlp

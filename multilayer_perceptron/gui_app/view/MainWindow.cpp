@@ -175,6 +175,20 @@ void MainWindow::setupUI() {
     connect(implCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::implementationChanged);
 
+    // Кросс-валидация
+    QHBoxLayout *cvLayout = new QHBoxLayout;
+    cvLayout->addWidget(new QLabel("K folds:"));
+    kSpin_ = new QSpinBox();
+    kSpin_->setRange(2, 10);
+    kSpin_->setValue(5);
+    cvLayout->addWidget(kSpin_);
+    crossValBtn_ = new QPushButton("Cross-Validate");
+    cvLayout->addWidget(crossValBtn_);
+    settLayout->addLayout(cvLayout);
+    connect(crossValBtn_, &QPushButton::clicked, this, [this]() {
+        emit crossValidate(kSpin_->value());
+    });
+
     archGroup->setLayout(formLayout);
     settLayout->addWidget(archGroup);
 
