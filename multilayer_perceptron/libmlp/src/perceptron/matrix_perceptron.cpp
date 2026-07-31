@@ -155,16 +155,24 @@ size_t MatrixPerceptron::OutputSize() const {
 }
 
 std::vector<std::vector<double>> MatrixPerceptron::GetWeights() const {
-    std::vector<std::vector<double>> all_weights;
-    for (const auto& w : weights_) {
-        std::vector<double> layer(w.get_rows() * w.get_cols());
+    std::vector<std::vector<double>> all;
+    for (size_t i = 0; i < weights_.size(); ++i) {
+        const auto& w = weights_[i];
+        const auto& b = biases_[i];
+        int rows = w.get_rows();
+        int cols = w.get_cols();
+        std::vector<double> flat(rows * cols + rows);   // веса + смещения
         int idx = 0;
-        for (int r = 0; r < w.get_rows(); ++r)
-            for (int c = 0; c < w.get_cols(); ++c)
-                layer[idx++] = w(r, c);
-        all_weights.push_back(std::move(layer));
+        // Копируем веса
+        for (int r = 0; r < rows; ++r)
+            for (int c = 0; c < cols; ++c)
+                flat[idx++] = w(r, c);
+        // Копируем смещения
+        for (int r = 0; r < rows; ++r)
+            flat[idx++] = b(r, 0);
+        all.push_back(std::move(flat));
     }
-    return all_weights;
+    return all;
 }
 
 void MatrixPerceptron::SetWeights(const std::vector<std::vector<double>>& weights) {
@@ -173,12 +181,17 @@ void MatrixPerceptron::SetWeights(const std::vector<std::vector<double>>& weight
     for (size_t l = 0; l < weights_.size(); ++l) {
         int rows = weights_[l].get_rows();
         int cols = weights_[l].get_cols();
-        if (static_cast<int>(weights[l].size()) != rows * cols)
+        int expected = rows * cols + rows;
+        if (static_cast<int>(weights[l].size()) != expected)
             throw std::invalid_argument("Weight size mismatch in layer " + std::to_string(l));
         int idx = 0;
+        // Восстанавливаем веса
         for (int r = 0; r < rows; ++r)
             for (int c = 0; c < cols; ++c)
                 weights_[l](r, c) = weights[l][idx++];
+        // Восстанавливаем смещения
+        for (int r = 0; r < rows; ++r)
+            biases_[l](r, 0) = weights[l][idx++];
     }
 }
 

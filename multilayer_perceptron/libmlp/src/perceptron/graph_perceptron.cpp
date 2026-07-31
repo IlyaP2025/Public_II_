@@ -115,13 +115,49 @@ void GraphPerceptron::UpdateWeights(double learning_rate) {
   }
 }
 
-// Заглушки сериализации
-void GraphPerceptron::SetWeights(const std::vector<std::vector<double>>&) {
-  throw std::logic_error("SetWeights not implemented for GraphPerceptron");
+std::vector<std::vector<double>> GraphPerceptron::GetWeights() const {
+    std::vector<std::vector<double>> all;
+    for (size_t l = 1; l < layers_.size(); ++l) {
+        const auto& layer = layers_[l];
+        size_t num_neurons = layer.size();
+        size_t weight_per_neuron = layer[0].input_weights.size();
+        std::vector<double> flat(num_neurons * weight_per_neuron + num_neurons); // веса + смещения
+        int idx = 0;
+        for (const auto& neuron : layer) {
+            for (double w : neuron.input_weights)
+                flat[idx++] = w;
+        }
+        for (const auto& neuron : layer) {
+            flat[idx++] = neuron.bias;
+        }
+        all.push_back(std::move(flat));
+    }
+    return all;
 }
 
-std::vector<std::vector<double>> GraphPerceptron::GetWeights() const {
-  throw std::logic_error("GetWeights not implemented for GraphPerceptron");
+void GraphPerceptron::SetWeights(const std::vector<std::vector<double>>& weights) {
+    if (weights.size() != layers_.size() - 1)
+        throw std::invalid_argument("Weight count mismatch");
+    for (size_t l = 1; l < layers_.size(); ++l) {
+        auto& layer = layers_[l];
+        const auto& flat = weights[l - 1];
+        size_t num_neurons = layer.size();
+        size_t weight_per_neuron = layer[0].input_weights.size();
+        size_t expected = num_neurons * weight_per_neuron + num_neurons;
+        if (flat.size() != expected)
+            throw std::invalid_argument("Weight size mismatch in layer " + std::to_string(l));
+        int idx = 0;
+        // Веса
+        for (auto& neuron : layer) {
+            for (size_t i = 0; i < weight_per_neuron; ++i) {
+                neuron.input_weights[i] = flat[idx++];
+            }
+        }
+        // Смещения
+        for (auto& neuron : layer) {
+            neuron.bias = flat[idx++];
+        }
+    }
 }
 
 }  // namespace mlp
