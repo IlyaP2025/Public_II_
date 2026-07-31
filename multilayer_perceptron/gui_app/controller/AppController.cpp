@@ -22,6 +22,7 @@ AppController::AppController(QObject *parent) : QObject(parent) {
     connect(window_, &MainWindow::loadWeights, this, &AppController::onLoadWeights);
     connect(window_, &MainWindow::runExperiment, this, &AppController::onRunExperiment);
     connect(window_, &MainWindow::classifyDrawn, this, &AppController::onClassifyDrawn);
+    connect(window_, &MainWindow::implementationChanged, this, &AppController::onImplementationChanged);
 
     perceptron_ = std::make_unique<MatrixPerceptron>(std::vector<size_t>{784, 128, 26});
 }
@@ -332,6 +333,22 @@ void AppController::onClassifyDrawn(const std::vector<double>& pixels) {
         QMetaObject::invokeMethod(window_, [this, msg = std::string(e.what())]() {
             window_->appendLog(QString("Draw error: %1").arg(QString::fromStdString(msg)));
         }, Qt::QueuedConnection);
+    }
+}
+
+void AppController::onImplementationChanged(int index) {
+    if (state_ != TrainingState::Idle) {
+        window_->appendLog("Cannot change implementation while training.");
+        return;
+    }
+    // Получаем текущую архитектуру из существующего перцептрона
+    std::vector<size_t> layers = perceptron_->LayerSizes();
+    if (index == 0) {
+        perceptron_ = std::make_unique<MatrixPerceptron>(layers);
+        window_->appendLog("Switched to Matrix implementation.");
+    } else {
+        perceptron_ = std::make_unique<GraphPerceptron>(layers);
+        window_->appendLog("Switched to Graph implementation.");
     }
 }
 

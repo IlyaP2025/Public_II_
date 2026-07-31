@@ -168,6 +168,13 @@ void MainWindow::setupUI() {
     modeCombo_->addItem("Geometric", 2);
     formLayout->addRow("Mode:", modeCombo_);
 
+    implCombo_ = new QComboBox();
+    implCombo_->addItem("Matrix", 0);
+    implCombo_->addItem("Graph", 1);
+    formLayout->addRow("Implementation:", implCombo_);
+    connect(implCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::implementationChanged);
+
     archGroup->setLayout(formLayout);
     settLayout->addWidget(archGroup);
 

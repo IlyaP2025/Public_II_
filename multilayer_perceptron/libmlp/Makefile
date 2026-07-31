@@ -18,8 +18,8 @@ SOURCES = $(SRC_DIR)/matrix/s21_matrix_oop.cpp \
           $(SRC_DIR)/data/bmp_loader.cpp \
           $(SRC_DIR)/serialization/simple_weights_serializer.cpp \
           $(SRC_DIR)/metrics/metrics_calculator.cpp \
-          $(SRC_DIR)/data/image_normalizer.cpp
-
+          $(SRC_DIR)/data/image_normalizer.cpp \
+          $(SRC_DIR)/perceptron/graph_perceptron.cpp
 
 OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
 TARGET = libmlp.a

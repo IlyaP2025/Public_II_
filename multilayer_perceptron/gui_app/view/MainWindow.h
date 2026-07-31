@@ -42,7 +42,7 @@ signals:
     void loadWeights();
     void runExperiment(double fraction);
     void classifyDrawn(const std::vector<double>& pixels);
-
+    void implementationChanged(int index);
 private:
     void setupUI();
     QTabWidget *tabWidget_;
@@ -69,6 +69,7 @@ private:
     QPushButton *applyBtn_;
     QPushButton *saveBtn_;
     QPushButton *loadBtn_;
+    QComboBox *implCombo_;
 
     // Experiment
     QPushButton *loadBmpBtn_;

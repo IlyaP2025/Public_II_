@@ -14,6 +14,9 @@ class IPerceptron {
 
   // Прямой проход (предсказание) для одного входного вектора.
   virtual std::vector<double> Predict(const std::vector<double>& input) = 0;
+  virtual void Forward(const std::vector<double>& input) = 0;
+  virtual void Backward(const std::vector<double>& target) = 0;
+  virtual void UpdateWeights(double learning_rate) = 0;
 
   // Заменить все веса перцептрона.
   virtual void SetWeights(const std::vector<std::vector<double>>& weights) = 0;

@@ -22,9 +22,9 @@ void SimpleTrainer::Train(IPerceptron& perceptron, const Dataset& train_data,
 
     // Обучение на одном проходе
     for (const auto& sample : shuffled) {
-      static_cast<MatrixPerceptron&>(perceptron).Forward(sample.first);
-      static_cast<MatrixPerceptron&>(perceptron).Backward(sample.second);
-      static_cast<MatrixPerceptron&>(perceptron).UpdateWeights(learning_rate_);
+      perceptron.Forward(sample.first);
+      perceptron.Backward(sample.second);
+      perceptron.UpdateWeights(learning_rate_);
     }
 
     // Подсчёт ошибки на обучающей и валидационной выборках
