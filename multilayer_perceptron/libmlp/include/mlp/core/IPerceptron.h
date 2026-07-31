@@ -29,6 +29,8 @@ class IPerceptron {
 
   // Размер выходного вектора (число классов).
   virtual size_t OutputSize() const = 0;
+
+  virtual const std::vector<size_t>& LayerSizes() const = 0;
 };
 
 }  // namespace mlp

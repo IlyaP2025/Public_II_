@@ -51,7 +51,7 @@ private:
     MainWindow *window_;
     TrainingState state_ = TrainingState::Idle;
 
-    std::unique_ptr<MatrixPerceptron> perceptron_;
+    std::unique_ptr<IPerceptron> perceptron_;
     EmnistLoader loader_;
     SimpleWeightsSerializer serializer_;
 
