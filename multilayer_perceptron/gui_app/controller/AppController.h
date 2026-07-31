@@ -13,6 +13,7 @@
 
 #include "view/MainWindow.h"
 #include "perceptron/matrix_perceptron.h"
+#include "perceptron/graph_perceptron.h"
 #include "data/emnist_loader.h"
 #include "data/bmp_loader.h"
 #include "serialization/simple_weights_serializer.h"

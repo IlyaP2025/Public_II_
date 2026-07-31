@@ -8,9 +8,6 @@
 namespace s21 {
 namespace mlp {
 
-SimpleTrainer::SimpleTrainer(double learning_rate, int epochs, bool shuffle)
-    : learning_rate_(learning_rate), epochs_(epochs), shuffle_(shuffle) {}
-
 void SimpleTrainer::Train(IPerceptron& perceptron,
                           const Dataset& train_data,
                           const Dataset& valid_data,
