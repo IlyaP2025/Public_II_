@@ -47,7 +47,7 @@ std::vector<double> MatrixPerceptron::Predict(const std::vector<double>& input) 
     return last_output_;
 }
 
-std::vector<double> MatrixPerceptron::Forward(const std::vector<double>& input) {
+void MatrixPerceptron::Forward(const std::vector<double>& input) {
     if (input.size() != layer_sizes_[0]) {
         throw std::invalid_argument("Input size doesn't match first layer size.");
     }
