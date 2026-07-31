@@ -1,6 +1,8 @@
 #include "trainer/simple_trainer.h"
-#include "perceptron/matrix_perceptron.h"   // больше не нужно, но можно оставить
+#include "perceptron/matrix_perceptron.h"
+#include "perceptron/graph_perceptron.h"
 
+#include <memory>
 #include <random>
 #include <algorithm>
 #include <cassert>
