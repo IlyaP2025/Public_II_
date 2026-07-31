@@ -1,4 +1,6 @@
 #include "AppController.h"
+#include "trainer/simple_trainer.h"
+
 #include <QApplication>
 #include <QFileDialog>
 #include <iostream>
