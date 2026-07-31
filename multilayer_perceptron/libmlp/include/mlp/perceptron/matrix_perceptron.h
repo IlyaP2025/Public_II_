@@ -24,7 +24,7 @@ class MatrixPerceptron : public IPerceptron {
     size_t OutputSize() const override;
 
     // Методы для обучения (вызываются тренером)
-    std::vector<double> Forward(const std::vector<double>& input);
+    void Forward(const std::vector<double>& input);
     void Backward(const std::vector<double>& target);
     void UpdateWeights(double learning_rate);
 
@@ -39,6 +39,7 @@ class MatrixPerceptron : public IPerceptron {
     std::vector<S21Matrix> zs_;           // взвешенные суммы до активации
     std::vector<S21Matrix> weight_gradients_;
     std::vector<S21Matrix> bias_gradients_;
+    std::vector<double> last_output_;
 
     void InitializeWeights();  // случайная инициализация малыми значениями
 };
