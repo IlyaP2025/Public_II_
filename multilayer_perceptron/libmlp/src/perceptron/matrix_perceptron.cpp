@@ -181,17 +181,29 @@ void MatrixPerceptron::SetWeights(const std::vector<std::vector<double>>& weight
     for (size_t l = 0; l < weights_.size(); ++l) {
         int rows = weights_[l].get_rows();
         int cols = weights_[l].get_cols();
-        int expected = rows * cols + rows;
-        if (static_cast<int>(weights[l].size()) != expected)
+        int weights_count = rows * cols;
+        int full_count = weights_count + rows;
+
+        // Определяем формат данных
+        if (static_cast<int>(weights[l].size()) == weights_count) {
+            // Старый формат: только веса, смещения обнуляем
+            int idx = 0;
+            for (int r = 0; r < rows; ++r)
+                for (int c = 0; c < cols; ++c)
+                    weights_[l](r, c) = weights[l][idx++];
+            for (int r = 0; r < rows; ++r)
+                biases_[l](r, 0) = 0.0;
+        } else if (static_cast<int>(weights[l].size()) == full_count) {
+            // Новый формат: веса и смещения
+            int idx = 0;
+            for (int r = 0; r < rows; ++r)
+                for (int c = 0; c < cols; ++c)
+                    weights_[l](r, c) = weights[l][idx++];
+            for (int r = 0; r < rows; ++r)
+                biases_[l](r, 0) = weights[l][idx++];
+        } else {
             throw std::invalid_argument("Weight size mismatch in layer " + std::to_string(l));
-        int idx = 0;
-        // Восстанавливаем веса
-        for (int r = 0; r < rows; ++r)
-            for (int c = 0; c < cols; ++c)
-                weights_[l](r, c) = weights[l][idx++];
-        // Восстанавливаем смещения
-        for (int r = 0; r < rows; ++r)
-            biases_[l](r, 0) = weights[l][idx++];
+        }
     }
 }
 

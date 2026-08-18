@@ -138,24 +138,39 @@ std::vector<std::vector<double>> GraphPerceptron::GetWeights() const {
 void GraphPerceptron::SetWeights(const std::vector<std::vector<double>>& weights) {
     if (weights.size() != layers_.size() - 1)
         throw std::invalid_argument("Weight count mismatch");
+
     for (size_t l = 1; l < layers_.size(); ++l) {
         auto& layer = layers_[l];
         const auto& flat = weights[l - 1];
         size_t num_neurons = layer.size();
         size_t weight_per_neuron = layer[0].input_weights.size();
-        size_t expected = num_neurons * weight_per_neuron + num_neurons;
-        if (flat.size() != expected)
-            throw std::invalid_argument("Weight size mismatch in layer " + std::to_string(l));
-        int idx = 0;
-        // Веса
-        for (auto& neuron : layer) {
-            for (size_t i = 0; i < weight_per_neuron; ++i) {
-                neuron.input_weights[i] = flat[idx++];
+        size_t weights_count = num_neurons * weight_per_neuron;
+        size_t full_count = weights_count + num_neurons;
+
+        if (flat.size() == weights_count) {
+            // Старый формат: только веса, смещения обнуляем
+            size_t idx = 0;
+            for (auto& neuron : layer) {
+                for (size_t i = 0; i < weight_per_neuron; ++i) {
+                    neuron.input_weights[i] = flat[idx++];
+                }
             }
-        }
-        // Смещения
-        for (auto& neuron : layer) {
-            neuron.bias = flat[idx++];
+            for (auto& neuron : layer) {
+                neuron.bias = 0.0;
+            }
+        } else if (flat.size() == full_count) {
+            // Новый формат: веса и смещения
+            size_t idx = 0;
+            for (auto& neuron : layer) {
+                for (size_t i = 0; i < weight_per_neuron; ++i) {
+                    neuron.input_weights[i] = flat[idx++];
+                }
+            }
+            for (auto& neuron : layer) {
+                neuron.bias = flat[idx++];
+            }
+        } else {
+            throw std::invalid_argument("Weight size mismatch in layer " + std::to_string(l - 1));
         }
     }
 }
