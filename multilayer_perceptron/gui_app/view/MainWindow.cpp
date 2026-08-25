@@ -70,8 +70,9 @@ void MainWindow::setupUI() {
     logEdit_->setReadOnly(true);
     trainLayout->addWidget(logEdit_);
 
+    // График ошибки
     errorGraph_ = new ErrorGraph();
-    trainLayout->addWidget(errorGraph_);
+    trainLayout->addWidget(errorGraph_, 1);   // stretch factor = 1, чтобы график занимал место
 
     tabWidget_->addTab(trainingTab, "Training");
 
