@@ -34,7 +34,7 @@ controller/moc_AppController.cpp: controller/AppController.h
 
 view/moc_DrawWidget.cpp: view/DrawWidget.h
 	@mkdir -p $(dir $@)
-	$(MOC) $< -o $@i
+	$(MOC) $< -o $@
 
 view/moc_ErrorGraph.cpp: view/ErrorGraph.h
 	@mkdir -p $(dir $@)
