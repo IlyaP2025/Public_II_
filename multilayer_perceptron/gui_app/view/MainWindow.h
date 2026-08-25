@@ -12,6 +12,8 @@
 #include <QTabWidget>
 #include <QComboBox>
 
+#include "ErrorGraph.h"
+
 namespace s21 {
 namespace mlp {
 

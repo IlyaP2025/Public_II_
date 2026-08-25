@@ -102,10 +102,6 @@ void AppController::onApplySettings(const std::vector<size_t>& layers) {
         QMetaObject::invokeMethod(window_, [this]() {
             window_->appendLog("Cannot change architecture while training.");
         }, Qt::QueuedConnection);
-
-        QMetaObject::invokeMethod(window_, [this, trainLoss, validLoss]() {
-            window_->updateErrorGraph(trainLoss, validLoss);
-        }, Qt::QueuedConnection);
         return;
     }
     try {
@@ -160,10 +156,15 @@ void AppController::runTraining(double learningRate, int epochs) {
                 window_->appendLog("Loading EMNIST dataset...");
             }, Qt::QueuedConnection);
 
+
             auto [train, test] = loader_.Load("datasets/emnist-letters-train.csv", 0.2);
 
             QMetaObject::invokeMethod(window_, [this, train_size = train.size(), test_size = test.size()]() {
                 window_->appendLog(QString("Train: %1, Test: %2").arg(train_size).arg(test_size));
+            }, Qt::QueuedConnection);
+
+            QMetaObject::invokeMethod(window_, [this, trainLoss, validLoss]() {
+                window_->updateErrorGraph(trainLoss, validLoss);
             }, Qt::QueuedConnection);
 
             std::random_device rd;
