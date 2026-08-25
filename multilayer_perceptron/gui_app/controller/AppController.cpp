@@ -156,6 +156,93 @@ void AppController::runTraining(double learningRate, int epochs) {
                 window_->appendLog("Loading EMNIST dataset...");
             }, Qt::QueuedConnection);
 
+            auto [train, test] = loader_.Load("datasets/emnist-letters-train.csv", 0.2);
+
+            QMetaObject::invokeMethod(window_, [this, train_size = train.size(), test_size = test.size()]() {
+                window_->appendLog(QString("Train: %1, Test: %2").arg(train_size).arg(test_size));
+            }, Qt::QueuedConnection);
+
+            std::random_device rd;
+            std::mt19937 g(rd());
+            const int reportInterval = 5000;
+
+            for (int epoch = 0; epoch < epochs && !stopRequested_; ++epoch) {
+                std::shuffle(train.begin(), train.end(), g);
+                int total = static_cast<int>(train.size());
+
+                for (int i = 0; i < total && !stopRequested_; ++i) {
+                    std::unique_lock<std::mutex> lock(pauseMutex_);
+                    pauseCV_.wait(lock, [this]() { return !pauseRequested_ || stopRequested_; });
+                    if (stopRequested_) break;
+
+                    const auto& sample = train[i];
+                    perceptron_->Forward(sample.first);
+                    perceptron_->Backward(sample.second);
+                    perceptron_->UpdateWeights(learningRate);
+
+                    if ((i + 1) % reportInterval == 0 || (i + 1) == total) {
+                        int current = i + 1;
+                        QMetaObject::invokeMethod(window_, [this, current, total]() {
+                            window_->setProgress(current, total);
+                        }, Qt::QueuedConnection);
+                    }
+                }
+
+                if (stopRequested_) break;
+
+                // Вычисляем ошибки
+                double trainLoss = 0.0;
+                for (const auto& s : train) {
+                    auto out = perceptron_->Predict(s.first);
+                    for (size_t k = 0; k < out.size(); ++k) {
+                        double err = out[k] - s.second[k];
+                        trainLoss += err * err;
+                    }
+                }
+                trainLoss /= train.size();
+
+                double validLoss = 0.0;
+                for (const auto& s : test) {
+                    auto out = perceptron_->Predict(s.first);
+                    for (size_t k = 0; k < out.size(); ++k) {
+                        double err = out[k] - s.second[k];
+                        validLoss += err * err;
+                    }
+                }
+                validLoss /= test.size();
+
+                // Выводим в лог
+                QMetaObject::invokeMethod(window_, [this, epoch, trainLoss, validLoss]() {
+                    window_->appendLog(QString("Epoch %1: train=%2 valid=%3")
+                        .arg(epoch)
+                        .arg(trainLoss, 0, 'f', 6)
+                        .arg(validLoss, 0, 'f', 6));
+                }, Qt::QueuedConnection);
+
+                // Обновляем график ошибки (добавлено здесь)
+                QMetaObject::invokeMethod(window_, [this, trainLoss, validLoss]() {
+                    window_->updateErrorGraph(trainLoss, validLoss);
+                }, Qt::QueuedConnection);
+            }
+
+            QMetaObject::invokeMethod(this, &AppController::onTrainingFinished, Qt::QueuedConnection);
+        } catch (const std::exception& e) {
+            QMetaObject::invokeMethod(window_, [this, msg = std::string(e.what())]() {
+                window_->appendLog(QString("Error: %1").arg(QString::fromStdString(msg)));
+                setState(TrainingState::Idle);
+            }, Qt::QueuedConnection);
+        }
+    });
+}
+
+/*
+void AppController::runTraining(double learningRate, int epochs) {
+    trainingThread_ = std::thread([this, learningRate, epochs]() {
+        try {
+            QMetaObject::invokeMethod(window_, [this]() {
+                window_->appendLog("Loading EMNIST dataset...");
+            }, Qt::QueuedConnection);
+
 
             auto [train, test] = loader_.Load("datasets/emnist-letters-train.csv", 0.2);
 
@@ -230,6 +317,7 @@ void AppController::runTraining(double learningRate, int epochs) {
         }
     });
 }
+*/
 
 void AppController::onSaveWeights() {
     if (state_ != TrainingState::Idle) {
