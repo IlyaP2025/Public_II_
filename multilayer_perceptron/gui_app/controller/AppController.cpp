@@ -102,6 +102,10 @@ void AppController::onApplySettings(const std::vector<size_t>& layers) {
         QMetaObject::invokeMethod(window_, [this]() {
             window_->appendLog("Cannot change architecture while training.");
         }, Qt::QueuedConnection);
+
+        QMetaObject::invokeMethod(window_, [this, trainLoss, validLoss]() {
+            window_->updateErrorGraph(trainLoss, validLoss);
+        }, Qt::QueuedConnection);
         return;
     }
     try {

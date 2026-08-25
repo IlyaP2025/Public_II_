@@ -70,6 +70,9 @@ void MainWindow::setupUI() {
     logEdit_->setReadOnly(true);
     trainLayout->addWidget(logEdit_);
 
+    errorGraph_ = new ErrorGraph();
+    trainLayout->addWidget(errorGraph_);
+
     tabWidget_->addTab(trainingTab, "Training");
 
     connect(startBtn_, &QPushButton::clicked, this, [this]() {
@@ -431,6 +434,12 @@ void MainWindow::displayMetrics(double accuracy, double precision, double recall
         .arg(f1 * 100, 0, 'f', 2)
         .arg(timeSec, 0, 'f', 2);
     metricsText_->setPlainText(text);
+}
+
+void MainWindow::updateErrorGraph(double train, double valid) {
+    if (errorGraph_) {
+        errorGraph_->addData(train, valid);
+    }
 }
 
 } // namespace mlp

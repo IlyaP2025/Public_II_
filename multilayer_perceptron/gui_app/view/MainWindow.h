@@ -32,6 +32,8 @@ public:
                            const std::vector<double>& probs, char letter);
     void displayMetrics(double accuracy, double precision, double recall, double f1, double timeSec);
 
+    void updateErrorGraph(double train, double valid);
+
 signals:
     void startTraining(double learningRate, int epochs);
     void pauseTraining();
@@ -54,6 +56,7 @@ private:
     QSpinBox *epochsSpin_;
     QPushButton *startBtn_, *pauseBtn_, *stopBtn_;
     QPlainTextEdit *logEdit_;
+    ErrorGraph *errorGraph_;
     QLabel *statusLabel_;
     QProgressBar *progressBar_;
     QLabel *progressLabel_;
