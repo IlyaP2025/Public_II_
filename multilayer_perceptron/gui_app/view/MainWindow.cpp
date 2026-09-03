@@ -119,6 +119,21 @@ void MainWindow::setupUI() {
     predictionText_->setMaximumHeight(150);
     expLayout->addWidget(predictionText_);
 
+    // --- Benchmark controls ---
+    QHBoxLayout *benchLayout = new QHBoxLayout;
+    benchLayout->addWidget(new QLabel("Repetitions:"));
+    benchmarkRepsSpin_ = new QSpinBox();
+    benchmarkRepsSpin_->setRange(1, 1000);
+    benchmarkRepsSpin_->setValue(10);
+    benchLayout->addWidget(benchmarkRepsSpin_);
+    benchmarkBtn_ = new QPushButton("Run Benchmark");
+    benchLayout->addWidget(benchmarkBtn_);
+    expLayout->addLayout(benchLayout);
+
+    connect(benchmarkBtn_, &QPushButton::clicked, this, [this]() {
+        emit benchmarkRequested(benchmarkRepsSpin_->value());
+    });
+
     // --- Experiment controls ---
     QHBoxLayout *expCtrlLayout = new QHBoxLayout;
     expCtrlLayout->addWidget(new QLabel("Test fraction:"));

@@ -44,6 +44,7 @@ private slots:
     void onClassifyDrawn(const std::vector<double>& pixels);
     void onImplementationChanged(int index);
     void onCrossValidate(int k);
+    void onBenchmark(int repetitions);
 
 private:
     void setState(TrainingState state);

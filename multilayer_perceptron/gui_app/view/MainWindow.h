@@ -48,6 +48,7 @@ signals:
     void classifyDrawn(const std::vector<double>& pixels);
     void implementationChanged(int index);
     void crossValidate(int k);
+    void benchmarkRequested(int repetitions);
 
 private:
     void setupUI();
@@ -90,6 +91,10 @@ private:
 
     void rebuildManualFields();
     void fillLinearDistribution();
+
+    QPushButton *benchmarkBtn_;
+    QSpinBox *benchmarkRepsSpin_;    
+
 };
 
 } // namespace mlp
