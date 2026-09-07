@@ -65,41 +65,55 @@ void GraphPerceptron::Forward(const std::vector<double>& input) {
   }
 }
 
+
 void GraphPerceptron::Backward(const std::vector<double>& target) {
-  size_t last = layer_sizes_.size() - 1;
-  std::vector<double> deltas(layer_sizes_[last]);
+    size_t last = layer_sizes_.size() - 1;
+    std::vector<double> deltas(layer_sizes_[last]);
 
-  // Выходной слой
-  for (size_t i = 0; i < deltas.size(); ++i) {
-    double o = layers_[last][i].value;
-    deltas[i] = (o - target[i]) * o * (1.0 - o);
-  }
-
-  // Скрытые слои
-  for (int l = static_cast<int>(last) - 1; l >= 1; --l) {
-    std::vector<double> new_deltas(layer_sizes_[l], 0.0);
-    for (size_t j = 0; j < layers_[l].size(); ++j) {
-      double err = 0.0;
-      for (size_t k = 0; k < layers_[l + 1].size(); ++k) {
-        err += layers_[l + 1][k].input_weights[j] * deltas[k];
-      }
-      new_deltas[j] = err * layers_[l][j].value * (1.0 - layers_[l][j].value);
+    // Выходной слой: delta = (o - target) * sigmoid'(o)
+    for (size_t i = 0; i < deltas.size(); ++i) {
+        double o = layers_[last][i].value;
+        deltas[i] = (o - target[i]) * o * (1.0 - o);
     }
-    deltas.swap(new_deltas);
-  }
 
-  // Накапливаем градиенты
-  for (size_t l = 1; l <= last; ++l) {
-    const auto& prev_act = activations_[l - 1];
-    auto& cur_layer = layers_[l];
-    for (size_t n = 0; n < cur_layer.size(); ++n) {
-      double d = deltas[n];
-      for (size_t w = 0; w < cur_layer[n].input_weights.size(); ++w) {
-        cur_layer[n].weight_gradients[w] += d * prev_act[w];
-      }
-      cur_layer[n].bias_gradient += d;
+    // Накапливаем градиенты для выходного слоя
+    const auto& prev_act_last = activations_[last - 1];
+    auto& out_layer = layers_[last];
+    for (size_t n = 0; n < out_layer.size(); ++n) {
+        double d = deltas[n];
+        for (size_t w = 0; w < out_layer[n].input_weights.size(); ++w) {
+            out_layer[n].weight_gradients[w] += d * prev_act_last[w];
+        }
+        out_layer[n].bias_gradient += d;
     }
-  }
+
+    // Скрытые слои: от last-1 до 1
+    for (int l = static_cast<int>(last) - 1; l >= 1; --l) {
+        std::vector<double> new_deltas(layer_sizes_[l], 0.0);
+        auto& next_layer = layers_[l + 1];
+        auto& cur_layer = layers_[l];
+
+        // Вычисляем дельты для текущего слоя
+        for (size_t j = 0; j < cur_layer.size(); ++j) {
+            double err = 0.0;
+            for (size_t k = 0; k < next_layer.size(); ++k) {
+                err += next_layer[k].input_weights[j] * deltas[k];
+            }
+            new_deltas[j] = err * cur_layer[j].value * (1.0 - cur_layer[j].value);
+        }
+
+        // Накапливаем градиенты для текущего слоя
+        const auto& prev_act = activations_[l - 1];
+        for (size_t n = 0; n < cur_layer.size(); ++n) {
+            double d = new_deltas[n];
+            for (size_t w = 0; w < cur_layer[n].input_weights.size(); ++w) {
+                cur_layer[n].weight_gradients[w] += d * prev_act[w];
+            }
+            cur_layer[n].bias_gradient += d;
+        }
+
+        deltas.swap(new_deltas);   // теперь deltas для следующего (более раннего) слоя
+    }
 }
 
 void GraphPerceptron::UpdateWeights(double learning_rate) {

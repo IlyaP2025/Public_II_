@@ -1,5 +1,5 @@
 # ------------------------------------------------------------
-# Makefile для тестов Multilayer Perceptron (этап матрицы)
+# Makefile для тестов Multilayer Perceptron (этап матрицы + граф)
 # Содержит unit-тесты библиотеки и цели для покрытия кода
 # ------------------------------------------------------------
 
@@ -17,6 +17,7 @@ OBJ_DIR = obj
 
 LIB_SRCS = $(SRC_DIR)/matrix/s21_matrix_oop.cpp \
 	   $(SRC_DIR)/perceptron/matrix_perceptron.cpp \
+	   $(SRC_DIR)/perceptron/graph_perceptron.cpp \
 	   $(SRC_DIR)/data/emnist_loader.cpp \
 	   $(SRC_DIR)/trainer/simple_trainer.cpp
 
@@ -46,7 +47,8 @@ $(OBJ_DIR)/test_%.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(GCOV_FLAGS) $(INCLUDES) -c $< -o $@
 
 gcov: test
-	lcov --capture --directory $(OBJ_DIR) --output-file coverage.info --rc geninfo_auto_base=1
+	lcov --capture --directory $(OBJ_DIR) --output-file coverage.info \
+	    --rc geninfo_auto_base=1 --ignore-errors mismatch,inconsistent
 	lcov --remove coverage.info '/usr/*' '*/tests/*' --output-file coverage_final.info
 	genhtml coverage_final.info --output-directory $(REPORT_DIR)
 	rm -f coverage.info coverage_final.info
