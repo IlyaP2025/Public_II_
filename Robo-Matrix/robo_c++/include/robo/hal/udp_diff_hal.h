@@ -1,7 +1,7 @@
 // #pragma once
 
-#ifndef UDP_DIFF_HAL 
-#define UDP_DIFF_HAL 
+#ifndef UDP_DIFF_HAL_H 
+#define UDP_DIFF_HAL_H 
 
 #include "robo/hal/robot_hal.h"
 
@@ -12,24 +12,29 @@
 
 namespace robo {
 
-// Webots "udp_diff" controller implementation.
+// Реализация контроллера Webots "udp_diff".
 //
-// Wire protocol:
-//   Commands  : UDP -> cmd_host:cmd_port, payload = <float32 linear_x><float32 angular_z>
-//   Telemetry : TCP server on tel_bind_host:tel_bind_port, framed as
-//               <uint32_le payload_len><payload>, where payload is
-//               "WBTG" | 9 * float32 | uint32_le N | N * float32
+// Протокол обмена:
+//   Команды    : UDP -> cmd_host:cmd_port, полезная нагрузка = 
+//                <float32 linear_x><float32 angular_z>
+//   Телеметрия : TCP-сервер на tel_bind_host:tel_bind_port, кадры в формате
+//                <uint32_le payload_len><payload>, где payload — это
+//                "WBTG" | 9 * float32 | uint32_le N | N * float32
+
+
+// Класс наследник RobotHAL, final запрет наследования - класс RoboHAL наследуется только один раз 	
 class UdpDiffHAL final : public RobotHAL {
 public:
-    static constexpr std::size_t kMaxLidarBeams = 720;
-    static constexpr std::size_t kRxBufferSize   = 8192;
+    static constexpr std::size_t kMaxLidarBeams = 720;    // Максимальное число лучей лидара
+    static constexpr std::size_t kRxBufferSize   = 8192;  // размер приёмного буфера, 
+							  // 8 КБ хватит (720 х 4 = 2880 байт + заголовок)
 
     struct Config {
         const char*   cmd_host      = "127.0.0.1";
         std::uint16_t cmd_port      = 5555;
         const char*   tel_bind_host = "0.0.0.0";
         std::uint16_t tel_bind_port = 5600;
-        int           accept_timeout_ms = 200;  // poll() timeout while waiting for a client
+        int           accept_timeout_ms = 200;  // таймаут poll() на время ожидания клиента
     };
 
     explicit UdpDiffHAL(const Config& cfg) noexcept;
@@ -66,5 +71,5 @@ private:
 
 } // namespace robo
 
-#endif // udp_diff_hal
+#endif // udp_diff_hal_h
 
